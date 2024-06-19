@@ -1,185 +1,123 @@
 <x-app-layout>
     @section('content')
-        <div class="px-4 pt-4">
-            <p class="font-medium text-emerald-500 text-lg">Chart Of Accounts</p>
-            <div class="mb-4">
-                <input type="text" id="search-input" class="form-input block w-full mt-1" placeholder="Cari Nama Akun COA" oninput="searchTable()">
-            </div>
-        </div>
-        <div class="card bg-gray-50 rounded-xl border border-zinc-200">
-            <div class="card-body">
-                <table class="w-full" id="coaTable">
-                    <thead>
-                        <tr>
-                            <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortTableByColumn('nomor_akun')">
-                                <div class="flex items-center">
-                                    Nomer Akun
-                                    <span class="ml-2">
-                                        <img src="{{ asset('images/icons/ic-sort.svg') }}" class="w-4 h-4 sort-icon" data-sort="none">
-                                    </span>
-                                </div>
-                            </th>
-                            <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                                <div class="flex items-center">
-                                    Nama Akun
-                                    <span class="ml-2">
-                                        <img src="{{ asset('images/icons/ic-sort.svg') }}" class="w-4 h-4 sort-icon" data-sort="none">
-                                    </span>
-                                </div>
-                            </th>
-                            <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                                <div class="flex items-center">
-                                    Level Akun
-                                    <span class="ml-2">
-                                        <img src="{{ asset('images/icons/ic-sort.svg') }}" class="w-4 h-4 sort-icon" data-sort="none">
-                                    </span>
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="coaTableBody">
-                    </tbody>
-                </table>
-                <div class="pagination flex justify-center p-4 space-x-2">
-                    <button class="prev bg-emerald-600 text-white py-1 px-3 rounded" onclick="prevPage()">Previous</button>
-                    <div id="pageNumbers" class="flex space-x-2"></div>
-                    <button class="next bg-emerald-600 text-white py-1 px-3 rounded" onclick="nextPage()">Next</button>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-12 col-xl-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="card-header">
+                                <h5 style="color: #34d49c"><b>Chart Of Accounts</b> <button data-bs-toggle="modal" 
+                                    data-bs-target="#modal" class="bg-customGreen text-white py-2 px-4 rounded-lg shadow-none hover:bg-green-500 transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-300" style="background-color: #34d49c;">
+                                    Tambah Coa</button></h5>
+                            </div>
+                            <div class="card-body">
+                                <table id="table" class="table table-borderless" style="width: 100%; font-size: 12px;">
+                                    <thead>
+                                        <tr>
+                                            <th>No</th>
+                                            <th>Nomor Akun</th>
+                                            <th>Nama Akun</th>
+                                            <th>Level</th>
+                                            <th>Saldo Normal</th>
+                                            <th>Option</th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th>No</th>
+                                            <th>Nomor Akun</th>
+                                            <th>Nama Akun</th>
+                                            <th>Level</th>
+                                            <th>Saldo Normal</th>
+                                            <th>Option</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    @endsection
-    @push('script')
-        <script type="module">
-            let currentPage = 1;
-            const rowsPerPage = 11;
-            const tableBody = document.getElementById('coaTableBody');
-            let totalRows = 0;
-            let totalPage = 0;
-            const pageNumbers = document.getElementById('pageNumbers');
-            let sortDirection = 'asc';
-            let filter = 'all';
-            let searchInput = document.getElementById('search-input');
-            const overlay = document.getElementById('overlay');
-
-
-            async function fetchCoaData() {
-                overlay.style.display = 'flex';
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                try {
-                    const response = await fetch('/api/coas');
-                    const data = await response.json();
-                    renderCoaTable(data);
-                    overlay.style.display = 'none';
-                } catch (error) {
-                    console.error('Error fetching COA data:', error);
-                    overlay.style.display = 'none';
-                }
-            }
-
-            function renderCoaTable(data) {
-                tableBody.innerHTML = '';
-                data.forEach(coa => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="text-left px-4 py-1">${coa.nomor_akun}</td>
-                        <td class="text-left px-4 py-1">${coa.nama_akun}</td>
-                        <td class="text-left px-4 py-1">${coa.level}</td>
-                    `;
-                    row.addEventListener('mouseover', function() {
-                        this.classList.add('hover:bg-gray-100');
-                    });
-                    row.addEventListener('mouseout', function() {
-                        this.classList.remove('hover:bg-gray-100');
-                    });
-                    tableBody.appendChild(row);
+        <div class="modal fade" id="modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="background-color: #34d49c;">
+                        <h4 class="modal-title" style="color: white">Add Chart Of Accounts</h4>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body modal-container">
+                        <div class="container">
+                            <form id="form" method="post" accept-charset="utf-8" autocomplete="off">
+                                @csrf
+                                <input type="hidden" name="id" id="id">
+                                <div class="form-group row">
+                                    <label for="Nomor Akun" class="col-xl-4 col-form-label">Nomor Akun</label>
+                                    <div class="col-xl-6">
+                                       <input for="Nomor Akun" id="nomor_akun" name="nomor_akun" class="form-control" aria-placeholder="Nomor Akun" title="Nomor Akun" required></input>
+                                    </div>
+                                </div>
+                                <div class="form-group row" style="margin-top:10px;">
+                                    <label for="Nama Akun" class="col-xl-4 col-form-label">Nama Akun</label>
+                                    <div class="col-xl-6">
+                                       <input for="Nama Akun" id="nama_akun" name="nama_akun" class="form-control" aria-placeholder="Nama Akun" title="Nama Akun" required></input>
+                                    </div>
+                                </div>
+                                <button id="save" type="submit" hidden></button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" onclick="$('#save').click()" class="btn btn-primary">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+        <link href="https://cdn.datatables.net/v/dt/dt-2.0.8/datatables.min.css" rel="stylesheet">
+        <script src="https://cdn.datatables.net/v/dt/dt-2.0.8/datatables.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+        <script>
+            $(document).ready(function() {
+                $.ajaxSetup({
+                    headers: {
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                    },
                 });
-                totalRows = data.length;
-                totalPage = Math.ceil(totalRows / rowsPerPage);
-                setupPagination();
-            }
 
-            function prevPage() {
-                if (currentPage > 1) {
-                    currentPage--;
-                    changePage(currentPage);
-                }
-            }
+                let table;
+                table = $('#table').DataTable({
+                    serverside: true,
+                    ajax:{
+                        type:"get",
+                        url: '{{ route("listCoa") }}',
+                    },
+                    language:{
+                        zeroRecords: "<center> No Data Available </center>",
+                    },
+                    responsive: "true",
+                })
 
-            function nextPage() {
-                if (currentPage < totalPage) {
-                    currentPage++;
-                    changePage(currentPage);
-                }
-            }
+                $('#form').submit(function(event) {
+                    event.preventDefault();
+                    if(confirm("Apakah anda yakin dengan data yang anda input ?")) {
+                        var id = $('#id').val();
+                        if(id) {
+                            var url = "";
+                        }else{
+                            var url = "";
+                        }
 
-            function changePage(page) {
-                currentPage = page;
-                document.querySelectorAll('.page-number').forEach(el => el.classList.remove('bg-emerald-600', 'text-gray-600'));
-                document.getElementById('page-' + page).classList.add('bg-emerald-600', 'text-gray-600');
+                        $.post(url,$(this).serialize()).done((res,status,xhr)=> {
 
-                const start = (page - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-
-                Array.from(tableBody.children).forEach((row, index) => {
-                    row.style.display = (index >= start && index < end) ? '' : 'none';
-                });
-            }
-
-            function setupPagination() {
-                pageNumbers.innerHTML = '';
-                for (let i = 1; i <= totalPage; i++) {
-                    const pageButton = document.createElement('button');
-                    pageButton.id = 'page-' + i;
-                    pageButton.className = 'page-number py-1 px-3 rounded';
-                    pageButton.textContent = i;
-                    pageButton.onclick = () => changePage(i);
-                    pageNumbers.appendChild(pageButton);
-                }
-                changePage(1);
-            }
-
-            function sortTableByColumn(column) {
-                const columnIndex = column === 'nomor_akun' ? 0 : column === 'nama_akun' ? 1 : 2;
-                Array.from(tableBody.children).sort((a, b) => {
-                    const cellA = a.children[columnIndex].textContent;
-                    const cellB = b.children[columnIndex].textContent;
-
-                    if (sortDirection === 'asc') {
-                        if (cellA < cellB) return -1;
-                        if (cellA > cellB) return 1;
-                    } else {
-                        if (cellA > cellB) return -1;
-                        if (cellA < cellB) return 1;
+                        })
                     }
-                    return 0;
-                });
-
-                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                Array.from(tableBody.children).forEach(row => tableBody.appendChild(row));
-                changePage(1);
-            }
-
-            function filterTable(filterType) {
-                filter = filterType;
-                Array.from(tableBody.children).forEach(row => {
-                    const rowType = row.getAttribute('data-type');
-                    row.style.display = filter === 'all' || rowType === filter ? '' : 'none';
-                });
-                setupPagination();
-            }
-
-            function searchTable() {
-                const searchTerm = searchInput.value.toLowerCase();
-                Array.from(tableBody.children).forEach(row => {
-                    const rowText = row.textContent.toLowerCase();
-                    row.style.display = rowText.includes(searchTerm) ? '' : 'none';
-                });
-                setupPagination();
-            }
-
-            fetchCoaData();
+                })
+            })
         </script>
-    @endpush
+    @endsection
 </x-app-layout>
 
 

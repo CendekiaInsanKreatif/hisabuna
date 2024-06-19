@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Coa extends Model
 {
     use HasFactory;
-
+    protected $table = 'coas';
     protected $fillable = [
         "id",
         "nomor_akun",

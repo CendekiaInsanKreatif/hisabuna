@@ -94,9 +94,9 @@
     @include('layouts.navigation')
     <div class="content p-2" id="content" style="padding-bottom: 64px;">
         @yield('content')
-        <div class="footer bg-emerald-500 text-white text-center p-1 fixed bottom-0 w-full">
+        {{-- <div class="footer bg-emerald-500 text-white text-center p-1 fixed bottom-0 w-full">
             © 2024 Hisabuna. All rights reserved.
-        </div>
+        </div> --}}
     </div>
     <div class="overlay fixed inset-0 bg-black bg-opacity-0" id="overlay" style="display: none; justify-content: center; align-items: center;">
         <img src="{{ asset('images/loading-spinner.gif') }}" height="150" width="150" alt="Loading Spinner">

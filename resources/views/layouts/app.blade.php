@@ -50,11 +50,9 @@
                 margin-left: 20%;
             }
         }
-
         body {
             overflow: hidden;
         }
-
         .overlay {
             position: fixed;
             top: 50%;
@@ -71,7 +69,7 @@
             <img src="{{ asset('images/brand/logo-hisabuna-color.svg') }}" alt="Logo Hisabuna" style="height: 50px; width: 150px;">
         </div>
         <div class="flex-grow-0" style="margin-left: 63px;">
-            <button onclick="toggleSidebar()" class="bg-transparent hover:bg-emerald-500 p-2 rounded w-10">
+            <button id="btnSidebar" class="bg-transparent hover:bg-emerald-500 p-2 rounded w-10">
                 <span id="menuIcon" class="menu-icon">=</span>
             </button>
         </div>
@@ -94,17 +92,33 @@
         </div>
     </div>
     @include('layouts.navigation')
-    <div class="content p-4 mx-auto" id="content" style="padding-bottom: 64px;">
+    <div class="content p-2" id="content" style="padding-bottom: 64px;">
+        @if(session('message'))
+        @php
+            if(session('color') == 'green'){
+                $color = 'emerald';
+            }else{
+                $color = 'red';
+            }
+        @endphp
+            <div id="s_alert" class="alert bg-{{ $color }}-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl ml-auto transition-opacity duration-500 ease-out">
+                {{ session('message') }}
+            </div>
+        @endif
         @yield('content')
-    </div>
-    <div class="footer bg-emerald-500 text-white text-center p-1 fixed bottom-0 w-full">
-        © 2024 Hisabuna. All rights reserved.
+        <div class="footer bg-emerald-500 text-white text-center p-1 fixed bottom-0 w-full flex flex-wrap gap-2">
+            © 2024 Hisabuna. All rights reserved.
+        </div>
     </div>
     <div class="overlay fixed inset-0 bg-black bg-opacity-0" id="overlay" style="display: none; justify-content: center; align-items: center;">
         <img src="{{ asset('images/loading-spinner.gif') }}" height="150" width="150" alt="Loading Spinner">
     </div>
-    <script>
-        function toggleSidebar() {
+    <script type="module">
+        $('#s_alert').fadeOut(2000, function() {
+            $(this).remove();
+        });
+
+        $('#btnSidebar').on('click', function() {
             const sidebar = document.getElementById('sidebar');
             const content = document.getElementById('content');
             const menuIcon = document.getElementById('menuIcon');
@@ -115,7 +129,7 @@
             } else {
                 menuIcon.textContent = '=';
             }
-        }
+        });
 
         function showAlert() {
             document.getElementById('overlay').classList.remove('hidden');

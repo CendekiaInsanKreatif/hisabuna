@@ -1,64 +1,22 @@
 <x-app-layout>
     @section('content')
-    <x-modal name="create.coas" :show="$errors->userDeletion->isNotEmpty()" maxWidth="sm" focusable>
-        <form method="post" action="{{ route('coas.store') }}" class="p-6">
-            @csrf
-            @method('POST')
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ __('Tambah Akun') }}
-            </h2>
-
-            <div class="mt-6">
-                <div class="relative">
-                    <label for="search-dropdown" class="block text-sm font-medium text-gray-700">
-                        {{ __('Pilih Parent Akun') }}
-                    </label>
-                    <div class="mt-1">
-                        <input
-                            type="text"
-                            id="search-dropdown"
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                            placeholder="Cari nomor akun atau nama akun..."
-                        />
-                        <div id="dropdown-options" class="absolute mt-1 w-full bg-white shadow-lg rounded-md z-10 hidden">
-                            <!-- Options will be populated here by jQuery -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-6">
-                <x-input-label for="nomor_akun" value="{{ __('Nomor Akun') }}" class="sr-only" />
-
-                <x-text-input
-                    id="nomor_akun"
-                    name="nomor_akun"
-                    type="text"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Nomor Akun') }}"
-                />
-            </div>
-            <div class="mt-6">
-                <x-input-label for="nama_akun" value="{{ __('Nama Akun') }}" class="sr-only" />
-
-                <x-text-input
-                    id="nama_akun"
-                    name="nama_akun"
-                    type="text"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Nama Akun') }}"
-                />
-            </div>
-
-            <div class="mt-6 flex justify-end space-x-2">
-                <x-primary-button type="submit">
-                    {{ __('Simpan') }}
-                </x-primary-button>
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
-            </div>
-        </form>
-    </x-modal>
+        @php
+            $fields = [
+                [
+                    'name' => 'nomor_akun',
+                    'type' => 'text',
+                    'label' => 'Nomer Akun',
+                    'required' => true,
+                ],
+                [
+                    'name' => 'nama_akun',
+                    'type' => 'text',
+                    'label' => 'Nama Akun',
+                    'required' => true,
+                ],
+            ]
+        @endphp
+        <x-modal :field="$fields" maxWidth="sm" focusable />
         <div class="px-4 pt-4">
             <p class="font-lg text-emerald-500 text-lg">Chart Of Accounts</p>
         </div>
@@ -89,14 +47,14 @@
                         <button id="btn-filter-cari" class="btn bg-gray-200 rounded py-1 p-2">Cari</button>
                     </div>
                     <div class="flex items-center space-x-2 relative bg-gray-100 w-full md:w-auto mt-2 md:mt-0">
-                        <button id="btn-import-coa" class="btn bg-gray-200 rounded py-1 p-2 hover:bg-emerald-500">Import</button>
+                        <button x-data="" x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.import') }}', name: 'coas.import', title: 'Import Akun', type: 'custom' })" class="btn bg-gray-200 rounded py-1 p-2 hover:bg-emerald-500">Import</button>
                         <button id="btn-export-coa" class="btn bg-gray-200 rounded py-1 p-2 hover:bg-emerald-500">Export</button>
                     </div>
                 </div>
                 <div class="flex justify-end w-full md:w-auto mt-2 md:mt-0">
                     <x-primary-button
                         x-data=""
-                        x-on:click.prevent="$dispatch('open-modal', 'create.coas')"
+                        x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.store') }}', name: 'coas.create', title: 'Tambah Akun', type: 'form' })"
                     >{{ __('Tambah Akun') }}</x-primary-button>
                 </div>
             </div>
@@ -136,6 +94,11 @@
                                     </span>
                                 </div>
                             </th>
+                            <th class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
+                                <div class="flex items-center justify-center">
+                                    Action
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="coaTableBody">
@@ -150,147 +113,180 @@
         </div>
     @endsection
     @push('script')
-        <script type="module">
+<script type="module">
+    let currentPage = 1;
+    const rowsPerPage = 11;
+    const tableBody = document.getElementById('coaTableBody');
+    let totalRows = 0;
+    let totalPage = 0;
+    const pageNumbers = document.getElementById('pageNumbers');
+    let sortDirection = 'asc';
+    let filter = 'all';
+    let searchInput = document.getElementById('cari');
+    const overlay = document.getElementById('overlay');
+    let allData = [];
 
+    $('#prevPage').on('click', function() {
+        if (currentPage > 1) {
+            currentPage--;
+            changePage(currentPage);
+        }
+    });
 
-            let currentPage = 1;
-            const rowsPerPage = 11;
-            const tableBody = document.getElementById('coaTableBody');
-            let totalRows = 0;
-            let totalPage = 0;
-            const pageNumbers = document.getElementById('pageNumbers');
-            let sortDirection = 'asc';
-            let filter = 'all';
-            let searchInput = document.getElementById('cari');
-            const overlay = document.getElementById('overlay');
-            let allData = [];
+    $('#nextPage').on('click', function() {
+        if (currentPage < totalPage) {
+            currentPage++;
+            changePage(currentPage);
+        }
+    });
 
-            $('#prevPage').on('click', function() {
-                console.log(currentPage)
-                if (currentPage > 1) {
-                    currentPage--;
-                    changePage(currentPage);
-                }
-            })
+    $('#btn-export-coa').on('click', function() {
+        window.location.href = '{{ route('coas.export') }}';
+    });
 
-            $('#nextPage').on('click', function() {
-                if (currentPage < totalPage) {
-                    currentPage++;
-                    changePage(currentPage);
-                }
-            })
+    $('#btn-filter-semua').on('click', function() {
+        filter = 'all';
+        renderCoaTable(allData);
+        updateFilterButtonStyles($(this));
+    });
 
-            $('#btn-filter-semua').on('click', function() {
-                filter = 'all';
+    $('#btn-filter-neraca').on('click', function() {
+        filter = 'neraca';
+        renderCoaTable(allData);
+        updateFilterButtonStyles($(this));
+    });
+
+    $('#btn-filter-labarugi').on('click', function() {
+        filter = 'labarugi';
+        renderCoaTable(allData);
+        updateFilterButtonStyles($(this));
+    });
+
+    $('#btn-filter-all').on('click', function() {
+        filter = 'all';
+        renderCoaTable(allData);
+        updateFilterButtonStyles($(this));
+    });
+
+    for (let i = 1; i <= 5; i++) {
+        $('#btn-filter-' + i).on('click', function() {
+            let filteredData = allData.filter(coa => coa.level.startsWith(i.toString()));
+            renderCoaTable(filteredData);
+            updateFilterButtonStyles($('#btn-filter-' + i));
+        });
+    }
+
+    $('#btn-filter-cari').on('click', function() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const filteredData = allData.filter(coa => coa.nama_akun.toLowerCase().includes(searchTerm));
+        renderCoaTable(filteredData);
+    });
+
+    function updateFilterButtonStyles(activeButton) {
+        $('.btn-akun').removeClass('bg-emerald-500').addClass('bg-gray-200');
+        $('.btn-level').removeClass('bg-emerald-500').addClass('bg-gray-200');
+        activeButton.removeClass('bg-gray-200').addClass('bg-emerald-500');
+    }
+
+    async function fetchCoaData() {
+        overlay.style.display = 'flex';
+        try {
+            const response = await fetch('/api/coas');
+            const data = await response.json();
+
+            if (Array.isArray(data)) {
+                allData = data;
                 renderCoaTable(allData);
-                updateFilterButtonStyles($(this));
-            })
-
-            $('#btn-filter-neraca').on('click', function() {
-                filter = 'neraca';
-                renderCoaTable(allData);
-                updateFilterButtonStyles($(this));
-            })
-
-            $('#btn-filter-labarugi').on('click', function() {
-                filter = 'labarugi';
-                renderCoaTable(allData);
-                updateFilterButtonStyles($(this));
-            })
-
-            $('#btn-filter-all').on('click', function() {
-                filter = 'all';
-                renderCoaTable(allData);
-                updateFilterButtonStyles($(this));
-            })
-
-            for (let i = 1; i <= 5; i++) {
-                $('#btn-filter-' + i).on('click', function() {
-                    let filteredData = allData.filter(coa => coa.level.startsWith(i.toString()));
-                    renderCoaTable(filteredData);
-                    updateFilterButtonStyles($('#btn-filter-' + i));
-                })
+            } else {
+                console.error('Unexpected data format:', data);
+                alert('Error: Unexpected data format. Please check the data returned from the server.');
             }
+        } catch (error) {
+            console.error('Error fetching COA data:', error);
+            alert('Error fetching COA data. Please try again later.');
+        } finally {
+            overlay.style.display = 'none';
+        }
+    }
 
-            $('#btn-filter-cari').on('click', function() {
-                const searchTerm = searchInput.value.toLowerCase();
-                const filteredData = allData.filter(coa => coa.nama_akun.toLowerCase().includes(searchTerm));
-                renderCoaTable(filteredData);
+    function renderCoaTable(data) {
+        if (!Array.isArray(data)) {
+            console.error('Data is not an array:', data);
+            alert('Error: Data is not an array. Please check the data returned from the server.');
+            return;
+        }
+
+        tableBody.innerHTML = '';
+        data.forEach(coa => {
+            const row = document.createElement('tr');
+            let firstNumber = coa.nomor_akun.substring(0, 1);
+            let coaData = JSON.stringify(coa).replace(/"/g, '&quot;');
+            let show = `{{ route('coas.show', ':id') }}`.replace(':id', coa.id);
+            let update = `{{ route('coas.update', ':id') }}`.replace(':id', coa.id);
+            let destroy = `{{ route('coas.destroy', ':id') }}`.replace(':id', coa.id);
+            row.innerHTML = `
+                <td class="text-left px-4 py-1">${coa.nomor_akun}</td>
+                <td class="text-left px-4 py-1">${coa.nama_akun}</td>
+                <td class="text-left px-4 py-1">${coa.level}</td>
+                <td class="text-left px-4 py-1">${coa.saldo_normal}</td>
+                <td class="text-left px-4 py-1 items-center text-center">
+                    <x-primary-button
+                        x-data="{data: ${coaData}}"
+                        x-on:click.prevent="$dispatch('open-modal', { route: '${show}', name: 'coas.show', title: 'Lihat Akun', data: data, type: 'form' })"
+                    >{{ __('View') }}</x-primary-button>
+                    <x-primary-button
+                        x-data="{data: ${coaData}}"
+                        x-on:click.prevent="$dispatch('open-modal', { route: '${update}', name: 'coas.update', title: 'Edit Akun', data: data, method: 'PUT', type: 'form' })"
+                    >{{ __('Edit') }}</x-primary-button>
+                    <x-primary-button
+                        x-data="{data: ${coaData}}"
+                        x-on:click.prevent="$dispatch('open-modal', { route: '${destroy}', name: 'coas.destroy', title: 'Hapus Akun', data: data, method: 'DELETE', type: 'form' })"
+                    >{{ __('Delete') }}</x-primary-button>
+                </td>
+            `;
+            row.addEventListener('mouseover', function() {
+                this.classList.add('hover:bg-gray-100');
             });
-
-            function updateFilterButtonStyles(activeButton) {
-                $('.btn-akun').removeClass('bg-emerald-500').addClass('bg-gray-200');
-                $('.btn-level').removeClass('bg-emerald-500').addClass('bg-gray-200');
-                activeButton.removeClass('bg-gray-200').addClass('bg-emerald-500');
+            row.addEventListener('mouseout', function() {
+                this.classList.remove('hover:bg-gray-100');
+            });
+            if ((filter === 'all' || filter === 'semua') || (filter === 'neraca' && ['1', '2', '3'].includes(firstNumber)) || (filter === 'labarugi' && ['4', '5', '6'].includes(firstNumber))) {
+                tableBody.appendChild(row);
             }
+        });
+        totalRows = data.length;
+        totalPage = Math.ceil(totalRows / rowsPerPage);
+        setupPagination();
+    }
 
-            async function fetchCoaData() {
-                overlay.style.display = 'flex';
-                try {
-                    const response = await fetch('/api/coas');
-                    allData = await response.json();
-                    renderCoaTable(allData);
-                    overlay.style.display = 'none';
-                } catch (error) {
-                    console.error('Error fetching COA data:', error);
-                    overlay.style.display = 'none';
-                }
-            }
+    function changePage(page) {
+        currentPage = page;
+        document.querySelectorAll('.page-number').forEach(el => el.classList.remove('bg-emerald-600', 'text-gray-600'));
+        document.getElementById('page-' + page).classList.add('bg-emerald-600', 'text-gray-600');
 
-            function renderCoaTable(data) {
-                tableBody.innerHTML = '';
-                data.forEach(coa => {
-                    const row = document.createElement('tr');
-                    let firstNumber = coa.nomor_akun.substring(0, 1);
-                    row.innerHTML = `
-                        <td class="text-left px-4 py-1">${coa.nomor_akun}</td>
-                        <td class="text-left px-4 py-1">${coa.nama_akun}</td>
-                        <td class="text-left px-4 py-1">${coa.level}</td>
-                        <td class="text-left px-4 py-1">${coa.saldo_normal}</td>
-                    `;
-                    row.addEventListener('mouseover', function() {
-                        this.classList.add('hover:bg-gray-100');
-                    });
-                    row.addEventListener('mouseout', function() {
-                        this.classList.remove('hover:bg-gray-100');
-                    });
-                    if ((filter === 'all' || filter === 'semua') || (filter === 'neraca' && ['1', '2', '3'].includes(firstNumber)) || (filter === 'labarugi' && ['4', '5', '6'].includes(firstNumber))) {
-                        tableBody.appendChild(row);
-                    }
-                });
-                totalRows = data.length;
-                totalPage = Math.ceil(totalRows / rowsPerPage);
-                setupPagination();
-            }
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
 
-            function changePage(page) {
-                currentPage = page;
-                document.querySelectorAll('.page-number').forEach(el => el.classList.remove('bg-emerald-600', 'text-gray-600'));
-                document.getElementById('page-' + page).classList.add('bg-emerald-600', 'text-gray-600');
+        Array.from(tableBody.children).forEach((row, index) => {
+            row.style.display = (index >= start && index < end) ? '' : 'none';
+        });
+    }
 
-                const start = (page - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
+    function setupPagination() {
+        pageNumbers.innerHTML = '';
+        for (let i = 1; i <= totalPage; i++) {
+            const pageButton = document.createElement('button');
+            pageButton.id = 'page-' + i;
+            pageButton.className = 'page-number py-1 px-3 rounded';
+            pageButton.textContent = i;
+            pageButton.onclick = () => changePage(i);
+            pageNumbers.appendChild(pageButton);
+        }
+        changePage(1);
+    }
 
-                Array.from(tableBody.children).forEach((row, index) => {
-                    row.style.display = (index >= start && index < end) ? '' : 'none';
-                });
-            }
-
-            function setupPagination() {
-                pageNumbers.innerHTML = '';
-                for (let i = 1; i <= totalPage; i++) {
-                    const pageButton = document.createElement('button');
-                    pageButton.id = 'page-' + i;
-                    pageButton.className = 'page-number py-1 px-3 rounded';
-                    pageButton.textContent = i;
-                    pageButton.onclick = () => changePage(i);
-                    pageNumbers.appendChild(pageButton);
-                }
-                changePage(1);
-            }
-
-            fetchCoaData();
-        </script>
-    @endpush
+    fetchCoaData();
+</script>
+@endpush
 </x-app-layout>
 

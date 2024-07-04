@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('coas', function (Blueprint $table) {
             $table->id();
+            $table->string('parent_id')->nullable();
+            $table->string('subchild')->nullable();
             $table->string('nomor_akun')->nullable();
             $table->string('nama_akun')->nullable();
             $table->string('level')->nullable();

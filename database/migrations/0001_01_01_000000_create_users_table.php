@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('profile')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('company_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -35,6 +37,22 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+        Schema::create('companies', function (Blueprint $table) {
+            $table->char('id', 36);
+            $table->string('code')->nullable();
+            $table->string('name');
+            $table->string('desc')->nullable();
+            $table->string('logo')->nullable();
+            $table->enum('is_active', ['1', '0'])->default('1');
+            $table->char('created_by', 36)->nullable();
+            $table->timestamp('created_at')->nullable();
+            $table->char('updated_by', 36)->nullable();
+            $table->timestamp('updated_at')->nullable();
+            $table->char('deleted_by', 36)->nullable();
+            $table->timestamp('deleted_at')->nullable();
+            $table->integer('is_deleted')->nullable();
+        });
     }
 
     /**
@@ -45,5 +63,6 @@ return new class extends Migration
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('companies');
     }
 };

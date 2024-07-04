@@ -37,22 +37,82 @@
         .header {
             height: 64px;
         }
-        @media (min-width: 769px) {
+        /* Base styles for btnProfile and btnSidebar */
+        #btnProfile {
+            display: none;
+        }
+
+        .flex #btnSidebar {
+            margin-left: 40px;
+        }
+
+        /* Small devices (320px and up) */
+        @media (min-width: 320px) {
+            .flex #btnSidebar {
+                margin-left: 40px;
+            }
+        }
+
+        /* Small devices (375px and up) */
+        @media (min-width: 375px) {
+            .flex #btnSidebar {
+                margin-left: 100px;
+            }
+        }
+
+        /* Small devices (425px and up) */
+        @media (min-width: 425px) {
+            .flex #btnSidebar {
+                margin-left: 150px;
+            }
+        }
+
+        /* Medium devices (640px and up) */
+        @media (min-width: 640px) and (max-width: 1023px) {
+            #btnProfile {
+                display: flex;
+            }
+
+            .flex #btnSidebar {
+                margin-left: 90px;
+            }
+        }
+
+        /* Large devices (768px and up) */
+        @media (min-width: 768px) {
             .content.shifted {
                 margin-left: 300px;
             }
+
+            #btnProfile {
+                display: flex;
+            }
+
+            .flex #btnSidebar {
+                margin-left: 90px;
+            }
         }
-        @media (min-width: 1025px) {
+
+        /* Extra large devices (1024px and up) */
+        @media (min-width: 1024px) {
             .sidebar {
                 max-width: 20%;
             }
+
             .content.shifted {
                 margin-left: 20%;
             }
+
+            #btnProfile {
+                display: flex;
+            }
+
+            .flex #btnSidebar {
+                margin-right: 0;
+            }
         }
-        body {
-            overflow: hidden;
-        }
+
+
         .overlay {
             position: fixed;
             top: 50%;
@@ -61,98 +121,112 @@
             z-index: 9999;
             display: none;
         }
+
+        .alert-container {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100%;
+            max-width: 100%;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            padding: 1rem;
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans leading-normal tracking-normal">
-    <div class="header bg-gray-100 text-gray-800 p-4 sticky top-0 flex items-center z-10">
-        <div class="flex-grow-0">
-            <img src="{{ asset('images/brand/logo-hisabuna-color.svg') }}" alt="Logo Hisabuna" style="height: 50px; width: 150px;">
-        </div>
-        <div class="flex-grow-0" style="margin-left: 63px;">
-            <button id="btnSidebar" class="bg-transparent hover:bg-emerald-500 p-2 rounded w-10">
-                <span id="menuIcon" class="menu-icon">=</span>
-            </button>
-        </div>
-        <div class="flex-grow ml-5 flex items-center gap-2">
-            <div class="w-12 h-12 relative rounded-lg overflow-hidden">
-                <img src="{{ asset('images/dummy-company.png') }}" alt="User" class="w-full h-full">
-            </div>
-            <div>
-                <p class="text-xs">PROJECT</p>
-                <p class="text-lg"><b>AL</b></p>
-            </div>
-        </div>
-        <div class="profile flex-grow-0">
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="bg-transparent hover:bg-emerald-500 p-2 rounded w-10">
-                    Logout
-                </button>
-            </form>
-        </div>
-    </div>
-    @include('layouts.navigation')
-    <div class="content p-2" id="content" style="padding-bottom: 64px;">
+<body class="flex flex-col min-h-screen">
+    <main class="flex-grow">
         @if(session('message'))
         @php
-            if(session('color') == 'green'){
-                $color = 'emerald';
-            }else{
-                $color = 'red';
-            }
+            $color = session('color') == 'green' ? 'emerald' : 'red';
         @endphp
-            <div id="s_alert" class="alert bg-{{ $color }}-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl ml-auto transition-opacity duration-500 ease-out">
+        <div class="alert-container">
+            <div id="s_alert" class="alert bg-{{ $color }}-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl transition-opacity duration-500 ease-out">
                 {{ session('message') }}
             </div>
-        @endif
-        @yield('content')
-        <div class="footer bg-emerald-500 text-white text-center p-1 fixed bottom-0 w-full flex flex-wrap gap-2">
-            © 2024 Hisabuna. All rights reserved.
         </div>
+    @endif
+    <div class="header bg-gray-100 text-gray-800 p-4 sticky top-0 flex items-center justify-between z-10">
+        <div class="flex justify-between w-full">
+            <div class="flex items-center space-x-4 sm:space-x-6">
+                <div class="flex-shrink-0">
+                    <img src="{{ asset('images/brand/logo-hisabuna-color.svg') }}" alt="Logo Hisabuna" class="h-9 w-auto">
+                </div>
+
+                <button id="btnSidebar" class="bg-transparent hover:bg-emerald-500 p-2 px-4 rounded">
+                    <span id="menuIcon" class="menu-icon">=</span>
+                </button>
+            </div>
+
+            <div id="btnProfile" class="flex items-center space-x-2">
+                <div>
+                    <p class="text-xs text-center">PROJECT</p>
+                    <p class="text-lg text-center font-bold">AL</p>
+                </div>
+                <div class="w-12 h-12 rounded-full overflow-hidden">
+                    <img src="{{ asset('images/dummy-company.png') }}" alt="User" class="w-full h-full">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    @include('layouts.navigation')
+    <div class="content shifted p-2 w-full md:w-auto" id="content">
+        @yield('content')
     </div>
     <div class="overlay fixed inset-0 bg-black bg-opacity-0" id="overlay" style="display: none; justify-content: center; align-items: center;">
         <img src="{{ asset('images/loading-spinner.gif') }}" height="150" width="150" alt="Loading Spinner">
     </div>
+    </main>
+    <footer class="w-full mt-auto">
+        <div class="footer bg-emerald-500 text-white text-center p-1 w-full">
+            <div class="w-full flex justify-center items-center">
+                © 2024 Hisabuna. All rights reserved.
+            </div>
+        </div>
+    </footer>
     <script type="module">
-        $('#s_alert').fadeOut(2000, function() {
+        $('#s_alert').fadeOut(3000, function() {
             $(this).remove();
         });
 
         $('#btnSidebar').on('click', function() {
-            const sidebar = document.getElementById('sidebar');
-            const content = document.getElementById('content');
-            const menuIcon = document.getElementById('menuIcon');
-            sidebar.classList.toggle('open');
-            content.classList.toggle('shifted');
-            if (sidebar.classList.contains('open')) {
-                menuIcon.textContent = '<';
+            const sidebar = $('#sidebar');
+            const content = $('#content');
+            const menuIcon = $('#menuIcon');
+            sidebar.toggleClass('open');
+            content.toggleClass('shifted');
+            if (sidebar.hasClass('open')) {
+                menuIcon.text('<');
             } else {
-                menuIcon.textContent = '=';
+                menuIcon.text('=');
             }
         });
 
         function showAlert() {
-            document.getElementById('overlay').classList.remove('hidden');
+            $('#overlay').removeClass('hidden');
         }
 
         function closeAlert() {
-            document.getElementById('overlay').classList.add('hidden');
+            $('#overlay').addClass('hidden');
         }
 
         function checkScreenSize() {
-            if (window.innerWidth >= 769) {
-                document.getElementById('sidebar').classList.add('open');
-                document.getElementById('content').classList.add('shifted');
-                document.getElementById('menuIcon').textContent = '<';
+            if ($(window).width() >= 769) {
+                $('#sidebar').addClass('open');
+                $('#content').addClass('shifted');
+                $('#menuIcon').text('<');
             } else {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('content').classList.remove('shifted');
-                document.getElementById('menuIcon').textContent = '=';
+                $('#sidebar').removeClass('open');
+                $('#content').removeClass('shifted');
+                $('#menuIcon').text('=');
             }
         }
 
-        window.addEventListener('resize', checkScreenSize);
-        document.addEventListener('DOMContentLoaded', checkScreenSize);
+        $(window).on('resize', checkScreenSize);
+        $(document).ready(checkScreenSize);
     </script>
     @stack('script')
 </body>

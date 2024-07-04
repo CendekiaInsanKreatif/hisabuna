@@ -9,8 +9,12 @@ class Coa extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'id';
+
     protected $fillable = [
         "id",
+        "parent_id",
+        "subchild",
         "nomor_akun",
         "nama_akun",
         "level",
@@ -23,4 +27,19 @@ class Coa extends Model
         "deleted_at",
         "deleted_by",
     ];
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id', 'id');
+    }
+
+    public function jurnalDetails()
+    {
+        return $this->hasMany(JurnalDetail::class, 'coa_akun', 'nomor_akun');
+    }
+
+    public function saldo()
+    {
+        return $this->hasMany(Saldo::class, 'coa_akun', 'nomor_akun');
+    }
 }

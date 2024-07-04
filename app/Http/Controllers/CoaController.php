@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Coa;
+use App\Models\Saldo;
+use App\Exports\CoaExport;
+use Maatwebsite\Excel\Facades\Excel;
+
 use Illuminate\Http\Request;
 use Validator;
 use Illuminate\Support\Facades\DB;
@@ -48,42 +52,60 @@ class CoaController extends Controller
 
 
         $nama_akun      = $request->nama_akun;
-        if($level == "1") {
-            $golongan = "Aset";
-        }else if($level == "2") {
-            $golongan = "Leabilitas";
-        }else if($level == "3") {
-            $golongan = "Ekuitas";
-        }else if($level == "4") {
-            $golongan = "Pendapatan";
-        }else if($level == "5") {
-            $golongan = "Beban";
-        }else if($level == "6") {
-            $golongan = "Beban Umum";
+
+        switch ($level) {
+            case 1:
+                $golongan = "Aset";
+                $parent_id = null;
+                break;
+            case 2:
+                $golongan = "Liabilitas";
+                $parent_id = substr($nomor_akun, 0, 1);
+                break;
+            case 3:
+                $golongan = "Ekuitas";
+                $parent_id = substr($nomor_akun, 0, 2);
+                break;
+            case 4:
+                $golongan = "Pendapatan";
+                $parent_id = substr($nomor_akun, 0, 3);
+                break;
+            case 5:
+                $golongan = "Beban";
+                $parent_id = substr($nomor_akun, 0, 4);
+                break;
+            default:
+                $golongan = "Beban Umum";
+                $parent_id = substr($nomor_akun, 0, 5);
         }
 
-        $saldo_normal   = "Debit";
+        $saldo_normal = "debit";
 
+        $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
         $data = [
-            'nomor_akun'    => $nomor_akun,
-            'nama_akun'     => $nama_akun,
-            'level'         => $level,
-            'saldo_normal'  => $saldo_normal,
-            'created_at'    => date('Y-m-d H:i:s'),
+            'parent_id'    => $selCoa->id ?? null,
+            'subchild'     => ($selCoa->subchild ?? 0) + 1,
+            'nomor_akun'   => $nomor_akun,
+            'nama_akun'    => $nama_akun,
+            'level'        => $level,
+            'golongan'     => $golongan,
+            'saldo_normal' => $saldo_normal,
+            'created_at'   => now(),
+            'created_by'   => Auth::user()->id,
         ];
 
         $save = Coa::create($data);
         if($save) {
-            $save->update(['updated_at' => null]);
+            Saldo::create([
+                'coa_akun' => $save->nomor_akun,
+                'created_by' => Auth::user()->id,
+            ]);
             return redirect()->route('coas.index')->with('message', 'Berhasil membuat data')->with('color', 'green');
-        }else{
+        } else {
             return redirect()->route('coas.index')->with('message', 'Gagal membuat data')->with('color', 'red');
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Coa $coa)
     {
         $input = $request->all();
@@ -118,26 +140,34 @@ class CoaController extends Controller
         switch ($level) {
             case 1:
                 $golongan = "Aset";
+                $parent_id = null;
                 break;
             case 2:
                 $golongan = "Liabilitas";
+                $parent_id = substr($nomor_akun, 0, 1);
                 break;
             case 3:
                 $golongan = "Ekuitas";
+                $parent_id = substr($nomor_akun, 0, 2);
                 break;
             case 4:
                 $golongan = "Pendapatan";
+                $parent_id = substr($nomor_akun, 0, 3);
                 break;
             case 5:
                 $golongan = "Beban";
+                $parent_id = substr($nomor_akun, 0, 4);
                 break;
             default:
                 $golongan = "Beban Umum";
+                $parent_id = substr($nomor_akun, 0, 5);
         }
 
-        $saldo_normal = "Debit";
+        $saldo_normal = "debit";
 
+        $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
         $data = [
+            'parent_id'    => $selCoa->id ?? null,
             'nomor_akun'   => $nomor_akun,
             'nama_akun'    => $nama_akun,
             'level'        => $level,
@@ -148,11 +178,13 @@ class CoaController extends Controller
         ];
 
         $update = $coa->update($data);
-
         if ($update) {
-            return redirect()->route('coas.index')->with('message', 'Berhasil membuat data')->with('color', 'green');
+            Saldo::where('coa_akun', $nomor_akun)->where('created_by', Auth::user()->id)->update([
+                'coa_akun' => $nomor_akun,
+            ]);
+            return redirect()->route('coas.index')->with('message', 'Berhasil mengubah data')->with('color', 'green');
         } else {
-            return redirect()->route('coas.index')->with('message', 'Gagal membuat data')->with('color', 'red');
+            return redirect()->route('coas.index')->with('message', 'Gagal mengubah data')->with('color', 'red');
         }
     }
 
@@ -187,25 +219,8 @@ class CoaController extends Controller
         return redirect()->route('coas.index')->with('message', 'Berhasil Import data')->with('color', 'green');
     }
 
-    public function export(Request $request)
+    public function export()
     {
-        $coas = Coa::whereNull('is_deleted')->get();
-        $filename = 'coa_export_' . date('Ymd_His') . '.csv';
-        $handle = fopen($filename, 'w');
-        fputcsv($handle, ['Nomor Akun', 'Nama Akun', 'Level', 'Golongan', 'Saldo Normal']);
-
-        foreach ($coas as $coa) {
-            fputcsv($handle, [
-                $coa->nomor_akun,
-                $coa->nama_akun,
-                $coa->level,
-                $coa->golongan,
-                $coa->saldo_normal
-            ]);
-        }
-
-        fclose($handle);
-
-        return response()->download($filename)->deleteFileAfterSend(true);
+        return Excel::download(new CoaExport(), 'coas.xlsx');
     }
 }

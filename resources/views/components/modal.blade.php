@@ -3,6 +3,7 @@
     'field' => [],
     'show' => false,
     'maxWidth' => '2xl',
+    'data' => [],
 ])
 
 @php
@@ -24,6 +25,8 @@ $maxWidth = [
         method: '',
         name: '',
         type: '',
+        isDetail: '',
+        detailCount: 0,
         focusables() {
             let selector = 'a, button, input:not([type=\'hidden\']), textarea, select, details, [tabindex]:not([tabindex=\'-1\'])';
             return [...$el.querySelectorAll(selector)]
@@ -44,7 +47,7 @@ $maxWidth = [
             document.body.classList.remove('overflow-y-hidden');
         }
     })"
-    x-on:open-modal.window="method = $event.detail.method; route = $event.detail.route; data = $event.detail.data; title = $event.detail.title; show = true; name = $event.detail.name; type = $event.detail.type"
+    x-on:open-modal.window="console.log($event.detail); method = $event.detail.method; route = $event.detail.route; data = $event.detail.data; title = $event.detail.title; show = true; name = $event.detail.name; type = $event.detail.type; isDetail = $event.detail.isDetail; detailCount = $event.detail.count;"
     x-on:close-modal.window="show = false"
     x-on:close.stop="show = false"
     x-on:keydown.escape.window="show = false"
@@ -78,13 +81,75 @@ $maxWidth = [
         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
     >
+        <template x-if="type == 'select'">
+            <div x-data="{ search: '' }" class="card bg-white shadow-lg rounded-xl border border-gray-200 p-4">
+                <div class="card-body mt-1 bg-white shadow-md rounded-lg p-1" style="max-height: 300px; position: relative;">
+                    <div class="sticky top-0 bg-white z-10">
+                        <input type="text" placeholder="Cari Akun . . ." x-model="search" class="w-full px-4 py-2 mb-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600">
+                    </div>
+                    <div class="overflow-y-auto" style="max-height: 250px;">
+                        <table class="w-full min-w-full text-sm text-left text-gray-700" id="jurnalDetail">
+                            <thead class="sticky top-0 text-xs text-gray-700 uppercase text-center bg-gray-200">
+                                <tr>
+                                    @php
+                                        foreach ($field as $item) {
+                                            echo '<th class="py-3 px-6">'.$item['label'].'</th>';
+                                        }
+                                    @endphp
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-100 text-center">
+                                @foreach ($data as $item2)
+                                    <tr class="border-b cursor-pointer"
+                                        x-show="Object.values({{ json_encode($item2) }}).join(' ').toLowerCase().includes(search.toLowerCase())"
+                                        x-on:click="
+                                            let obj = { isDetail: isDetail, data: {{ json_encode($item2) }} };
+                                            document.getElementsByName('no_akun[' + isDetail + ']')[0].value = obj.data.nomor_akun;
+                                            document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
+                                            let firstChar = obj.data.nomor_akun.charAt(0);
+                                            let teksDebit, teksKredit, styleDebit, styleKredit;
+                                            if (firstChar === '1') {
+                                                teksDebit = 'Bertambah';
+                                                teksKredit = 'Berkurang';
+                                                styleDebit = 'color: green;';
+                                                styleKredit = 'color: red;';
+                                            } else if (firstChar === '2' || firstChar === '3' || firstChar === '4') {
+                                                teksDebit = 'Berkurang';
+                                                teksKredit = 'Bertambah';
+                                                styleDebit = 'color: red;';
+                                                styleKredit = 'color: green;';
+                                            } else if (firstChar === '5' || firstChar === '6') {
+                                                teksDebit = 'Bertambah';
+                                                teksKredit = 'Berkurang';
+                                                styleDebit = 'color: green;';
+                                                styleKredit = 'color: red;';
+                                            }
+                                            document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
+                                            document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
+                                            $dispatch('close-modal');
+                                        ">
+                                        @foreach ($field as $item)
+                                            <td class="py-2 px-4">
+                                                {{ $item2[$item['name']] }}
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </template>
+
         <template x-if="type == 'custom'">
             <div class="p-6">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Import Excel</h2>
                 <form method="POST" x-bind:action="route" enctype="multipart/form-data">
                     @csrf
                     <input type="file" name="file" id="file-input-button" style="margin-top: 0.25rem; display: block; width: 100%; border: 1px solid #10B981; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); focus:border-color: #10B981; focus:ring: 0.5rem; focus:ring-color: #A7F3D0; focus:ring-opacity: 0.5;">
-                    <div class="mt-6 flex justify-end space-x-2">
+                    <div class="mt-4 flex justify-end space-x-2">
                         <x-primary-button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded">
                             <span>Import</span>
                         </x-primary-button>
@@ -99,30 +164,94 @@ $maxWidth = [
             <form method="POST" x-bind:action="route" class="p-6">
                 @csrf
                 <input type="hidden" name="_method" x-bind:value="method">
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="title"></h2>
-                <div class="mt-6" x-data="data">
-                    @foreach ($field as $field)
-                        <div class="mt-6">
-                            <x-input-label for="{{ $field['name'] }}" value="{{ __($field['label']) }}" class="sr-only" />
-                            <x-text-input
-                                id="{{ $field['name'] }}"
-                                name="{{ $field['name'] }}"
-                                type="{{ $field['type'] }}"
-                                class="mt-1 block w-3/4"
-                                x-bind:readonly="name.includes('show')"
-                                x-bind:disabled="name.includes('show')"
-                                placeholder="{{ __($field['label']) }}"
-                                x-model="name.includes('create') ? '' : data.{{ $field['name'] }}"
-                            />
+                <h2 class="text-xl font-medium text-gray-900 dark:text-gray-100 text-center" x-text="title"></h2>
+                @if (is_array($field) && count($field) > 0)
+                    <div class="mt-4 flex flex-wrap" x-data="data">
+                        <div class="w-full md:w-1/2 p-2">
+                            @foreach ($field as $index => $item)
+                                @if ($index % 2 == 0)
+                                    <div class="mt-4">
+                                        <label for="{{ $item['name'] }}">{{ __($item['label']) }}</label>
+                                        <x-text-input
+                                            id="{{ $item['name'] }}"
+                                            name="{{ $item['name'] }}"
+                                            type="{{ $item['type'] }}"
+                                            class="mt-1 block w-full"
+                                            x-bind:readonly="name.includes('show')"
+                                            x-bind:disabled="name.includes('show')"
+                                            :placeholder="$item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])"
+                                            x-model="name.includes('create') ? '' : data.{{ $item['name'] }}"
+                                        />
+                                    </div>
+                                @endif
+                            @endforeach
                         </div>
-                    @endforeach
-                </div>
-                <div class="mt-6 flex justify-end space-x-2">
-                    <x-primary-button type="submit" x-show="!name.includes('show')" x-bind:class="name.includes('destroy') ? 'bg-red-500' : 'bg-emerald-500'">
+                        <div class="w-full md:w-1/2 p-2">
+                            @foreach ($field as $index => $item)
+                                @if ($index % 2 != 0)
+                                    <div class="mt-4">
+                                        <label for="{{ $item['name'] }}">{{ __($item['label']) }}</label>
+                                        <x-text-input
+                                            id="{{ $item['name'] }}"
+                                            name="{{ $item['name'] }}"
+                                            type="{{ $item['type'] }}"
+                                            class="mt-1 block w-full"
+                                            x-bind:readonly="name.includes('show')"
+                                            x-bind:disabled="name.includes('show')"
+                                            placeholder="{{ __($item['label']) }}"
+                                            x-model="name.includes('create') ? '' : data.{{ $item['name'] }}"
+                                        />
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                    <template x-if="name.includes('jurnal')">
+                        <table class="min-w-full divide-y divide-gray-200 mt-4">
+                            <thead class="bg-gray-50">
+                                @php
+                                    $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit'];
+                                @endphp
+                                @foreach ($header as $item)
+                                    <th scope="col" class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {{ $item }}
+                                    </th>
+                                @endforeach
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200 overflow-y-auto">
+                                <template x-for="(detail, index) in data.details" :key="index">
+                                    <tr>
+                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="detail.coa_akun"></td>
+                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="detail.coa.nama_akun"></td>
+                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="new Intl.NumberFormat('id-ID').format(detail.debit)"></td>
+                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="new Intl.NumberFormat('id-ID').format(detail.credit)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+                @endif
+                <div class="mt-4 flex justify-end space-x-2">
+                    <x-primary-button type="submit" x-show="!name.includes('show')">
                         <span x-text="name.includes('destroy') ? 'Hapus' : 'Simpan'"></span>
                     </x-primary-button>
                     <x-secondary-button x-on:click="$dispatch('close')" class="bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded">
                         {{ __('Cancel') }}
+                    </x-secondary-button>
+                </div>
+            </form>
+        </template>
+        <template x-if="type == 'delete'">
+            <form method="POST" x-bind:action="route" class="p-6">
+                @csrf
+                <input type="hidden" name="_method" x-bind:value="method">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 text-center" x-text="title + ' ?'"></h2>
+                <div class="mt-4 flex justify-center space-x-2">
+                    <x-primary-button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded">
+                        {{ __('Yes') }}
+                    </x-primary-button>
+                    <x-secondary-button x-on:click="$dispatch('close')" class="bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-3 px-6 rounded">
+                        {{ __('No') }}
                     </x-secondary-button>
                 </div>
             </form>

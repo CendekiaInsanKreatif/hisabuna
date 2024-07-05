@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Coa;
 use App\Models\Saldo;
 use App\Exports\CoaExport;
+use App\Imports\CoaImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 use Illuminate\Http\Request;
@@ -55,27 +56,27 @@ class CoaController extends Controller
 
         switch ($level) {
             case 1:
-                $golongan = "Aset";
+                // $golongan = "Aset";
                 $parent_id = null;
                 break;
             case 2:
-                $golongan = "Liabilitas";
+                // $golongan = "Liabilitas";
                 $parent_id = substr($nomor_akun, 0, 1);
                 break;
             case 3:
-                $golongan = "Ekuitas";
+                // $golongan = "Ekuitas";
                 $parent_id = substr($nomor_akun, 0, 2);
                 break;
             case 4:
-                $golongan = "Pendapatan";
+                // $golongan = "Pendapatan";
                 $parent_id = substr($nomor_akun, 0, 3);
                 break;
             case 5:
-                $golongan = "Beban";
+                // $golongan = "Beban";
                 $parent_id = substr($nomor_akun, 0, 4);
                 break;
             default:
-                $golongan = "Beban Umum";
+                // $golongan = "Beban Umum";
                 $parent_id = substr($nomor_akun, 0, 5);
         }
 
@@ -88,7 +89,7 @@ class CoaController extends Controller
             'nomor_akun'   => $nomor_akun,
             'nama_akun'    => $nama_akun,
             'level'        => $level,
-            'golongan'     => $golongan,
+            // 'golongan'     => $golongan,
             'saldo_normal' => $saldo_normal,
             'created_at'   => now(),
             'created_by'   => Auth::user()->id,
@@ -216,7 +217,13 @@ class CoaController extends Controller
 
     public function import(Request $request)
     {
-        return redirect()->route('coas.index')->with('message', 'Berhasil Import data')->with('color', 'green');
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx',
+        ]);
+
+        Excel::import(new CoaImport, $request->file('file'));
+
+        return redirect()->back()->with('message', 'Data Coa berhasil diimpor')->with('color', 'green');
     }
 
     public function export()

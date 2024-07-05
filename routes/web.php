@@ -22,7 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('jurnal', JurnalController::class);
     Route::post('coas/import', [CoaController::class, 'import'])->name('coas.import');
     Route::post('coas/export', [CoaController::class, 'export'])->name('coas.export');
-    
+
     Route::post('jurnal/import', [JurnalController::class, 'import'])->name('jurnal.import');
     Route::post('jurnal/sample/export', [JurnalController::class, 'sampleExport'])->name('jurnal.sample.export');
 
@@ -31,10 +31,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::prefix('report')->group(function () {
+        Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
+        Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
         Route::get('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neraca-saldo');
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neraca-perbandingan');
-        Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
     });
 
     Route::prefix('api')->group(function () {

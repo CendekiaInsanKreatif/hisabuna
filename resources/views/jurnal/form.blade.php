@@ -41,15 +41,15 @@
                     </button>
                 </form>
             </div>
+            <form action="{{ route('jurnal.update', $jurnal->id) }}" method="post">
+                @csrf
+                @method('PUT')
             <div class="mb-6 flex justify-between items-center">
                 <p class="text-2xl font-semibold text-emerald-500">Edit Jurnal</p>
-                <form action="{{ route('jurnal.update', $jurnal->id) }}" method="post">
-                    @csrf
-                    @method('PUT')
                     <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
                         Simpan Jurnal
                     </button>
-                </form>
+
             </div>
             <div class="card bg-white shadow-lg rounded-xl border border-gray-200 p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2">
@@ -57,7 +57,7 @@
                     <div class="col-span-1">
                         <label for="{{ $item }}" class="block text-sm font-medium text-gray-700">{{ ucwords(str_replace('_', ' ', $item)) }}</label>
                         @if ($item == 'keterangan')
-                            <textarea name="{{ $item }}" id="{{ $item }}" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">{{ $jurnal->$item }}</textarea>
+                            <textarea name="{{ $item }}_header" id="{{ $item }}" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">{{ $jurnal->$item }}</textarea>
                         @elseif ($item == 'jenis')
                             <select name="{{ $item }}" id="{{ $item }}" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">
                                 <option value="">Pilih Jenis</option>
@@ -118,6 +118,7 @@
                     </table>
                 </div>
             </div>
+            </form>
         </div>
     </div>
     @else

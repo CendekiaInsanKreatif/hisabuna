@@ -159,14 +159,14 @@
                 </button>
             </div>
 
-            <div id="btnProfile" class="flex items-center space-x-2">
+            <div id="btnProfile" class="flex items-center space-x-2 md:space-x-4">
                 <div>
-                    <p class="text-xs text-center">PROJECT</p>
-                    <p class="text-lg text-center font-bold">AL</p>
+                    <p class="text-lg md:text-xl text-center font-bold">{{ Auth::user()->name }}</p>
+                    <p class="text-xs md:text-sm text-center">{{ Auth::user()->email }}</p>
                 </div>
-                <div class="w-12 h-12 rounded-full overflow-hidden">
-                    <img src="{{ asset('images/dummy-company.png') }}" alt="User" class="w-full h-full">
-                </div>
+                <a href="{{ route('profile.edit') }}" class="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden hover:scale-110 transition-transform duration-300">
+                    <img src="{{ asset('images/dummy-company.png') }}" alt="User" class="w-full h-full object-cover">
+                </a>
             </div>
         </div>
     </div>

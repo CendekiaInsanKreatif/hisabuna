@@ -16,7 +16,7 @@
             </div>
             <div class="flex items-end">
                 <x-primary-button class="h-10">Tampilkan</x-primary-button>
-                <button type="button" onclick="printLedger()" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Cetak</button>
+                <a href="{{ route('report.bukubesar.download') }}" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Download</a>
             </div>
         </div>
     </form>

@@ -19,7 +19,10 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'profile',
         'password',
+        'company_id',
+        'roles',
     ];
 
     /**
@@ -43,5 +46,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Mendapatkan relasi ke model Company.
+     */
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 }

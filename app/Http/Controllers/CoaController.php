@@ -36,8 +36,14 @@ class CoaController extends Controller
             'nama_akun'     => 'required|string',
         ]);
 
+        $check = Coa::where('nomor_akun', $request->nomor_akun)->where('created_by', Auth::user()->id)->first();
+
         if($validator->fails()){
             return redirect()->route('coas.index')->with('message', 'Validasi Error')->with('color', 'red');
+        }
+
+        if($check){
+            return redirect()->route('coas.index')->with('message', 'Nomor Akun sudah ada')->with('color', 'red');
         }
 
         $nomor_akun     = $request->nomor_akun;
@@ -56,40 +62,38 @@ class CoaController extends Controller
 
         switch ($level) {
             case 1:
-                // $golongan = "Aset";
                 $parent_id = null;
                 break;
             case 2:
-                // $golongan = "Liabilitas";
                 $parent_id = substr($nomor_akun, 0, 1);
                 break;
             case 3:
-                // $golongan = "Ekuitas";
                 $parent_id = substr($nomor_akun, 0, 2);
                 break;
             case 4:
-                // $golongan = "Pendapatan";
                 $parent_id = substr($nomor_akun, 0, 3);
                 break;
             case 5:
-                // $golongan = "Beban";
                 $parent_id = substr($nomor_akun, 0, 4);
                 break;
             default:
-                // $golongan = "Beban Umum";
                 $parent_id = substr($nomor_akun, 0, 5);
         }
 
         $saldo_normal = "debit";
 
         $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
+
+        if(empty($selCoa)){
+            return redirect()->route('coas.index')->with('message', 'Akun Level '.$level.' tidak ditemukan')->with('color', 'red');
+        }
+
         $data = [
             'parent_id'    => $selCoa->id ?? null,
             'subchild'     => ($selCoa->subchild ?? 0) + 1,
             'nomor_akun'   => $nomor_akun,
             'nama_akun'    => $nama_akun,
             'level'        => $level,
-            // 'golongan'     => $golongan,
             'saldo_normal' => $saldo_normal,
             'created_at'   => now(),
             'created_by'   => Auth::user()->id,
@@ -164,8 +168,6 @@ class CoaController extends Controller
                 $parent_id = substr($nomor_akun, 0, 5);
         }
 
-        $saldo_normal = "debit";
-
         $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
         $data = [
             'parent_id'    => $selCoa->id ?? null,
@@ -173,7 +175,7 @@ class CoaController extends Controller
             'nama_akun'    => $nama_akun,
             'level'        => $level,
             'golongan'     => $golongan,
-            'saldo_normal' => $saldo_normal,
+            'saldo_normal' => "debit",
             'updated_at'   => now(),
             'updated_by'   => Auth::user()->id,
         ];
@@ -221,9 +223,96 @@ class CoaController extends Controller
             'file' => 'required|mimes:xls,xlsx',
         ]);
 
-        Excel::import(new CoaImport, $request->file('file'));
+        $path = $request->file('file')->getRealPath();
+        $excel = Excel::toArray(new CoaImport, $request->file('file'))[0];
 
-        return redirect()->back()->with('message', 'Data Coa berhasil diimpor')->with('color', 'green');
+        usort($excel, function ($a, $b) {
+            return strlen($a['no_akun']) <=> strlen($b['no_akun']);
+        });
+
+        foreach ($excel as $key => $value) {
+            $nomor_akun     = $value['no_akun'];
+            $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
+            $jumlah_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
+            if($jumlah_nomor_akun == "6") {
+                $level      = $jumlah_nomor_akun - 1;
+            }else if($jumlah_nomor_akun > "6"){
+                $level      = $jumlah_nomor_akun - 2;
+            }else{
+                $level      = $jumlah_nomor_akun + 0;
+            }
+
+
+            $nama_akun      = $value['nama_akun'];
+
+            switch ($level) {
+                case 1:
+                    $parent_id = null;
+                    break;
+                case 2:
+                    $parent_id = substr($nomor_akun, 0, 1);
+                    break;
+                case 3:
+                    $parent_id = substr($nomor_akun, 0, 2);
+                    break;
+                case 4:
+                    $parent_id = substr($nomor_akun, 0, 3);
+                    break;
+                case 5:
+                    $parent_id = substr($nomor_akun, 0, 4);
+                    break;
+                default:
+                    $parent_id = substr($nomor_akun, 0, 5);
+            }
+
+            $saldo_normal = "debit";
+
+            $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
+
+            $data[] = [
+                'parent_id'    => $selCoa->id ?? null,
+                'subchild'     => ($selCoa->subchild ?? 0) + 1,
+                'nomor_akun'   => $nomor_akun,
+                'nama_akun'    => $nama_akun,
+                'level'        => $level,
+                'saldo_normal' => $saldo_normal,
+                'created_at'   => now(),
+                'created_by'   => Auth::user()->id,
+            ];
+
+            $saldos[] = [
+                'coa_akun' => $nomor_akun,
+                'created_by' => Auth::user()->id,
+                'created_at' => now(),
+                'saldo_awal_debit' => 0,
+                'saldo_awal_kredit' => 0,
+                'current_saldo_debit' => 0,
+                'current_saldo_kredit' => 0,
+                'saldo_akhir_debit' => 0,
+                'saldo_akhir_kredit' => 0,
+                'saldo_total_transaksi_debit' => 0,
+                'saldo_total_transaksi_kredit' => 0,
+            ];
+        }
+
+        $coa = Coa::insert($data);
+        $saldo = Saldo::insert($saldos);
+        if ($coa && $saldo) {
+            Saldo::where('coa_akun', $nomor_akun)->where('created_by', Auth::user()->id)->update(['coa_akun' => $nomor_akun]);
+            $updateCoa = Coa::where('created_by', Auth::user()->id)->get();
+            foreach ($updateCoa as $coa) {
+                $parent_id = $coa->level > 1 ? Coa::where('nomor_akun', substr($coa->nomor_akun, 0, $coa->level - 1))
+                                             ->where('created_by', Auth::user()->id)
+                                             ->value('id') : null;
+                $coa->update([
+                    'parent_id' => $parent_id,
+                    'subchild' => Coa::where('parent_id', $coa->id)->where('created_by', Auth::user()->id)->count()
+                ]);
+            }
+            return redirect()->back()->with('message', 'Data Coa berhasil di import')->with('color', 'green');
+        } else {
+            return redirect()->back()->with('message', 'Data Coa gagal di import')->with('color', 'red');
+        }
     }
 
     public function export()

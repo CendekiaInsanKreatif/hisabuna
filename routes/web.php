@@ -31,11 +31,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::prefix('report')->group(function () {
+        Route::get('daftarjurnal', [ReportController::class, 'daftarJurnal'])->name('report.daftarjurnal');
+        Route::get('transaksi/{id}', [ReportController::class, 'transaksi'])->name('report.transaksi');
         Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
+        Route::get('bukubesar/download', [ReportController::class, 'downloadBukuBesar'])->name('report.bukubesar.download');
         Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
         Route::get('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
-        Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neraca-saldo');
-        Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neraca-perbandingan');
+        Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
+        Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
     });
 
     Route::prefix('api')->group(function () {
@@ -53,6 +56,21 @@ Route::middleware('auth')->group(function () {
             return response()->json($jurnal);
         });
     });
+
+
+
+    Route::prefix('view')->group(function () {
+        Route::get('daftarjurnal', function () {
+            $jurnal = Jurnal::with('details')->where('created_by', auth()->user()->id)->get();
+
+            return view('report.daftarjurnal', compact('jurnal'));
+        });
+
+        Route::get('transaksi', function () {
+            return view('report.transaksi');
+        });
+    });
+
 });
 
 require __DIR__.'/auth.php';

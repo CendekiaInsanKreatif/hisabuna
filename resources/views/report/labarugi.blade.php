@@ -1,44 +1,71 @@
-<x-app-layout>
-    @section('content')
-    <div class="container mx-auto mt-5">
-        <h1>Laporan Laba Rugi</h1>
-        <form method="GET" action="{{ route('report.labarugi') }}">
-            <div class="form-group">
-                <label for="tanggal_mulai">Tanggal Mulai:</label>
-                <input type="date" id="tanggal_mulai" name="tanggal_mulai" value="{{ $tanggalMulai }}" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="tanggal_selesai">Tanggal Selesai:</label>
-                <input type="date" id="tanggal_selesai" name="tanggal_selesai" value="{{ $tanggalSelesai }}" class="form-control">
-            </div>
-            <button type="submit" class="btn btn-primary mt-3">Tampilkan</button>
-        </form>
-
-        <div class="mt-5">
-            <h2>Periode: {{ $tanggalMulai }} - {{ $tanggalSelesai }}</h2>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Deskripsi</th>
-                        <th>Jumlah</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Pendapatan</td>
-                        <td>{{ number_format($pendapatan, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td>Beban</td>
-                        <td>{{ number_format($beban, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <th>Laba Rugi</th>
-                        <th>{{ number_format($labaRugi, 2) }}</th>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    @endsection
-</x-app-layout>
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            color: #333;
+            font-size: 12px;
+        }
+        h2 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            background-color: #f9f9f9;
+        }
+        th, td {
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .total {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<h2>Laporan Laba Rugi</h2>
+@foreach ($data as $category => $details)
+<table>
+        <h3 style="padding: 0; margin: 0;">{{ $category }}</h3>
+        @foreach ($details['Detail'] as $item => $amount)
+            <tr>
+                <td>&nbsp;&nbsp;&nbsp;{{ $item }}</td>
+                <td style="text-align: right;">{{ number_format($amount, 0, ',', '.') }}</td>
+            </tr>
+        @endforeach
+        <tr class="total">
+            <td>Total {{ $category }}</td>
+            <td style="text-align: right;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
+        </tr>
+    </table>
+@endforeach
+<table>
+    <tr class="total">
+        <td>Saldo Laba (Rugi) Tahun Berjalan</td>
+        <td style="text-align: right;">{{ number_format($labaRugiBersih, 0, ',', '.') }}</td>
+    </tr>
+</table>
+<table style="width: 100%; margin-top: 70px; border-top: 1px solid black; padding-top: 20px;">
+    <tr>
+        <td style="text-align: center; width: 35%;">
+            <div>Dibuat oleh,</div>
+            <div style="height: 80px;"></div>
+            <div><strong>Staff Keuangan</strong></div>
+        </td>
+        <td style="width: 10%;"></td>
+        <td style="width: 10%;"></td>
+        <td style="width: 10%;"></td>
+        <td style="text-align: center; width: 35%;">
+            <div>Disetujui oleh,</div>
+            <div style="height: 80px;"></div>
+            <div><strong>Manager Keuangan</strong></div>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

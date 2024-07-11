@@ -32,7 +32,7 @@ class JurnalController extends Controller
      */
     public function create()
     {
-        $coa = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get()->toArray();
+        $coa = Coa::whereNull('is_deleted')->where('level', 5)->where('created_by', auth()->user()->id)->get()->toArray();
         return view('jurnal.form', compact('coa'));
     }
 
@@ -42,7 +42,16 @@ class JurnalController extends Controller
         try {
             $input = $request->all();
 
-            if(array_sum($input['debit']) != array_sum($input['kredit'])){
+            $debit = array_map(function($x) {
+                return (int) str_replace('.', '', $x);
+            }, $input['debit']);
+            $kredit = array_map(function($x) {
+                return (int) str_replace('.', '', $x);
+            }, $input['kredit']);
+            $sumDebit = array_sum($debit);
+            $sumKredit = array_sum($kredit);
+
+            if($sumDebit != $sumKredit || $sumDebit - $sumKredit != 0){
                 return redirect()->route('jurnal.index')->with('message', 'Debit tidak sama dengan kredit.')->with('color', 'red');
             }
 
@@ -57,9 +66,10 @@ class JurnalController extends Controller
 
             $dataJurnal = Jurnal::create([
                 'jenis' => strtoupper($input['jenis']),
+                'no_urut_transaksi' => $jurnal->count() + 1,
                 'no_transaksi' => $input['no_transaksi'],
                 'jurnal_tgl' => now(),
-                'subtotal' => array_sum($input['debit']),
+                'subtotal' => $sumDebit,
                 'keterangan' => $input['keterangan_header'],
                 'created_by' => Auth::user()->id,
                 'created_at' => now()
@@ -67,10 +77,13 @@ class JurnalController extends Controller
 
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {
-                $saldo = Saldo::where('coa_akun', $noAkun)->first();
+                $saldo = Saldo::where(['coa_akun' => $noAkun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->first();
 
-                $debit = (int)$input['debit'][$index];
-                $kredit = (int)$input['kredit'][$index];
+                $db = str_replace('.', '', $input['debit'][$index]);
+                $kr = str_replace('.', '', $input['kredit'][$index]);
+
+                $debit = (int) $db;
+                $kredit = (int) $kr;
 
                 $saldo_awal_debit = $saldo->current_saldo_debit ?: $saldo->saldo_awal_debit;
                 $saldo_awal_kredit = $saldo->current_saldo_kredit ?: $saldo->saldo_awal_kredit;
@@ -78,7 +91,7 @@ class JurnalController extends Controller
                 $current_debit = $saldo_awal_debit + $debit - $kredit;
                 $current_credit = $saldo_awal_kredit + $kredit - $debit;
 
-                $saldo->where('coa_akun', $input['no_akun'][$index])->update([
+                $saldo->where(['coa_akun' => $input['no_akun'][$index], 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->update([
                     'periode_saldo' => date('Y'),
                     'saldo_awal_debit' => $saldo_awal_debit,
                     'saldo_awal_kredit' => $saldo_awal_kredit,
@@ -137,13 +150,22 @@ class JurnalController extends Controller
      */
     public function update(Request $request, Jurnal $jurnal)
     {
+        $debit = array_map(function($x) {
+            return (int) str_replace('.', '', $x);
+        }, $request['debit']);
+        $kredit = array_map(function($x) {
+            return (int) str_replace('.', '', $x);
+        }, $request['kredit']);
+        $sumDebit = array_sum($debit);
+        $sumKredit = array_sum($kredit);
+
+        if($sumDebit != $sumKredit || $sumDebit - $sumKredit != 0){
+            return redirect()->route('jurnal.index')->with('message', 'Debit tidak sama dengan kredit.')->with('color', 'red');
+        }
+
         DB::beginTransaction();
         try {
             $input = $request->all();
-
-            if(array_sum($input['debit']) != array_sum($input['kredit'])){
-                return redirect()->route('jurnal.edit', $jurnal)->with('message', 'Debit tidak sama dengan kredit.')->with('color', 'red');
-            }
 
             $existingJournals = Jurnal::whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
@@ -168,7 +190,7 @@ class JurnalController extends Controller
 
             $deletedDetails = JurnalDetail::where('jurnal_id', $jurnal->id)->get();
             foreach ($deletedDetails as $detail) {
-                $saldo = Saldo::where('coa_akun', $detail->coa_akun)->first();
+                $saldo = Saldo::where(['coa_akun' => $detail->coa_akun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->first();
 
                 $saldo_awal_debit = $saldo->current_saldo_debit ?: $saldo->saldo_awal_debit;
                 $saldo_awal_kredit = $saldo->current_saldo_kredit ?: $saldo->saldo_awal_kredit;
@@ -176,7 +198,7 @@ class JurnalController extends Controller
                 $current_debit = $saldo_awal_debit - $detail->debit;
                 $current_credit = $saldo_awal_kredit - $detail->credit;
 
-                $saldo->where('coa_akun', $detail->coa_akun)->update([
+                $saldo->where(['coa_akun' => $detail->coa_akun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->update([
                     'periode_saldo' => date('Y'),
                     'saldo_awal_debit' => $saldo_awal_debit,
                     'saldo_awal_kredit' => $saldo_awal_kredit,
@@ -192,10 +214,10 @@ class JurnalController extends Controller
 
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {
-                $saldo = Saldo::where('coa_akun', $noAkun)->first();
+                $saldo = Saldo::where(['coa_akun' => $noAkun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->first();
 
-                $debit = (int)$input['debit'][$index];
-                $kredit = (int)$input['kredit'][$index];
+                $debit = $input['debit'][$index];
+                $kredit = $input['kredit'][$index];
 
                 $saldo_awal_debit = $saldo->current_saldo_debit ?: $saldo->saldo_awal_debit;
                 $saldo_awal_kredit = $saldo->current_saldo_kredit ?: $saldo->saldo_awal_kredit;
@@ -203,7 +225,7 @@ class JurnalController extends Controller
                 $current_debit = $saldo_awal_debit + $debit - $kredit;
                 $current_credit = $saldo_awal_kredit + $kredit - $debit;
 
-                $saldo->where('coa_akun', $noAkun)->update([
+                $saldo->where(['coa_akun' => $noAkun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->update([
                     'periode_saldo' => date('Y'),
                     'saldo_awal_debit' => $saldo_awal_debit,
                     'saldo_awal_kredit' => $saldo_awal_kredit,

@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
+use App\Models\Company;
+
 
 class ProfileController extends Controller
 {
@@ -16,8 +19,9 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $user = $request->user()->load('company');
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
         ]);
     }
 
@@ -26,16 +30,54 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        da($request->all());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $validatedData = $request->validated();
+        $data = $request->all();
+
+        if ($request->hasFile('profile')) {
+            $profileImage = $request->file('profile');
+            $profileImageName = $user->id . '.' . $profileImage->getClientOriginalExtension();
+            $profileImagePath = $profileImage->storeAs('profiles', $profileImageName, 'public');
+            $data['profile'] = $profileImagePath;
         }
 
-        $request->user()->save();
+        $user->fill([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'profile' => $data['profile'] ?? $user->profile,
+        ]);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        if ($user->company) {
+            $user->company->update([
+                'name' => $data['company_name'],
+                'desc' => $data['company_desc'],
+                'logo' => $data['logo'] ?? $user->company->logo,
+            ]);
+        } else {
+            $company = Company::create([
+                'name' => $data['company_name'],
+                'desc' => $data['company_desc'],
+                'logo' => $data['logo'],
+            ]);
+
+            $user->company_id = $company->id;
+            $user->save();
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
+
+
+
+
 
     /**
      * Delete the user's account.

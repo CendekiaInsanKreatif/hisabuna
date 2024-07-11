@@ -37,8 +37,7 @@
                                 </svg>
                             </div>
                         </div>
-                        {{-- <button @click="searchJurnalTable" class="btn bg-gray-200 rounded py-1 px-4 hover:bg-emerald-500 transition duration-300">Cari</button> --}}
-                        <button @click="exportJurnalTable" class="btn bg-gray-200 rounded py-1 px-4 hover:bg-emerald-500 transition duration-300">Download Jurnal</button>
+                        <a href="{{ route('report.daftarjurnal') }}" class="btn bg-gray-200 rounded py-1 px-4 hover:bg-emerald-500 transition duration-300">Daftar Jurnal</a>
                     </div>
                     <a class="py-2 px-4 inline-flex items-center justify-center bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong" href="{{ route('jurnal.create') }}">Tambah Jurnal</a>
                 </div>
@@ -47,17 +46,17 @@
                     <table class="w-full min-w-full" id="jurnalTable">
                         <thead>
                             <tr>
-                                <th class="bg-gray-100 px-2 py-1 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
-                                        Nomor Transaksi
+                                        Jenis
                                         <span class="ml-2">
                                             <img src="{{ asset('images/icons/ic-sort.svg') }}" class="w-4 h-4 sort-icon" data-sort="none">
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-2 py-1 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
-                                        Jenis
+                                        Nomor Jurnal
                                         <span class="ml-2">
                                             <img src="{{ asset('images/icons/ic-sort.svg') }}" class="w-4 h-4 sort-icon" data-sort="none">
                                         </span>
@@ -95,6 +94,7 @@
                                     <td class="text-left text-sm font-sans px-2 py-1 break-words" x-text="jurnal.keterangan"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1 flex items-center justify-center">
                                         <div class="inline-flex flex-col md:flex-row gap-1">
+                                            <a :href="`{{ route('report.transaksi', '') }}/${jurnal.id}`" class="btn bg-gray-200 rounded py-1 px-4 hover:bg-emerald-500 transition duration-300">Print</a>
                                             <x-primary-button class="w-full md:w-auto"
                                                 x-data="{data: jurnal}"
                                                 x-on:click.prevent="$dispatch('open-modal', { route: `{{ route('jurnal.show', '') }}/${jurnal.id}`, name: 'jurnal.show', title: 'Lihat Jurnal', data: jurnal, type: 'form' })"
@@ -127,7 +127,7 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('jurnalTable', () => ({
                 currentPage: 1,
-                rowsPerPage: 5,
+                rowsPerPage: 10,
                 totalRows: 0,
                 totalPage: 0,
                 sortDirection: 'asc',
@@ -196,9 +196,7 @@
                         return matchesCategory && matchesSearch;
                     });
                 },
-                exportJurnalTable() {
-                    console.log('fafa')
-                },
+
                 init() {
                     this.fetchJurnalData();
                 }

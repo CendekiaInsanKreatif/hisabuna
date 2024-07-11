@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
         Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
         Route::get('bukubesar/download', [ReportController::class, 'downloadBukuBesar'])->name('report.bukubesar.download');
         Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
+        Route::get('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.perubahanekuitas');
         Route::get('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');

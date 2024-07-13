@@ -191,115 +191,125 @@ class ReportController extends Controller
         $tahunSebelumnya = date('Y') - 1;
         $tahunSekarang = date('Y');
 
-        $jurnal = Jurnal::whereNull('is_deleted')
+        $jurnalDulu = Jurnal::whereNull('is_deleted')
                         ->with('details')
-                        ->where('created_by', auth()->user()->id);
-        $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
-        $jurnalDulu = $jurnal->whereYear('jurnal_tgl', $tahunSebelumnya)->get();
-        $jurnalSekarang = $jurnal->whereYear('jurnal_tgl', $tahunSekarang)->get();
+                        ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                        ->where('created_by', auth()->user()->id)->get();
+        $jurnalSekarang = Jurnal::whereNull('is_deleted')
+                        ->with('details')
+                        ->whereYear('jurnal_tgl', $tahunSekarang)
+                        ->where('created_by', auth()->user()->id)->get();
+        $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted')->get();
 
         $data = [];
 
-        $totalPendapatanDulu = 0;
-        $totalHPPDulu = 0;
-        $totalBebanDulu = 0;
-        $totalModalDulu = 0;
+        $totalsDulu = $this->calculateTotals($jurnalDulu, $coa);
+        $totalsSekarang = $this->calculateTotals($jurnalSekarang, $coa);
 
-        $namaAkunDulu = '';
-        foreach ($jurnalDulu as $item) {
-            foreach ($item->details as $detail) {
-                $nomorAkun = substr($detail->coa_akun, 0, 1);
+        if($jurnalDulu->count() > 0){
+            $labaKotorDulu = $totalsDulu['pendapatan'] - $totalsDulu['hpp'];
+            $labaBersihDulu = $labaKotorDulu - $totalsDulu['beban'];
 
-                if ($nomorAkun == '4') {
-                    $totalPendapatanDulu += $detail->credit - $detail->debit;
-                } elseif ($nomorAkun == '5') {
-                    $totalHPPDulu += $detail->debit - $detail->credit;
-                } elseif ($nomorAkun == '6') {
-                    $totalBebanDulu += $detail->debit - $detail->credit;
-                } elseif($nomorAkun == '3'){
-                    $noKunLu = substr($detail->coa_akun, 0 , 4);
-                    $namaAkunDulu = $coa->where('nomor_akun', $noKunLu)->first();
-                    $totalModalDulu += $detail->debit + $detail->credit;
-                }
-            }
-        }
-
-
-        $labaKotorDulu = $totalPendapatanDulu - $totalHPPDulu;
-        $labaBersihDulu = $labaKotorDulu - $totalBebanDulu;
-
-        $data[$tahunSebelumnya] = [
-            $namaAkunDulu->nama_akun => $totalModalDulu,
-            'Saldo Laba Ditahan' => $labaBersihDulu,
-            'Saldo Tahun Berjalan' => $labaBersihDulu,
-        ];
-
-        if($jurnalSekarang->count() > 0){
-            $data['Penambahan / (Pengurangan)'] = [
-                $namaAkunDulu->nama_akun => $totalModalDulu,
+            $data[$tahunSebelumnya] = [
+                $totalsDulu['namaAkun'] => $totalsDulu['modal'],
+                'Saldo Laba Ditahan' => $labaBersihDulu,
                 'Saldo Tahun Berjalan' => $labaBersihDulu,
             ];
+        } else {
+            $totalsDulu = [
+                'pendapatan' => 0,
+                'hpp' => 0,
+                'beban' => 0,
+                'modal' => 0,
+                'namaAkun' => $totalsSekarang['namaAkun']
+            ];
 
-            $totalPendapatanSekarang = 0;
-            $totalHPPSekarang = 0;
-            $totalBebanSekarang = 0;
-            $totalModalSekarang = 0;
+            $labaBersihDulu = 0;
 
-            $namaAkunSekarang = '';
-            foreach ($jurnalSekarang as $item) {
-                foreach ($item->details as $detail) {
-                    $nomorAkun = substr($detail->coa_akun, 0, 1);
+            $data[$tahunSebelumnya] = [
+                $totalsDulu['namaAkun'] => $totalsDulu['modal'],
+                'Saldo Tahun Berjalan' => $labaBersihDulu,
+            ];
+        }
 
-                    if ($nomorAkun == '4') {
-                        $totalPendapatanSekarang += $detail->credit - $detail->debit;
-                    } elseif ($nomorAkun == '5') {
-                        $totalHPPSekarang += $detail->debit - $detail->credit;
-                    } elseif ($nomorAkun == '6') {
-                        $totalBebanSekarang += $detail->debit - $detail->credit;
-                    } elseif($nomorAkun == '3'){
-                        $noKunRang = substr($detail->coa_akun, 0 , 4);
-                        $namaAkunSekarang = $coa->where('nomor_akun', $noKunRang)->first();
-                        $totalModalSekarang += $detail->debit + $detail->credit;
-                    }
-                }
-            }
+        if($jurnalSekarang->count() > 0){
+            $labaKotorSekarang = $totalsSekarang['pendapatan'] - $totalsSekarang['hpp'];
+            $labaBersihSekarang = $labaKotorSekarang - $totalsSekarang['beban'];
 
-            $labaKotorSekarang = $totalPendapatanSekarang - $totalHPPSekarang;
-            $labaBersihSekarang = $labaKotorSekarang - $totalBebanSekarang;
+            $data[0] = [
+                $totalsSekarang['namaAkun'] => $totalsSekarang['modal'] - $totalsDulu['modal'],
+                'Saldo Tahun Berjalan' => $labaBersihSekarang - $labaBersihDulu,
+            ];
 
             $data[$tahunSekarang] = [
-                $namaAkunSekarang->nama_akun => $totalModalSekarang,
-                'Saldo Laba Ditahan' => $labaBersihSekarang,
+                $totalsSekarang['namaAkun'] => $totalsSekarang['modal'],
                 'Saldo Tahun Berjalan' => $labaBersihSekarang,
             ];
-        }else{
+            if ($jurnalDulu->count() > 0) {
+                $data[$tahunSekarang]['Saldo Laba Ditahan'] = $labaBersihSekarang;
+            }
+
+
+        } else {
             $data['Penambahan / (Pengurangan)'] = [
-                $namaAkunDulu->nama_akun => $totalModalDulu,
+                $totalsDulu['namaAkun'] => $totalsDulu['modal'],
                 'Saldo Tahun Berjalan' => $labaBersihDulu,
             ];
 
             unset($data[$tahunSebelumnya]['Saldo Laba Ditahan']);
             $data[$tahunSekarang] = [
-                $namaAkunDulu->nama_akun => 0,
+                $totalsDulu['namaAkun'] => 0,
                 'Saldo Tahun Berjalan' => 0,
             ];
         }
 
         // da($data);
 
-        // return view('report.perubahanekuitas', compact('data'));
-        // da($data);
         $pdf = PDF::loadView('report.perubahanekuitas', [
             'data' => $data,
         ]);
         return $pdf->download('perubahanekuitas_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
 
+    private function calculateTotals($journals, $coa) {
+        $totalPendapatan = 0;
+        $totalHPP = 0;
+        $totalBeban = 0;
+        $totalModal = 0;
+        $namaAkun = '';
+
+        foreach ($journals as $item) {
+            foreach ($item->details as $detail) {
+                $nomorAkun = substr($detail->coa_akun, 0, 1);
+
+                if ($nomorAkun == '4') {
+                    $totalPendapatan += $detail->credit - $detail->debit;
+                } elseif ($nomorAkun == '5') {
+                    $totalHPP += $detail->debit - $detail->credit;
+                } elseif ($nomorAkun == '6') {
+                    $totalBeban += $detail->debit - $detail->credit;
+                } elseif ($nomorAkun == '3') {
+                    $noKun = substr($detail->coa_akun, 0, 4);
+                    $namaAkun = $coa->where('nomor_akun', $noKun)->first();
+                    $totalModal += $detail->debit + $detail->credit;
+                }
+            }
+        }
+
+        return [
+            'pendapatan' => $totalPendapatan,
+            'hpp' => $totalHPP,
+            'beban' => $totalBeban,
+            'modal' => $totalModal,
+            'namaAkun' => $namaAkun ? $namaAkun->nama_akun : ''
+        ];
+    }
+
     public function neraca(Request $request){
         $ttd1 = $request->input('ttd1', date('Y'));
         $ttd2 = $request->input('ttd2', date('m'));
 
-        $tanggal = date('Y') - 1;
+        $tanggal = date('Y');
         $jurnal = Jurnal::whereNull('is_deleted')
                         ->with('details')
                         ->where('created_by', auth()->user()->id)
@@ -307,6 +317,97 @@ class ReportController extends Controller
                         ->get();
         $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
 
+        $data = $this->neracaFunction($jurnal, $coa);
+
+        $totals = [];
+        foreach ($data as $category => $subcategories) {
+            $categoryTotal = 0;
+            foreach ($subcategories as $subcategory => $items) {
+                $subcategoryTotal = array_sum($items);
+                $totals[$category][$subcategory] = $subcategoryTotal;
+                $categoryTotal += $subcategoryTotal;
+            }
+            $totals[$category]['Total'] = $categoryTotal;
+        }
+
+        $pdf = PDF::loadView('report.neraca', [
+            'data' => $data,
+            'totals' => $totals,
+        ]);
+        return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
+    }
+
+    public function neracaPerbandingan(Request $request){
+        $ttd1 = $request->input('ttd1', date('Y'));
+        $ttd2 = $request->input('ttd2', date('m'));
+
+        $tahunSebelumnya = date('Y') - 1;
+        $tahunSekarang = date('Y');
+        $jurnalTahunSebelumnya = Jurnal::whereNull('is_deleted')
+                                       ->with('details')
+                                       ->where('created_by', auth()->user()->id)
+                                       ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                                       ->get();
+        $jurnalTahunSekarang = Jurnal::whereNull('is_deleted')
+                                     ->with('details')
+                                     ->where('created_by', auth()->user()->id)
+                                     ->whereYear('jurnal_tgl', $tahunSekarang)
+                                     ->get();
+        $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
+
+        $dataTahunSebelumnya = $this->neracaFunction($jurnalTahunSebelumnya, $coa);
+        $dataTahunSekarang = $this->neracaFunction($jurnalTahunSekarang, $coa);
+
+        $dataDahulu = [];
+
+        $data = [
+            $tahunSekarang => $dataTahunSekarang
+        ];
+
+        if($jurnalTahunSebelumnya->isEmpty()){
+            $dataDahulu = array_map(function($section) {
+                return array_map(function($subSection) {
+                    return array_map(function($item) {
+                        return 0;
+                    }, $subSection);
+                }, $section);
+            }, $dataTahunSekarang);
+
+            $data[$tahunSebelumnya] = $dataDahulu;
+        }else{
+            $data[$tahunSebelumnya] = $dataTahunSebelumnya;
+        }
+
+        $data = $this->totalNeraca($data);
+
+        $pdf = PDF::loadView('report.neraca_perbandingan', [
+            'data' => $data,
+            'tahunSebelumnya' => $tahunSebelumnya,
+            'tahunSekarang' => $tahunSekarang
+        ]);
+        return $pdf->download('neraca_perbandingan_' . Carbon::now()->format('YmdHis') . '.pdf');
+    }
+
+    private function totalNeraca($data) {
+        foreach ($data as $year => $categories) {
+            foreach ($categories as $category => $subCategories) {
+                $categoryTotal = 0;
+                foreach ($subCategories as $subCategory => $values) {
+                    if (is_array($values)) {
+                        $subCategoryTotal = array_sum($values);
+                        $data[$year][$category][$subCategory]['Total'] = $subCategoryTotal;
+                        $categoryTotal += $subCategoryTotal;
+                    } else {
+                        $categoryTotal += $values;
+                    }
+                }
+                $data[$year][$category]['Total'] = $categoryTotal;
+            }
+        }
+        return $data;
+    }
+
+    private function neracaFunction($jurnal, $coa){
         $totalPendapatanDulu = 0;
         $totalHPPDulu = 0;
         $totalBebanDulu = 0;
@@ -358,8 +459,9 @@ class ReportController extends Controller
 
         unset($data['Liabilitas'], $data['Ekuitas'], $data['Beban Umum dan Admin'], $data['Pendapatan'], $data['Harga Pokok Penjualan']);
 
+        // da($data);
         $data['Liabilitas dan Ekuitas']['Ekuitas']['Saldo Tahun Berjalan'] = $labaBersihDulu;
 
-        da($data);
+        return $data;
     }
 }

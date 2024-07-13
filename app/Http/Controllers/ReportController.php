@@ -337,6 +337,78 @@ class ReportController extends Controller
         return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
 
+    public function neracaSaldo(Request $request){
+
+        $tanggal = date('Y');
+        $jurnal = Jurnal::whereNull('is_deleted')
+                        ->with('details')
+                        ->where('created_by', auth()->user()->id)
+                        ->whereYear('jurnal_tgl', $tanggal)
+                        ->get();
+        $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
+
+        $data = [];
+        foreach ($jurnal as $item) {
+            foreach ($item->details as $detail) {
+                $nokun2 = substr($detail->coa_akun, 0, 4);
+                $nokun3 = substr($detail->coa_akun, 0, 3);
+                $nokun1 = substr($detail->coa_akun, 0, 1);
+                $akun5 = Coa::firstWhere('nomor_akun', $detail->coa_akun);
+                $akun3 = Coa::firstWhere('nomor_akun', $nokun3);
+                $akun2 = Coa::firstWhere('nomor_akun', $nokun2);
+                $akun1 = Coa::firstWhere('nomor_akun', $nokun1)->first();
+                if (!isset($data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nama_akun])) {
+                    $data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nama_akun] = 0;
+                    $data[$akun3->nama_akun]['Total'] = 0;
+                }
+
+                if($akun1->saldo_normal == 'db' || $akun1->saldo_normal == 'debit'){
+                    $data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nama_akun] += $detail->debit - $detail->credit;
+                }else{
+                    $data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nama_akun] += $detail->credit - $detail->debit;
+                }
+            }
+        }
+
+        foreach ($data as $akun3 => &$subcategories) {
+            foreach ($subcategories as $akun2 => &$accounts) {
+                if ($akun2 !== 'Total') {
+                    $subTotal = 0;
+                    foreach ($accounts as $akun5 => $balance) {
+                        if ($akun5 !== 'Total') {
+                            $subTotal += $balance;
+                        }
+                    }
+                    $accounts['Total'] = $subTotal;
+                    $subcategories['Total'] = isset($subcategories['Total']) ? $subcategories['Total'] + $subTotal : $subTotal;
+                }
+            }
+                }
+
+        // da($data);
+
+
+
+        $pdf = PDF::loadView('report.neraca_saldo', [
+            'data' => $data,
+        ]);
+        return $pdf->download('neraca_saldo_' . Carbon::now()->format('YmdHis') . '.pdf');
+    }
+
+    private function kalNeDo(&$data)
+    {
+        foreach ($data as $mainCategory => &$subcategories) {
+            $mainTotal = 0;
+            foreach ($subcategories as $subcategory => &$accounts) {
+                if ($subcategory === 'Total') continue;
+                $subTotal = array_sum($accounts);
+                $accounts['Total'] = $subTotal;
+                $mainTotal += $subTotal;
+            }
+            $subcategories['Total'] = $mainTotal;
+        }
+    }
+
     public function neracaPerbandingan(Request $request){
         $ttd1 = $request->input('ttd1', date('Y'));
         $ttd2 = $request->input('ttd2', date('m'));
@@ -459,7 +531,6 @@ class ReportController extends Controller
 
         unset($data['Liabilitas'], $data['Ekuitas'], $data['Beban Umum dan Admin'], $data['Pendapatan'], $data['Harga Pokok Penjualan']);
 
-        // da($data);
         $data['Liabilitas dan Ekuitas']['Ekuitas']['Saldo Tahun Berjalan'] = $labaBersihDulu;
 
         return $data;

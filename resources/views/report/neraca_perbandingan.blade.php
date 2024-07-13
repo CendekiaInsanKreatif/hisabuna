@@ -47,7 +47,7 @@
         <caption><strong><h1>Neraca Perbandingan</h1></strong></caption>
         <thead>
             <tr>
-                <th>Keterangan</th>
+                <th style="text-align: center">Keterangan</th>
                 <th style="text-align: center">{{ $tahunSekarang }}</th>
                 <th style="text-align: center">{{ $tahunSebelumnya }}</th>
             </tr>
@@ -61,13 +61,13 @@
                 @foreach ($subData as $kategori => $nilai)
                     @if (is_array($nilai))
                         <tr class="indent-1">
-                            <td><strong>{{ $kategori }}</strong></td>
+                            <td>&nbsp;&nbsp;&nbsp;<strong>{{ $kategori }}</strong></td>
                             <td colspan="2"></td>
                         </tr>
                         @foreach ($nilai as $subkategori => $jumlah)
                             @if ($subkategori != 'Total')
                                 <tr class="indent-2">
-                                    <td>&nbsp;&nbsp;&nbsp;{{ $subkategori }}</td>
+                                    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $subkategori }}</td>
                                     <td style="text-align: right;">{{ number_format($jumlah, 0, ',', '.') }}</td>
                                     <td style="text-align: right;">{{ number_format($data[$tahunSebelumnya][$keterangan][$kategori][$subkategori], 0, ',', '.') }}</td>
                                 </tr>
@@ -79,11 +79,11 @@
                             <td style="text-align: right;">{{ number_format($data[$tahunSebelumnya][$keterangan][$kategori]['Total'], 0, ',', '.') }}</td>
                         </tr>
                     @else
-                        <tr class="indent-1">
-                            <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>{{ $kategori }}</strong></td>
+                        {{-- <tr class="indent-1">
+                            <td><strong>{{ $kategori }}</strong></td>
                             <td style="text-align: right;">{{ number_format($nilai, 0, ',', '.') }}</td>
                             <td style="text-align: right;">{{ number_format($data[$tahunSebelumnya][$keterangan][$kategori], 0, ',', '.') }}</td>
-                        </tr>
+                        </tr> --}}
                     @endif
                 @endforeach
                 <tr class="total">

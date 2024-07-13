@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
         Route::get('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
+        Route::get('arus-kas', [ReportController::class, 'arusKas'])->name('report.aruskas');
     });
 
     Route::prefix('api')->group(function () {

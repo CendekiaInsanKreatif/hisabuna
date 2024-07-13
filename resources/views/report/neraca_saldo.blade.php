@@ -16,7 +16,7 @@
             background-color: #fff;
         }
         th, td {
-            padding: 12px 15px;
+            padding: 2px;
             text-align: left;
         }
         th {
@@ -28,7 +28,7 @@
         }
         caption {
             font-size: 24px;
-            margin: 10px 0;
+            margin: 5px 0;
         }
     </style>
 </head>

@@ -122,9 +122,13 @@ class ReportController extends Controller
         return view('report.bukubesar', compact('ledgers', 'tanggalMulai', 'tanggalSelesai', 'akun'));
     }
 
+    public function arusKas(Request $request){
+
+    }
+
     public function labaRugi(Request $request)
     {
-        $tahunSebelumnya = date('Y') - 1;
+        $tahunSebelumnya = date('Y');
 
         $jurnal = Jurnal::whereNull('is_deleted')
                         ->with(['details' => function($query) {
@@ -160,6 +164,8 @@ class ReportController extends Controller
             }
         }
 
+        // da($data);
+
         uksort($data, function($a, $b) use ($kategori) {
             $order = array_flip(array_values($kategori));
             return ($order[$a] ?? PHP_INT_MAX) <=> ($order[$b] ?? PHP_INT_MAX);
@@ -177,6 +183,8 @@ class ReportController extends Controller
         }
 
         $labaRugiBersih = $totalPendapatan - $totalBiaya;
+
+        da($data);
 
         $pdf = PDF::loadView('report.labarugi', [
             'data' => $data,

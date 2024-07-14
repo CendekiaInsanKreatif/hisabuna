@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
         Route::get('arus-kas', [ReportController::class, 'arusKas'])->name('report.aruskas');
+        Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
     });
 
     Route::prefix('api')->group(function () {
@@ -56,6 +57,11 @@ Route::middleware('auth')->group(function () {
                 ->orderBy('jurnal_tgl', 'desc')
                 ->get();
             return response()->json($jurnal);
+        });
+
+        Route::get('files', function () {
+            // return "hello";
+            Storage::disk('ftp')->put('test.txt', 'Hello World');
         });
     });
 

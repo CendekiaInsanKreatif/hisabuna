@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Coa;
-use App\Models\Saldo;
 use App\Exports\CoaExport;
 use App\Imports\CoaImport;
 use Maatwebsite\Excel\Facades\Excel;
+use PDF;
+
 
 use Illuminate\Http\Request;
 use Validator;
@@ -84,7 +85,7 @@ class CoaController extends Controller
 
         $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
 
-        if(empty($selCoa)){
+        if($level != 1 && empty($selCoa)){
             return redirect()->route('coas.index')->with('message', 'Akun Level '.$level.' tidak ditemukan')->with('color', 'red');
         }
 
@@ -101,10 +102,6 @@ class CoaController extends Controller
 
         $save = Coa::create($data);
         if($save) {
-            Saldo::create([
-                'coa_akun' => $save->nomor_akun,
-                'created_by' => Auth::user()->id,
-            ]);
             return redirect()->route('coas.index')->with('message', 'Berhasil membuat data')->with('color', 'green');
         } else {
             return redirect()->route('coas.index')->with('message', 'Gagal membuat data')->with('color', 'red');
@@ -182,9 +179,6 @@ class CoaController extends Controller
 
         $update = $coa->update($data);
         if ($update) {
-            Saldo::where('coa_akun', $nomor_akun)->where('created_by', Auth::user()->id)->update([
-                'coa_akun' => $nomor_akun,
-            ]);
             return redirect()->route('coas.index')->with('message', 'Berhasil mengubah data')->with('color', 'green');
         } else {
             return redirect()->route('coas.index')->with('message', 'Gagal mengubah data')->with('color', 'red');
@@ -279,26 +273,10 @@ class CoaController extends Controller
                 'created_at'   => now(),
                 'created_by'   => Auth::user()->id,
             ];
-
-            $saldos[] = [
-                'coa_akun' => $nomor_akun,
-                'created_by' => Auth::user()->id,
-                'created_at' => now(),
-                'saldo_awal_debit' => 0,
-                'saldo_awal_kredit' => 0,
-                'current_saldo_debit' => 0,
-                'current_saldo_kredit' => 0,
-                'saldo_akhir_debit' => 0,
-                'saldo_akhir_kredit' => 0,
-                'saldo_total_transaksi_debit' => 0,
-                'saldo_total_transaksi_kredit' => 0,
-            ];
         }
 
         $coa = Coa::insert($data);
-        $saldo = Saldo::insert($saldos);
-        if ($coa && $saldo) {
-            Saldo::where('coa_akun', $nomor_akun)->where('created_by', Auth::user()->id)->update(['coa_akun' => $nomor_akun]);
+        if ($coa) {
             $updateCoa = Coa::where('created_by', Auth::user()->id)->get();
             foreach ($updateCoa as $coa) {
                 $parent_id = $coa->level > 1 ? Coa::where('nomor_akun', substr($coa->nomor_akun, 0, $coa->level - 1))
@@ -313,6 +291,13 @@ class CoaController extends Controller
         } else {
             return redirect()->back()->with('message', 'Data Coa gagal di import')->with('color', 'red');
         }
+    }
+
+    public function printCoa(){
+        $data = Coa::where('created_by', Auth::user()->id)->get();
+
+        $pdf = PDF::loadView('report.printcoa', ['data' => $data]);
+        return $pdf->download('coa_'.auth()->user()->name.'.pdf');
     }
 
     public function export()

@@ -53,6 +53,7 @@
                             </button>
                         </div>
                         <div class="flex items-center space-x-2 ml-auto mt-4 md:mt-0">
+                            <a href="{{ route('report.print-coa') }}" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">Print</a>
                             <button x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.import') }}', name: 'coas.import', title: 'Import Akun', type: 'custom' })" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">Import</button>
                             <form method="POST" action="{{ route('coas.export') }}">
                                 @csrf

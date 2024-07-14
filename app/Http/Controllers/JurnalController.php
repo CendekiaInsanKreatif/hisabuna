@@ -77,30 +77,11 @@ class JurnalController extends Controller
 
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {
-                $saldo = Saldo::where(['coa_akun' => $noAkun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->first();
-
                 $db = str_replace('.', '', $input['debit'][$index]);
                 $kr = str_replace('.', '', $input['kredit'][$index]);
 
                 $debit = (int) $db;
                 $kredit = (int) $kr;
-
-                $saldo_awal_debit = $saldo->current_saldo_debit ?: $saldo->saldo_awal_debit;
-                $saldo_awal_kredit = $saldo->current_saldo_kredit ?: $saldo->saldo_awal_kredit;
-
-                $current_debit = $saldo_awal_debit + $debit - $kredit;
-                $current_credit = $saldo_awal_kredit + $kredit - $debit;
-
-                $saldo->where(['coa_akun' => $input['no_akun'][$index], 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->update([
-                    'periode_saldo' => date('Y'),
-                    'saldo_awal_debit' => $saldo_awal_debit,
-                    'saldo_awal_kredit' => $saldo_awal_kredit,
-                    'current_saldo_debit' => $current_debit,
-                    'current_saldo_kredit' => $current_credit,
-                    'saldo_total_transaksi_debit' => $saldo->saldo_total_transaksi_debit + $debit,
-                    'saldo_total_transaksi_kredit' => $saldo->saldo_total_transaksi_kredit + $kredit,
-                    'updated_at' => now()
-                ]);
 
                 $details[] = [
                     'jurnal_id' => $dataJurnal->id,
@@ -166,6 +147,7 @@ class JurnalController extends Controller
         DB::beginTransaction();
         try {
             $input = $request->all();
+            // da($input);
 
             $existingJournals = Jurnal::whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
@@ -188,53 +170,12 @@ class JurnalController extends Controller
             $jurnal->updated_at = now();
             $jurnal->save();
 
-            $deletedDetails = JurnalDetail::where('jurnal_id', $jurnal->id)->get();
-            foreach ($deletedDetails as $detail) {
-                $saldo = Saldo::where(['coa_akun' => $detail->coa_akun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->first();
-
-                $saldo_awal_debit = $saldo->current_saldo_debit ?: $saldo->saldo_awal_debit;
-                $saldo_awal_kredit = $saldo->current_saldo_kredit ?: $saldo->saldo_awal_kredit;
-
-                $current_debit = $saldo_awal_debit - $detail->debit;
-                $current_credit = $saldo_awal_kredit - $detail->credit;
-
-                $saldo->where(['coa_akun' => $detail->coa_akun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->update([
-                    'periode_saldo' => date('Y'),
-                    'saldo_awal_debit' => $saldo_awal_debit,
-                    'saldo_awal_kredit' => $saldo_awal_kredit,
-                    'current_saldo_debit' => $current_debit,
-                    'current_saldo_kredit' => $current_credit,
-                    'saldo_total_transaksi_debit' => $saldo->saldo_total_transaksi_debit - $detail->debit,
-                    'saldo_total_transaksi_kredit' => $saldo->saldo_total_transaksi_kredit - $detail->credit,
-                    'updated_at' => now()
-                ]);
-            }
-
             JurnalDetail::where('jurnal_id', $jurnal->id)->delete();
 
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {
-                $saldo = Saldo::where(['coa_akun' => $noAkun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->first();
-
                 $debit = $input['debit'][$index];
                 $kredit = $input['kredit'][$index];
-
-                $saldo_awal_debit = $saldo->current_saldo_debit ?: $saldo->saldo_awal_debit;
-                $saldo_awal_kredit = $saldo->current_saldo_kredit ?: $saldo->saldo_awal_kredit;
-
-                $current_debit = $saldo_awal_debit + $debit - $kredit;
-                $current_credit = $saldo_awal_kredit + $kredit - $debit;
-
-                $saldo->where(['coa_akun' => $noAkun, 'periode_saldo' => date('Y'), 'created_by' => auth()->user()->id])->update([
-                    'periode_saldo' => date('Y'),
-                    'saldo_awal_debit' => $saldo_awal_debit,
-                    'saldo_awal_kredit' => $saldo_awal_kredit,
-                    'current_saldo_debit' => $current_debit,
-                    'current_saldo_kredit' => $current_credit,
-                    'saldo_total_transaksi_debit' => $saldo->saldo_total_transaksi_debit + $debit,
-                    'saldo_total_transaksi_kredit' => $saldo->saldo_total_transaksi_kredit + $kredit,
-                    'updated_at' => now()
-                ]);
 
                 $details[] = [
                     'jurnal_id' => $jurnal->id,
@@ -286,11 +227,20 @@ class JurnalController extends Controller
         try {
             $import = new JurnalDetailImport;
             $data = Excel::toCollection($import, $path);
+            unset($data[1]);
 
             $detail = [];
+
             foreach ($data[0] as $row) {
                 if ($row['akun_coa'] !== null) {
-                    $akun = explode('|', $row['akun_coa']);
+                    if (strpos($row['akun_coa'], '|') !== false){
+                        $akun = explode('|', $row['akun_coa']);
+                    } else {
+                        $coa = Coa::where(['nomor_akun' => $row['akun_coa'], 'created_by' => auth()->user()->id])->first();
+                        $akun[0] = $coa->nomor_akun;
+                        $akun[1] = $coa->nama_akun;
+                    }
+                    // da($akun);
                     $detail[] = [
                         'no_akun' => $akun[0],
                         'nama_akun' => $akun[1],
@@ -300,7 +250,6 @@ class JurnalController extends Controller
                     ];
                 }
             }
-
 
             if ($detail) {
                 return response()->json([

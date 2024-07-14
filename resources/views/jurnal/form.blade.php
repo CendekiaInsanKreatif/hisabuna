@@ -93,14 +93,14 @@
                                         <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong mr-2" x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.index') }}', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: index })">
                                             Pilih
                                         </button>
-                                        <input type="text" :name="'no_akun[' + index + ']'" readonly class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 mr-2" x-model="row.no_akun">
-                                        <input type="text" :name="'nama_akun[' + index + ']'" readonly class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.nama_akun">
+                                        <input type="text" :name="'no_akun[' + index + ']'" readonly class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 mr-2" x-model="row.coa_akun">
+                                        <input type="text" :name="'nama_akun[' + index + ']'" readonly class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.coa.nama_akun">
                                     </td>
                                     <td class="py-2 px-4">
                                         <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.debit">
                                     </td>
                                     <td class="py-2 px-4">
-                                        <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.kredit">
+                                        <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.credit">
                                     </td>
                                     <td class="py-2 px-4">
                                         <input type="text" :name="'keterangan[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.keterangan">
@@ -221,18 +221,23 @@
     </div>
 </div>
 @endif
+{{-- @php
+    da($jurnal);
+@endphp --}}
 @endsection
 @push('script')
 <script>
     function jurnalApp() {
-        let jurnal = @json($jurnal ?? $jurnal->details ?? []);
-        jurnal = jurnal.map(detail => ({
-            no_akun: detail.coa_akun,
-            nama_akun: detail.coa.nama_akun,
-            debit: detail.debit,
-            kredit: detail.credit,
-            keterangan: detail.keterangan
-        }));
+        let jurnal = @json($jurnal->details ?? []);
+        // jurnal = jurnal.map(detail => ({
+        //     no_akun: detail.coa_akun,
+        //     nama_akun: detail.coa.nama_akun,
+        //     debit: detail.debit,
+        //     kredit: detail.credit,
+        //     keterangan: detail.keterangan
+        // }));
+
+        console.log(jurnal)
 
         return {
             rows: jurnal ?? [],

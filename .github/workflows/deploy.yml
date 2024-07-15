@@ -17,9 +17,10 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: 8.3
+        extensions: zip
 
     - name: Install dependencies
-      run: composer install --no-progress --prefer-dist --optimize-autoloader --ignore-platform-req=ext-zip
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
 
     - name: Deploy to server
       env:
@@ -31,4 +32,4 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST "cd /var/www/hisabuna && git pull origin main && composer install && npm install"
+        ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST "cd /var/www/hisabuna && git pull origin main && composer install"

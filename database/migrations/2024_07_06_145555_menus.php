@@ -12,15 +12,16 @@ return new class extends Migration
     public function up()
     {
         Schema::create('menus', function (Blueprint $table) {
-            $table->id();
+            $table->bigIncrements('id');
             $table->unsignedBigInteger('parent_id')->nullable();
             $table->string('name');
-            $table->string('route');
-            $table->string('icon');
+            $table->string('route')->nullable();
+            $table->string('icon')->nullable();
             $table->string('roles')->default('superadmin');
-            $table->foreign('parent_id')->references('id')->on('menus')->onDelete('cascade');
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
+            $table->foreign('parent_id')->references('id')->on('menus')->onDelete('cascade');
         });
     }
 

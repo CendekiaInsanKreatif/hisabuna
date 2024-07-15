@@ -13,10 +13,12 @@ return new class extends Migration
     {
         Schema::create('jurnal_headers', function (Blueprint $table) {
             $table->id();
+            $table->string('no_urut_transaksi', 255)->nullable();
             $table->string('no_transaksi', 255);
             $table->string('jenis', 255)->nullable();
             $table->dateTime('jurnal_tgl');
             $table->string('keterangan', 255);
+            $table->string('lampiran', 255)->nullable();
             $table->string('subtotal', 255)->nullable();
             $table->char('created_by', 36)->nullable();
             $table->timestamp('created_at')->nullable();
@@ -28,7 +30,7 @@ return new class extends Migration
         });
 
         Schema::create('jurnal_details', function (Blueprint $table) {
-            $table->id();
+            $table->bigIncrements('id');
             $table->string('jurnal_id', 255);
             $table->string('coa_akun', 255);
             $table->integer('debit');

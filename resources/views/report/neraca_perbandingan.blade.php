@@ -45,6 +45,7 @@
 <body>
     <table>
         <caption><strong><h1>Neraca Perbandingan</h1></strong></caption>
+        <caption>{{ auth()->user()->company_name }}</caption>
         <thead>
             <tr>
                 <th style="text-align: center">Keterangan</th>

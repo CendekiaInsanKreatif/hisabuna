@@ -23,7 +23,7 @@
     @if ($currentRoute == 'jurnal.edit')
     <div x-data="jurnalApp()">
         <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center w-full mt-6">
+            {{-- <div class="flex justify-between items-center w-full mt-6">
                 <form id="importForm" class="w-full" @submit.prevent="importJurnal">
                     @csrf
                     <input type="file" id="importFile" name="file" accept=".xlsx" required
@@ -40,8 +40,8 @@
                         Download Sample
                     </button>
                 </form>
-            </div>
-            <form action="{{ route('jurnal.update', $jurnal->id) }}" method="post">
+            </div> --}}
+            <form action="{{ route('jurnal.update', $jurnal->id) }}" method="post" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
             <div class="mb-6 flex justify-between items-center">
@@ -70,6 +70,32 @@
                         @endif
                     </div>
                     @endforeach
+                    <div class="col-span-1">
+                        <label for="jurnal_tgl" class="block text-sm font-medium text-gray-700">Tanggal Jurnal</label>
+                        <input type="text" name="jurnal_tgl" id="jurnal_tgl" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">
+                    </div>
+                    <div class="col-span-1">
+                        <label for="lampiran" class="block text-sm font-medium text-gray-700 mt-5">Lampiran (File: .pdf, .jpg, .png, .jpeg)</label>
+                        <input type="file" id="lampiran" name="lampiran[]" accept=".pdf,.jpg,.png,.jpeg" class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700" multiple>
+                    </div>
+                    <div class="col-span-1">
+                        <div class="flex flex-col space-y-2 w-full">
+                            <label for="lampiran" class="block text-sm font-medium text-gray-700 mt-5">Import Transaksi (File: .xlsx)</label>
+                            <div class="flex justify-between items-center">
+                                <input type="file" id="importFile" name="file" accept=".xlsx" required
+                                    class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700">
+                                <button type="button" x-on:click="importJurnal"
+                                    class="inline-flex items-center bg-emerald-500 justify-center px-2 py-1 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
+                                    Import Jurnal
+                                </button>
+                            </div>
+                            <div class="flex justify-end items-right mt-1">
+                                <button type="button" x-on:click="downloadSample" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-300 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
+                                    Download Sample
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body overflow-x-auto mt-1 bg-white shadow-md rounded-lg p-1">
                     <table class="w-full min-w-full text-sm text-left text-gray-700" id="jurnalDetail">
@@ -124,25 +150,7 @@
     @else
     <div x-data="jurnalApp()">
         <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center w-full mt-6">
-                <form id="importForm" class="w-full" @submit.prevent="importJurnal">
-                    @csrf
-                    <input type="file" id="importFile" name="file" accept=".xlsx" required
-                        class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700">
-                    <button type="submit"
-                        class="inline-flex items-center bg-emerald-500 justify-center px-2 py-1 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
-                        Import Jurnal
-                    </button>
-                </form>
-                <form action="{{ route('jurnal.sample.export') }}" method="post" class="w-full text-right">
-                    @csrf
-                    <button type="submit"
-                        class="inline-flex items-center justify-center px-2 py-1 bg-emerald-300 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
-                        Download Sample
-                    </button>
-                </form>
-            </div>
-            <form action="{{ route('jurnal.store') }}" method="post">
+            <form action="{{ route('jurnal.store') }}" method="post" enctype="multipart/form-data">
                 @csrf
                 @method('POST')
             <div class="mb-6 flex justify-between items-center">
@@ -170,6 +178,32 @@
                         @endif
                     </div>
                     @endforeach
+                    <div class="col-span-1">
+                        <label for="jurnal_tgl" class="block text-sm font-medium text-gray-700">Tanggal Jurnal</label>
+                        <input type="text" name="jurnal_tgl" id="jurnal_tgl" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">
+                    </div>
+                    <div class="col-span-1">
+                        <label for="lampiran" class="block text-sm font-medium text-gray-700 mt-5">Lampiran (File: .pdf, .jpg, .png, .jpeg)</label>
+                        <input type="file" id="lampiran" name="lampiran[]" accept=".pdf,.jpg,.png,.jpeg" class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700" multiple>
+                    </div>
+                    <div class="col-span-1">
+                        <div class="flex flex-col space-y-2 w-full">
+                            <label for="lampiran" class="block text-sm font-medium text-gray-700 mt-5">Import Transaksi (File: .xlsx)</label>
+                            <div class="flex justify-between items-center">
+                                <input type="file" id="importFile" name="file" accept=".xlsx" required
+                                    class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700">
+                                <button type="button" x-on:click="importJurnal"
+                                    class="inline-flex items-center bg-emerald-500 justify-center px-2 py-1 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
+                                    Import Jurnal
+                                </button>
+                            </div>
+                            <div class="flex justify-end items-right mt-1">
+                                <button type="button" x-on:click="downloadSample" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-300 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
+                                    Download Sample
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body overflow-x-auto mt-1 bg-white shadow-md rounded-lg p-1">
                     <table class="w-full min-w-full text-sm text-left text-gray-700" id="jurnalDetail">
@@ -229,13 +263,6 @@
 <script>
     function jurnalApp() {
         let jurnal = @json($jurnal->details ?? []);
-        // jurnal = jurnal.map(detail => ({
-        //     no_akun: detail.coa_akun,
-        //     nama_akun: detail.coa.nama_akun,
-        //     debit: detail.debit,
-        //     kredit: detail.credit,
-        //     keterangan: detail.keterangan
-        // }));
 
         console.log(jurnal)
 
@@ -249,8 +276,12 @@
                 const formattedValue = parseFloat(value).toLocaleString('id-ID');
                 this.rows[index][field] = formattedValue;
             },
-            importJurnal(event) {
-                let formData = new FormData(document.getElementById('importForm'));
+
+            importJurnal() {
+                let getFile = document.getElementById('importFile').files;
+                console.log(getFile);
+                let formData = new FormData();
+                formData.append('file', getFile[0]);
                 fetch('{{ route('jurnal.import') }}', {
                     method: 'POST',
                     body: formData,
@@ -271,9 +302,44 @@
                 .catch(error => {
                     console.error('Error:', error);
                 });
+            },
+            
+            downloadSample() {
+                fetch('{{ route('jurnal.sample.export') }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('input[name=_token]').value
+                    }
+                })
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'jurnal_sample.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => console.error('Error:', error));
             }
         };
     }
+</script>
+
+<script type="module">
+    $(document).ready(function() {
+        $('#jurnal_tgl').datepicker({
+            dateFormat: 'dd-mm-yy',
+            changeMonth: true,
+            changeYear: true,
+            showButtonPanel: true,
+                onClose: function(dateText, inst) { 
+                    $(this).datepicker('setDate', new Date(inst.selectedYear, inst.selectedMonth, inst.selectedDay));
+                }
+        });
+    });
 </script>
 @endpush
 

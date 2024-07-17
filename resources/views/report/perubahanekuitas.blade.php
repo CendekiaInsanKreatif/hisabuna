@@ -31,7 +31,8 @@
     </style>
 </head>
 <body>
-    <h2>Laporan Perubahan Ekuitas</h2>
+    <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
+    <h4>{{ auth()->user()->company_name }}</h4>
     <table>
         <thead>
             <tr>

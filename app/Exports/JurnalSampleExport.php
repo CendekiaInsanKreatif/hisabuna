@@ -180,6 +180,7 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
     {
         $coas = Coa::whereNull('is_deleted')
                     ->where('created_by', Auth::user()->id)
+                    ->where('level', '5')
                     ->get(['nomor_akun', 'nama_akun']);
         return $coas->pluck('nama_akun', 'nomor_akun')->toArray();
     }

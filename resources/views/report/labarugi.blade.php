@@ -28,7 +28,8 @@
     </style>
 </head>
 <body>
-<h2>Laporan Laba Rugi</h2>
+<h2><u>LAPORAN LABA RUGI</u></h2>
+<h4>{{ auth()->user()->company_name }}</h4>
 @foreach ($data as $category => $details)
 <table>
         <h3 style="padding: 0; margin: 0;">{{ $category }}</h3>

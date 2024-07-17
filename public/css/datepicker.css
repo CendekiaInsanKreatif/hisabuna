@@ -1,0 +1,67 @@
+.ui-datepicker-header {
+	background-color: #059669;
+	color: #fff;
+	justify-content: space-between;
+	align-items: center;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation Button Styling */
+.ui-datepicker-prev, .ui-datepicker-next {
+	color: #fff;
+	cursor: pointer;
+	border-radius: 4px;
+	text-decoration: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.ui-datepicker-prev:hover, .ui-datepicker-next:hover {
+	background-color: #047857;
+}
+
+/* Navigation Icons */
+.ui-icon {
+	font-size: 16px;
+}
+
+/* Title Container Styling */
+/* .ui-datepicker-title {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 0;
+} */
+
+/* Dropdown Styling */
+.ui-datepicker select {
+	background-color: #fff;
+	border: 1px solid #ccc;
+	padding: 5px;
+	border-radius: 4px;
+	color: #333;
+	font-size: 14px;
+}
+
+.ui-datepicker select:focus {
+	outline: none;
+	border-color: #047857;
+}
+
+/* Additional Styling for Consistency */
+/* .ui-datepicker-month, .ui-datepicker-year {
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	border-radius: 5px;
+	padding: 0;
+} */
+
+/* Remove the default focus outline */
+.ui-datepicker a {
+	outline: none;
+}

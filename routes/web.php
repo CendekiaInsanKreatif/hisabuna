@@ -5,9 +5,11 @@ use App\Http\Controllers\CoaController;
 use App\Http\Controllers\JurnalController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 use App\Models\Coa;
 use App\Models\Jurnal;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -25,6 +27,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('jurnal/import', [JurnalController::class, 'import'])->name('jurnal.import');
     Route::post('jurnal/sample/export', [JurnalController::class, 'sampleExport'])->name('jurnal.sample.export');
+    // Route::get('jurnal/lampiran', [JurnalController::class, 'lampiran'])->name('jurnal.lampiran');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -35,12 +38,20 @@ Route::middleware('auth')->group(function () {
         Route::get('transaksi/{id}', [ReportController::class, 'transaksi'])->name('report.transaksi');
         Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
         Route::get('bukubesar/download', [ReportController::class, 'downloadBukuBesar'])->name('report.bukubesar.download');
-        Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
-        Route::get('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.perubahanekuitas');
-        Route::get('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
-        Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
-        Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
-        Route::get('arus-kas', [ReportController::class, 'arusKas'])->name('report.aruskas');
+
+        Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.views.labarugi');
+        Route::get('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.views.perubahanekuitas');
+        Route::get('neraca', [ReportController::class, 'neraca'])->name('report.views.neraca');
+        Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.views.neracasaldo');
+        Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.views.neracaperbandingan');
+
+        Route::post('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
+        Route::post('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.perubahanekuitas');
+        Route::post('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
+        Route::post('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
+        Route::post('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
+        
+        // Route::get('arus-kas', [ReportController::class, 'arusKas'])->name('report.aruskas');
         Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
     });
 

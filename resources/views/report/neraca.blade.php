@@ -27,6 +27,8 @@
 </head>
 <body>
 <table>
+    <caption><h2><u>NERACA</u></h2></caption>
+    <caption>{{ auth()->user()->company_name }}</caption>
     @foreach ($data as $category => $subcategories)
         <tr>
             <th colspan="2" class="category"><h2>{{ $category }}</h2></th>

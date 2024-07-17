@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* @import url('datepicker-style.css');
+@import url('https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css'); */
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;

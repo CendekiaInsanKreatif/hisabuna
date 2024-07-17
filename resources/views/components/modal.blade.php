@@ -235,6 +235,9 @@ $maxWidth = [
                     <x-primary-button type="submit" x-show="!name.includes('show')">
                         <span x-text="name.includes('destroy') ? 'Hapus' : 'Simpan'"></span>
                     </x-primary-button>
+                    <a href="{{ route('jurnal.lampiran') }}" x-show="name.includes('show')" x-on:click="window.open('{{ route('jurnal.lampiran') }}', '_blank')" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded">
+                        <span>Lihat Lampiran</span>
+                    </a>
                     <x-secondary-button x-on:click="$dispatch('close')" class="bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded">
                         {{ __('Cancel') }}
                     </x-secondary-button>

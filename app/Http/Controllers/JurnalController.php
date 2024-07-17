@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
@@ -27,6 +28,11 @@ class JurnalController extends Controller
         return view('jurnal.index', compact('jurnal'));
     }
 
+    public function lampiran(Jurnal $jurnal)
+    {
+        return 'fafa';
+    }
+
     /**
      * Show the form for creating a new resource.
      */
@@ -41,6 +47,8 @@ class JurnalController extends Controller
         DB::beginTransaction();
         try {
             $input = $request->all();
+
+            // da($input);
 
             $debit = array_map(function($x) {
                 return (int) str_replace('.', '', $x);
@@ -64,16 +72,25 @@ class JurnalController extends Controller
                 $input['no_transaksi'] = 1;
             }
 
+            $tgl = date('Y-m-d H:i:s', strtotime($input['jurnal_tgl']));
+
             $dataJurnal = Jurnal::create([
                 'jenis' => strtoupper($input['jenis']),
                 'no_urut_transaksi' => $jurnal->count() + 1,
                 'no_transaksi' => $input['no_transaksi'],
-                'jurnal_tgl' => now(),
+                'jurnal_tgl' => $tgl,
                 'subtotal' => $sumDebit,
                 'keterangan' => $input['keterangan_header'],
                 'created_by' => Auth::user()->id,
                 'created_at' => now()
             ]);
+
+            if ($request->hasFile('lampiran')) {
+                $filePath = 'lampiran/' . $dataJurnal->id;
+                foreach ($request->file('lampiran') as $file) {
+                    $file->storeAs($filePath, $file->getClientOriginalName(), 'public');
+                }
+            }
 
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {

@@ -170,6 +170,11 @@ class ReportController extends Controller
 
     public function arusKas(Request $request){
 
+        if($request->isMethod('post')){
+
+            dd($request->all());
+        }
+
         return view('report.views.template');
     }
 

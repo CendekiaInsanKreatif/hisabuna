@@ -79,7 +79,7 @@ Route::middleware('auth')->group(function () {
         Route::get('neraca', [ReportController::class, 'neraca'])->name('report.views.neraca');
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.views.neracasaldo');
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.views.neracaperbandingan');
-        Route::get('arus-kas', [ReportController::class, 'arusKas'])->name('report.views.arus-kas');
+        Route::get('aruskas', [ReportController::class, 'arusKas'])->name('report.views.aruskas');
 
         // Report PDF
         Route::post('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
@@ -87,7 +87,7 @@ Route::middleware('auth')->group(function () {
         Route::post('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
         Route::post('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
         Route::post('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
-        Route::post('arus-kas', [ReportController::class, 'arusKas'])->name('report.arus-kas');
+        Route::post('aruskas', [ReportController::class, 'arusKas'])->name('report.aruskas');
         
         Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
     });

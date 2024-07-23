@@ -10,6 +10,9 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.3/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="<?php echo e(asset('css/datepicker.css')); ?>">
     <!-- Scripts -->
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
     <?php echo $__env->yieldPushContent('style'); ?>
@@ -138,16 +141,16 @@
 <body class="flex flex-col min-h-screen">
     <main class="flex-grow">
         <?php if(session('message')): ?>
-        <?php
-            $color = session('color') == 'green' ? 'emerald' : 'red';
-        ?>
-        <div class="alert-container">
-            <div id="s_alert" class="alert bg-<?php echo e($color); ?>-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl transition-opacity duration-500 ease-out">
-                <?php echo e(session('message')); ?>
+            <?php
+                $color = session('color') == 'green' ? 'emerald' : 'red';
+            ?>
+            <div class="alert-container">
+                <div id="s_alert" class="alert bg-<?php echo e($color); ?>-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl transition-opacity duration-500 ease-out">
+                    <?php echo e(session('message')); ?>
 
+                </div>
             </div>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
     <div class="header bg-gray-100 text-gray-800 p-4 sticky top-0 flex items-center justify-between z-10">
         <div class="flex justify-between w-full">
             <div class="flex items-center space-x-4 sm:space-x-6">
@@ -162,7 +165,7 @@
 
             <div id="btnProfile" class="flex items-center space-x-2 md:space-x-4">
                 <div>
-                    <p class="text-lg md:text-xl text-center font-bold"><?php echo e(Auth::user()->name); ?></p>
+                    <p class="text-lg md:text-xl text-center font-bold"><?php echo e(Auth::user()->company_name); ?></p>
                     <p class="text-xs md:text-sm text-center"><?php echo e(Auth::user()->email); ?></p>
                 </div>
                 <a href="<?php echo e(route('profile.edit')); ?>" class="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden hover:scale-110 transition-transform duration-300">
@@ -183,8 +186,9 @@
     </main>
     <footer class="w-full mt-auto">
         <div class="footer bg-emerald-500 text-white text-center p-1 w-full">
-            <div class="w-full flex justify-center items-center">
-                © 2024 Hisabuna. All rights reserved.
+            <div class="w-full flex flex-row justify-center items-center text-sm sm:text-base">
+                <b>© Copyright 2024.</b>
+                <span class="inline">&nbsp;Development by&nbsp;<b>PT. Insan Kreatif Cendekia</b>&nbsp;v1.0.</span>
             </div>
         </div>
     </footer>

@@ -49,3 +49,27 @@ function terbilang($x) {
     elseif ($x < 1000000000)
       return terbilang($x / 1000000) . " Juta" . terbilang($x % 1000000);
   }
+
+  function buildTree($elements, $parentId = 0) {
+    $branch = [];
+    foreach ($elements as $element) {
+        if ($element->parent_id == $parentId) {
+            $children = buildTree($elements, $element->id);
+            if ($children) {
+                $element->children = $children;
+            }
+            $branch[] = $element;
+        }
+    }
+    return $branch;
+}
+
+function flattenTree($tree, &$flatArray, $level = 0) {
+  foreach ($tree as $node) {
+      $node->level = $level;
+      $flatArray[] = $node;
+      if (isset($node->children)) {
+          flattenTree($node->children, $flatArray, $level + 1);
+      }
+  }
+}

@@ -1,0 +1,50 @@
+Catatan review hasil pertemuan dengan Dede:
+
+1. Membuat Print CoA ditambah kolom level, golongan, dan susunan nomor akun menurut urutan parent child-nya.
+2. Kata Export diganti Sample.
+3. Fitur Export CoA ke Excel diperlukan, perlu ditambah level, golongan, dan susunan nomor akun menurut urutan parent child-nya.
+4. Membuat Module Saldo Awal di Pengaturan dengan menginput Debit Credit saldo audit tahun lalu.
+5. Membuat Module Arus Kas di Pengaturan dengan menginput Debit Credit arus kas audit tahun lalu.
+
+Jurnal:
+
+1. Bagian input jurnal dibuat 2 baris (Dede)
+2. Tanggal Jurnal adalah tanggal input yang otomatis diberikan sistem, maka dihilangkan/tidak ditampilkan karena tidak diinput oleh user. (Dede)
+3. Tanggal diganti dengan Tanggal Bukti, diletakkan ke baris kedua input jurnal, diberi nama Tanggal Bukti. (Dede)
+4. Lampiran diletakkan di baris kedua, (tanggal bukan satu transaksi satu jurnal, tapi satu bukti satu jurnal, maka diinput setiap kali memilih akun yang dijurnal). (Dede)
+5. Keterangan diperlebar kotaknya. (Dede)
+
+Laporan Buku Besar
+
+1. Dibuatkan validasi Tanggal Mulai dan Tanggal Selesai. Ada pesan Error kalau Tanggal Selesai lebih kecil dari Tanggal Mulai. (Done)
+2. Dibuatkan filter Buka Besar Per Akun dan All (semua akun) (Done)
+3. Untuk filter tanggal, report menampilkan saldo sebelum Tanggal Mulai, agar mutasi Buku Besar bersambung saldonya setelah Tanggal Mulai. (Done)
+4. Angka-angka uang di semua report dan tampilan browser diformat rata kanan. (Done)
+5. Format tanggal dibuat dd/mm/yy (Done)
+
+Main Application - diganti menjadi Pengaturan, dengan submen (Done)
+PENGATURAN (Done)
+- Chart of Account (Done)
+- Saldo Awal (Done)
+- Akun Arus Kas (Done)
+
+JURNAL (Done)
+
+LAPORAN (Urutan menu laporan disesuaikan dengan laporan audit) (Done)
+- Neraca (Done)
+- Laporan Laba Rugi (Done)
+- Laporan Perubahan Ekuitas (Done)
+- Laporan Arus Kas (Done)
+- Neraca Saldo (Done)
+- Buku Besar (Done)
+
+KELENGKAPAN AUDIT (Done)
+
+
+
+
+
+Tambahan review untuk Jurnal
+Ada Jumlah di bawah untuk Debit Kredit dan Selisih
+Ada pesan Error ketika Simpan Jurnal tidak seimbang Debit Kredit.
+Keterangan Transaksi yang berulang, dibuat option untuk memilih, letak icon nya di samping Keterangan Transaksi.

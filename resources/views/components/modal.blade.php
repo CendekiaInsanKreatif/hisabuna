@@ -210,7 +210,7 @@ $maxWidth = [
                         <table class="min-w-full divide-y divide-gray-200 mt-4">
                             <thead class="bg-gray-50">
                                 @php
-                                    $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit'];
+                                    $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit', 'Lampiran'];
                                 @endphp
                                 @foreach ($header as $item)
                                     <th scope="col" class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -225,6 +225,11 @@ $maxWidth = [
                                         <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="detail.coa.nama_akun"></td>
                                         <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="new Intl.NumberFormat('id-ID').format(detail.debit)"></td>
                                         <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="new Intl.NumberFormat('id-ID').format(detail.credit)"></td>
+                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <a :href="`{{ asset('storage') }}/${detail.lampiran}`" target="_blank" class="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold rounded">
+                                                <span>Lihat</span>
+                                            </a>
+                                        </td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -235,6 +240,9 @@ $maxWidth = [
                     <x-primary-button type="submit" x-show="!name.includes('show')">
                         <span x-text="name.includes('destroy') ? 'Hapus' : 'Simpan'"></span>
                     </x-primary-button>
+                    {{-- <a href="#" x-show="name.includes('show')" x-on:click="window.open('{{ route('jurnal.lampiran') }}', '_blank')" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded">
+                        <span>Lihat Lampiran</span>
+                    </a> --}}
                     <x-secondary-button x-on:click="$dispatch('close')" class="bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded">
                         {{ __('Cancel') }}
                     </x-secondary-button>

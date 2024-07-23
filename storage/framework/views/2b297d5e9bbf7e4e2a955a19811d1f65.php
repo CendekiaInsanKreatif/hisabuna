@@ -28,7 +28,8 @@
     </style>
 </head>
 <body>
-<h2>Laporan Laba Rugi</h2>
+<h2><u>LAPORAN LABA RUGI</u></h2>
+<h4><?php echo e(auth()->user()->company_name); ?></h4>
 <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
 <table>
         <h3 style="padding: 0; margin: 0;"><?php echo e($category); ?></h3>
@@ -53,7 +54,7 @@
 <table style="width: 100%; margin-top: 70px; border-top: 1px solid black; padding-top: 20px;">
     <tr>
         <td style="text-align: center; width: 35%;">
-            <div>Dibuat oleh,</div>
+            <div>Dibuat oleh, <?php echo e($ttd1); ?></div>
             <div style="height: 80px;"></div>
             <div><strong>Staff Keuangan</strong></div>
         </td>
@@ -61,7 +62,7 @@
         <td style="width: 10%;"></td>
         <td style="width: 10%;"></td>
         <td style="text-align: center; width: 35%;">
-            <div>Disetujui oleh,</div>
+            <div>Disetujui oleh, <?php echo e($ttd2); ?></div>
             <div style="height: 80px;"></div>
             <div><strong>Manager Keuangan</strong></div>
         </td>

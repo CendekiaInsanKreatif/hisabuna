@@ -59,46 +59,34 @@
     <div class="container" style="overflow-x: auto; overflow-y: hidden; display: flex; justify-content: center;">
         <div class="header-content" style="text-align: center; width: 100%;">
             <div id="titleHeader" class="header-text" style="display: flex; align-items: center; justify-content: center; flex-direction: row;">
-                <img src="https://cdn.pixabay.com/photo/2017/07/25/11/59/logo-2537871_1280.png" alt="Logo" class="logo" style="margin-right: 10px; align-self: center;">
                 <div>
-                    <h2 style="padding: 0; margin: 0; margin-top: 20px;">PUBLIC VIRTUE</h2>
-                    <h4 style="padding: 0; margin: 0;">Institute for Digital Democracy and Civic Activism</h4>
+                    <h2 style="padding: 0; margin: 0; margin-top: 20px;"><?php echo e(auth()->user()->company_name); ?></h2>
                 </div>
             </div>
             <br>
             <div class="title">
                 <h2>DAFTAR JURNAL</h2>
-                <p class="period">Periode 01/11/2023 s/d 30/11/2023</p>
+                <p class="period">Periode <?php echo e(\Carbon\Carbon::parse($tgl_awal)->format('d/m/Y')); ?> s/d <?php echo e(\Carbon\Carbon::parse($tgl_akhir)->format('d/m/Y')); ?></p>
             </div>
         </div>
         <table>
             <thead>
                 <tr>
-                    <th rowspan="2">No.</th>
-                    <th colspan="2" style="text-align: center">Transaksi</th>
-                    <th rowspan="2" style="text-align: center">Keterangan Jurnal</th>
-                    <th colspan="3">Nomor Jurnal</th>
-                    <th rowspan="2">Jumlah</th>
+                    <th>Nomor Transaksi</th>
+                    <th style="text-align: center">Jenis Jurnal</th>
+                    <th style="text-align: center">Keterangan Transaksi</th>
+                    <th>Jumlah</th>
                 </tr>
                 <tr>
-                    <th>Nomor</th>
-                    <th>Tanggal</th>
-                    <th>RV</th>
-                    <th>PV</th>
-                    <th>JV</th>
                 </tr>
             </thead>
             <tbody>
                 <?php $__currentLoopData = $jurnal; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr style="<?php echo e($item->jenis == 'RV' ? 'background-color: #fee2e2;' : ($item->jenis == 'PV' ? 'background-color: #f4f4f5;' : ($item->jenis == 'JV' ? 'background-color: #fef9c3;' : ''))); ?>">
-                        <td><?php echo e($loop->iteration); ?></td>
                         <td style="text-align: center"><?php echo e($loop->iteration); ?></td>
-                        <td><?php echo e(\Carbon\Carbon::parse($item->jurnal_tgl)->format('j/m/y')); ?></td>
+                        <td style="text-align: center"><?php echo e($item->jenis); ?></td>
                         <td><?php echo e($item->keterangan); ?></td>
-                        <td><?php echo e($item->jenis == 'RV' ? $item->no_transaksi : ''); ?></td>
-                        <td><?php echo e($item->jenis == 'PV' ? $item->no_transaksi : ''); ?></td>
-                        <td><?php echo e($item->jenis == 'JV' ? $item->no_transaksi : ''); ?></td>
-                        <td><?php echo e(number_format($item->subtotal, 0, ',', '.')); ?></td>
+                        <td style="text-align: right"><?php echo e(number_format($item->subtotal, 0, ',', '.')); ?></td>
                     </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </tbody>

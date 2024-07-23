@@ -303,7 +303,7 @@ $maxWidth = [
                         <table class="min-w-full divide-y divide-gray-200 mt-4">
                             <thead class="bg-gray-50">
                                 <?php
-                                    $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit'];
+                                    $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit', 'Lampiran'];
                                 ?>
                                 <?php $__currentLoopData = $header; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <th scope="col" class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -319,6 +319,11 @@ $maxWidth = [
                                         <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="detail.coa.nama_akun"></td>
                                         <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="new Intl.NumberFormat('id-ID').format(detail.debit)"></td>
                                         <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" x-text="new Intl.NumberFormat('id-ID').format(detail.credit)"></td>
+                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <a :href="`<?php echo e(asset('storage')); ?>/${detail.lampiran}`" target="_blank" class="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold rounded">
+                                                <span>Lihat</span>
+                                            </a>
+                                        </td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -347,6 +352,7 @@ $maxWidth = [
 <?php $component = $__componentOriginald411d1792bd6cc877d687758b753742c; ?>
 <?php unset($__componentOriginald411d1792bd6cc877d687758b753742c); ?>
 <?php endif; ?>
+                    
                     <?php if (isset($component)) { $__componentOriginal3b0e04e43cf890250cc4d85cff4d94af = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.secondary-button','data' => ['xOn:click' => '$dispatch(\'close\')','class' => 'bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>

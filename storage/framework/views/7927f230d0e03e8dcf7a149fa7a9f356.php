@@ -47,7 +47,7 @@
 <?php endif; ?>
         <div class="container mx-auto px-4" x-data="coaTable">
             <div class="mb-6">
-                <p class="text-2xl font-semibold text-emerald-500">Chart Of Account</p>
+                <p class="text-2xl font-semibold text-emerald-500">Bagan Akun</p>
             </div>
             <div class="card bg-white shadow-lg rounded-xl border border-gray-200 p-2 w-full md:w-auto">
                 <div class="container mx-auto p-4">
@@ -73,7 +73,6 @@
                                     </svg>
                                 </div>
                             </div>
-                            
                         </div>
                         <div class="flex items-center mt-4 md:mt-0">
                             <button class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4" x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('coas.store')); ?>', name: 'coas.create', title: 'Tambah Akun', type: 'form' })">
@@ -85,7 +84,9 @@
                             <button x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('coas.import')); ?>', name: 'coas.import', title: 'Import Akun', type: 'custom' })" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">Import</button>
                             <form method="POST" action="<?php echo e(route('coas.export')); ?>">
                                 <?php echo csrf_field(); ?>
-                                <button type="submit" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">Export</button>
+                                <button type="submit" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">
+                                  Sample
+                                </button>
                             </form>
                         </div>
                     </div>

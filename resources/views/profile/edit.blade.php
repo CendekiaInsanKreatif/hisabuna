@@ -26,7 +26,7 @@
                             <input type="email" name="email" id="email" value="{{ old('email', $user->email) }}" required class="mt-1 block w-full px-4 py-3 border border-gray-400 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                         </div>
                     </div>
-                    {{-- <div class="md:w-1/2 p-6 space-y-6">
+                    <div class="md:w-1/2 p-6 space-y-6">
                         <h1 class="text-4xl font-bold text-gray-900">Profil Perusahaan</h1>
                         <div class="space-y-4">
                             <label for="company_logo" class="block text-sm font-medium text-gray-800">Logo Perusahaan</label>
@@ -42,7 +42,7 @@
                             <label for="company_desc" class="block text-sm font-medium text-gray-800">Deskripsi Perusahaan</label>
                             <textarea name="company_desc" id="company_desc" rows="4" class="mt-1 block w-full px-4 py-3 border border-gray-400 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" @if(!auth()->user()['roles'] == (['superadmin', 'admin'])) disabled @endif>{{ auth()->user()->company->desc }}</textarea>
                         </div>
-                    </div> --}}
+                    </div>
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="inline-flex items-center px-6 py-3 bg-emerald-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition ease-in-out duration-150">

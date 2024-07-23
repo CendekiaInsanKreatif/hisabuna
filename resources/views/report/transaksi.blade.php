@@ -79,7 +79,7 @@
             </tr>
             <tr>
                 <td rowspan="2" style="text-align: center; vertical-align: top; width: 60%; height: 5px; border: 1px solid black;"><b><em>{{ $jurnal['keterangan'] }}</em></b></td>
-                <td style="width: 40%; height: 5px;">&nbsp;&nbsp;Nomor Jurnal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $jurnal['jenis'].' - '.$jurnal['no_transaksi'] }}</td>
+                <td style="width: 40%; height: 5px;">&nbsp;&nbsp;Jenis Jurnal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $jurnal['jenis'] }}</td>
             </tr>
             <tr>
                 <td style="width: 40%; height: 5px">&nbsp;&nbsp;Nomor Transaksi&nbsp;&nbsp;&nbsp;: {{ $jurnal['id'] }}</td>

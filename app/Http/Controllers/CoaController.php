@@ -58,30 +58,69 @@ class CoaController extends Controller
             $level      = $jumlah_nomor_akun + 0;
         }
 
-
         $nama_akun      = $request->nama_akun;
 
         switch ($level) {
             case 1:
                 $parent_id = null;
+                $saldo_normal = "debit";
+                $golongan = "Aset";
+                // $arus_kas = "aktifitas_operasional";
+                // $saldo_awal_debit = 0;
+                // $saldo_awal_credit = 0;
+                // $saldo_berjalan_debit = 0;
+                // $saldo_berjalan_credit = 0;
                 break;
             case 2:
                 $parent_id = substr($nomor_akun, 0, 1);
+                $saldo_normal = "credit";
+                $golongan = "Liabilitas";
+                // $arus_kas = "aktifitas_operasional";
+                // $saldo_awal_debit = 0;
+                // $saldo_awal_credit = 0;
+                // $saldo_berjalan_debit = 0;
+                // $saldo_berjalan_credit = 0;
                 break;
             case 3:
                 $parent_id = substr($nomor_akun, 0, 2);
+                $saldo_normal = "credit";
+                $golongan = "Ekuitas";
+                // $arus_kas = "aktifitas_operasional";
+                // $saldo_awal_debit = 0;
+                // $saldo_awal_credit = 0;
+                // $saldo_berjalan_debit = 0;
+                // $saldo_berjalan_credit = 0;
                 break;
             case 4:
                 $parent_id = substr($nomor_akun, 0, 3);
+                $saldo_normal = "credit";
+                $golongan = "Pendapatan";
+                // $arus_kas = "aktifitas_operasional";
+                // $saldo_awal_debit = 0;
+                // $saldo_awal_credit = 0;
+                // $saldo_berjalan_debit = 0;
+                // $saldo_berjalan_credit = 0;
                 break;
             case 5:
                 $parent_id = substr($nomor_akun, 0, 4);
+                $saldo_normal = "debit";
+                $golongan = "Beban";
+                // $arus_kas = "aktifitas_operasional";
+                // $saldo_awal_debit = 0;
+                // $saldo_awal_credit = 0;
+                // $saldo_berjalan_debit = 0;
+                // $saldo_berjalan_credit = 0;
                 break;
             default:
                 $parent_id = substr($nomor_akun, 0, 5);
+                $saldo_normal = "debit";
+                $golongan = "Beban Umum";
+                // $arus_kas = "aktifitas_operasional";
+                // $saldo_awal_debit = 0;
+                // $saldo_awal_credit = 0;
+                // $saldo_berjalan_debit = 0;
+                // $saldo_berjalan_credit = 0;
         }
-
-        $saldo_normal = "debit";
 
         $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
 
@@ -96,6 +135,12 @@ class CoaController extends Controller
             'nama_akun'    => $nama_akun,
             'level'        => $level,
             'saldo_normal' => $saldo_normal,
+            'golongan'     => $golongan,
+            'arus_kas'     => 'aktifitas_operasional',
+            'saldo_awal_debit' => 0,
+            'saldo_awal_credit' => 0,
+            'saldo_berjalan_debit' => 0,
+            'saldo_berjalan_credit' => 0,
             'created_at'   => now(),
             'created_by'   => Auth::user()->id,
         ];
@@ -143,26 +188,32 @@ class CoaController extends Controller
             case 1:
                 $golongan = "Aset";
                 $parent_id = null;
+                $saldo_normal = "debit";
                 break;
             case 2:
                 $golongan = "Liabilitas";
                 $parent_id = substr($nomor_akun, 0, 1);
+                $saldo_normal = "credit";
                 break;
             case 3:
                 $golongan = "Ekuitas";
                 $parent_id = substr($nomor_akun, 0, 2);
+                $saldo_normal = "credit";
                 break;
             case 4:
                 $golongan = "Pendapatan";
                 $parent_id = substr($nomor_akun, 0, 3);
+                $saldo_normal = "credit";
                 break;
             case 5:
                 $golongan = "Beban";
                 $parent_id = substr($nomor_akun, 0, 4);
+                $saldo_normal = "debit";
                 break;
             default:
                 $golongan = "Beban Umum";
                 $parent_id = substr($nomor_akun, 0, 5);
+                $saldo_normal = "debit";
         }
 
         $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
@@ -172,7 +223,7 @@ class CoaController extends Controller
             'nama_akun'    => $nama_akun,
             'level'        => $level,
             'golongan'     => $golongan,
-            'saldo_normal' => "debit",
+            'saldo_normal' => $saldo_normal,
             'updated_at'   => now(),
             'updated_by'   => Auth::user()->id,
         ];
@@ -294,11 +345,47 @@ class CoaController extends Controller
     }
 
     public function printCoa(){
-        $data = Coa::where('created_by', Auth::user()->id)->get();
+        $data = Coa::where('created_by', Auth::user()->id)
+                    ->where(function($query) {
+                        $query->where('is_deleted', 0)
+                            ->orWhereNull('is_deleted');
+                    })
+                    ->orderBy('nomor_akun')
+                    ->get();
 
-        $pdf = PDF::loadView('report.printcoa', ['data' => $data]);
+
+        $coaTree = $this->buildTree($data);
+        $flatArray = [];
+        $this->flattenTree($coaTree, $flatArray);
+
+
+        $pdf = PDF::loadView('report.printcoa', ['data' => $flatArray]);
         return $pdf->download('coa_'.auth()->user()->name.'.pdf');
     }
+
+    private function buildTree($elements, $parentId = 0) {
+        $branch = [];
+        foreach ($elements as $element) {
+            if ($element->parent_id == $parentId) {
+                $children = $this->buildTree($elements, $element->id);
+                if ($children) {
+                    $element->children = $children;
+                }
+                $branch[] = $element;
+            }
+        }
+        return $branch;
+    }
+
+    private function flattenTree($tree, &$flatArray, $level = 0) {
+        foreach ($tree as $node) {
+            $node->level = $level;
+            $flatArray[] = $node;
+            if (isset($node->children)) {
+                $this->flattenTree($node->children, $flatArray, $level + 1);
+            }
+        }
+    } 
 
     public function export()
     {

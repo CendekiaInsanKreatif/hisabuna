@@ -141,15 +141,15 @@
 <body class="flex flex-col min-h-screen">
     <main class="flex-grow">
         @if(session('message'))
-        @php
-            $color = session('color') == 'green' ? 'emerald' : 'red';
-        @endphp
-        <div class="alert-container">
-            <div id="s_alert" class="alert bg-{{ $color }}-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl transition-opacity duration-500 ease-out">
-                {{ session('message') }}
+            @php
+                $color = session('color') == 'green' ? 'emerald' : 'red';
+            @endphp
+            <div class="alert-container">
+                <div id="s_alert" class="alert bg-{{ $color }}-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl transition-opacity duration-500 ease-out">
+                    {{ session('message') }}
+                </div>
             </div>
-        </div>
-    @endif
+        @endif
     <div class="header bg-gray-100 text-gray-800 p-4 sticky top-0 flex items-center justify-between z-10">
         <div class="flex justify-between w-full">
             <div class="flex items-center space-x-4 sm:space-x-6">
@@ -164,7 +164,7 @@
 
             <div id="btnProfile" class="flex items-center space-x-2 md:space-x-4">
                 <div>
-                    <p class="text-lg md:text-xl text-center font-bold">{{ Auth::user()->name }}</p>
+                    <p class="text-lg md:text-xl text-center font-bold">{{ Auth::user()->company_name }}</p>
                     <p class="text-xs md:text-sm text-center">{{ Auth::user()->email }}</p>
                 </div>
                 <a href="{{ route('profile.edit') }}" class="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden hover:scale-110 transition-transform duration-300">
@@ -185,8 +185,9 @@
     </main>
     <footer class="w-full mt-auto">
         <div class="footer bg-emerald-500 text-white text-center p-1 w-full">
-            <div class="w-full flex justify-center items-center">
-                © 2024 Hisabuna. All rights reserved.
+            <div class="w-full flex flex-row justify-center items-center text-sm sm:text-base">
+                <b>© Copyright 2024.</b>
+                <span class="inline">&nbsp;Development by&nbsp;<b>PT. Insan Kreatif Cendekia</b>&nbsp;v1.0.</span>
             </div>
         </div>
     </footer>

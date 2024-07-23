@@ -54,7 +54,7 @@
 <table style="width: 100%; margin-top: 70px; border-top: 1px solid black; padding-top: 20px;">
     <tr>
         <td style="text-align: center; width: 35%;">
-            <div>Dibuat oleh,</div>
+            <div>Dibuat oleh, {{ $ttd1 }}</div>
             <div style="height: 80px;"></div>
             <div><strong>Staff Keuangan</strong></div>
         </td>
@@ -62,7 +62,7 @@
         <td style="width: 10%;"></td>
         <td style="width: 10%;"></td>
         <td style="text-align: center; width: 35%;">
-            <div>Disetujui oleh,</div>
+            <div>Disetujui oleh, {{ $ttd2 }}</div>
             <div style="height: 80px;"></div>
             <div><strong>Manager Keuangan</strong></div>
         </td>

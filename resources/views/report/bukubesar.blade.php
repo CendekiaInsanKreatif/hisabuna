@@ -4,11 +4,11 @@
         <div class="flex space-x-2 items-end mb-4">
             <div class="flex flex-col">
                 <label for="tanggal_mulai" class="block text-sm font-medium text-gray-700">Tanggal Mulai:</label>
-                <input type="date" id="tanggal_mulai" name="tanggal_mulai" value="{{ $tanggalMulai }}" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <input type="text" id="tanggal_mulai" name="tanggal_mulai" value="{{ $tanggalMulai }}" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
             <div class="flex flex-col">
                 <label for="tanggal_selesai" class="block text-sm font-medium text-gray-700">Tanggal Selesai:</label>
-                <input type="date" id="tanggal_selesai" name="tanggal_selesai" value="{{ $tanggalSelesai }}" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <input type="text" id="tanggal_selesai" name="tanggal_selesai" value="{{ $tanggalSelesai }}" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
             <div class="flex flex-col">
                 <label for="akun" class="block text-sm font-medium text-gray-700">Akun:</label>
@@ -16,7 +16,7 @@
             </div>
             <div class="flex items-end">
                 <x-primary-button class="h-10">Tampilkan</x-primary-button>
-                <a href="{{ route('report.bukubesar.download') }}" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Download</a>
+                <a href="#" id="download" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Download</a>
             </div>
         </div>
     </form>
@@ -33,15 +33,15 @@
                     <tr>
                         <th scope="col" class="w-1/5 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                         <th scope="col" class="w-2/5 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
-                        <th scope="col" class="w-1/6 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Debit<div class="text-red-500">Bertambah</div></th>
-                        <th scope="col" class="w-1/6 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kredit<div class="text-red-500">Berkurang</div></th>
-                        <th scope="col" class="w-1/6 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
+                        <th scope="col" class="w-1/6 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Debit<div class="text-red-500">Bertambah</div></th>
+                        <th scope="col" class="w-1/6 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Kredit<div class="text-red-500">Berkurang</div></th>
+                        <th scope="col" class="w-1/6 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Saldo</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach ($transactions as $transaction)
                         <tr>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ \Carbon\Carbon::parse($transaction->jurnal_tgl)->format('F d') }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ \Carbon\Carbon::parse($transaction->jurnal_tgl)->format('d/m/Y') }}</td>
                             <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 @php
                                     $keterangan = $transaction->keterangan;
@@ -55,9 +55,9 @@
                                     echo $output;
                                 @endphp
                             </td>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ number_format($transaction->debit, 0, ',', '.') }}</td>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ number_format($transaction->credit, 0, ',', '.') }}</td>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ number_format($transaction->saldo, 0, ',', '.') }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-right">{{ number_format($transaction->debit, 0, ',', '.') }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-right">{{ number_format($transaction->credit, 0, ',', '.') }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-right">{{ number_format($transaction->saldo, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -65,4 +65,50 @@
         @endforeach
     </div>
     @endsection
+
+    @push('script')
+    <script type="module">
+        $(document).ready(function() {
+            $('#tanggal_mulai').datepicker({
+                dateFormat: 'dd-mm-yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                onClose: function(dateText, inst) { 
+                    var tanggalMulai = new Date(inst.selectedYear, inst.selectedMonth, inst.selectedDay);
+                    $(this).datepicker('setDate', tanggalMulai);
+                    $('#tanggal_selesai').datepicker('option', 'minDate', tanggalMulai);
+                    $('#tanggal_selesai').datepicker('setDate', tanggalMulai);
+                }
+            });
+
+            $('#tanggal_selesai').datepicker({
+                dateFormat: 'dd-mm-yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                beforeShow: function(input, inst) {
+                    var tanggalMulai = $('#tanggal_mulai').datepicker('getDate');
+                    if (tanggalMulai) {
+                        $(this).datepicker('option', 'minDate', tanggalMulai);
+                    }
+                }
+            });
+
+            document.getElementById('download').addEventListener('click', function(event) {
+                event.preventDefault();
+                var tanggalMulai = document.getElementById('tanggal_mulai').value;
+                var tanggalSelesai = document.getElementById('tanggal_selesai').value;
+                if (tanggalMulai) {
+                    var url = "{{ route('report.bukubesar.download') }}" + "?tanggal_mulai=" + tanggalMulai + "&tanggal_selesai=" + tanggalSelesai;
+                    window.location.href = url;
+                } else {
+                    alert("Harap pilih tanggal mulai.");
+                }
+            });
+        });
+        
+    </script>
+    @endpush
 </x-app-layout>
+

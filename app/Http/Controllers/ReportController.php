@@ -19,12 +19,14 @@ class ReportController extends Controller
     public function daftarJurnal()
     {
         $jurnal = Jurnal::with('details')->where('created_by', auth()->user()->id)->get();
+        $tgl_awal = $jurnal->min('jurnal_tgl');
+        $tgl_akhir = $jurnal->max('jurnal_tgl');
 
         if($jurnal->isEmpty()){
             return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
         }
 
-        $view = view('report.daftarjurnal', ['jurnal' => $jurnal])->render();
+        $view = view('report.daftarjurnal', ['jurnal' => $jurnal, 'tgl_awal' => $tgl_awal, 'tgl_akhir' => $tgl_akhir])->render();
         $pdf = PDF::loadHTML($view);
         return $pdf->download('daftar_jurnal_'.Carbon::now()->format('YmdHis').'.pdf');
     }
@@ -64,19 +66,39 @@ class ReportController extends Controller
         return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
 
-    public function downloadBukuBesar(){
+    public function downloadBukuBesar(Request $request){
+        $tanggalMulai = trim($request->input('tanggal_mulai', Carbon::now()->format('Y-m-d')));
+        $tanggalSelesai = trim($request->input('tanggal_selesai', Carbon::now()->format('Y-m-d')));
+        $akun = $request->input('akun', '');
+
         $query = JurnalDetail::query()
             ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
             ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan')
             ->where('jurnal_headers.created_by', auth()->user()->id);
 
-            $en = $query->orderBy('jurnal_headers.jurnal_tgl')
+        if (!empty($akun)) {
+            $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
+        }
+
+        if ($request->has('tanggal_mulai') || $request->has('tanggal_selesai')) {
+            try {
+                $startDate = Carbon::parse($tanggalMulai)->startOfDay();
+            } catch (\Exception $e) {
+                $startDate = Carbon::now()->startOfDay();
+            }
+
+            try {
+                $endDate = Carbon::parse($tanggalSelesai)->endOfDay();
+            } catch (\Exception $e) {
+                $endDate = Carbon::now()->endOfDay();
+            }
+
+            $query->whereBetween('jurnal_headers.jurnal_tgl', [$startDate, $endDate]);
+        }
+
+        $en = $query->orderBy('jurnal_headers.jurnal_tgl')
             ->get()
             ->groupBy('coa_akun');
-
-        if($en->isEmpty()){
-            return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
-        }
 
         $jurnalx = [];
         foreach ($en as $coaAkun => $transactions) {
@@ -91,14 +113,14 @@ class ReportController extends Controller
             $jurnalx[$coaAkun] = $transactions;
         }
 
-        $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $jurnalx]);
+        $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
         return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
     }
 
     public function bukuBesar(Request $request)
     {
-        $tanggalMulai = $request->input('tanggal_mulai', Carbon::now()->startOfMonth()->toDateString());
-        $tanggalSelesai = $request->input('tanggal_selesai', Carbon::now()->endOfMonth()->toDateString());
+        $tanggalMulai = trim($request->input('tanggal_mulai', Carbon::now()->format('Y-m-d')));
+        $tanggalSelesai = trim($request->input('tanggal_selesai', Carbon::now()->format('Y-m-d')));
         $akun = $request->input('akun', '');
 
         $query = JurnalDetail::query()
@@ -106,18 +128,29 @@ class ReportController extends Controller
             ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan')
             ->where('jurnal_headers.created_by', auth()->user()->id);
 
+        if (!empty($akun)) {
+            $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
+        }
 
-            if (!empty($akun)) {
-                $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
+        if ($request->has('tanggal_mulai') || $request->has('tanggal_selesai')) {
+            try {
+                $startDate = Carbon::parse($tanggalMulai)->startOfDay();
+            } catch (\Exception $e) {
+                $startDate = Carbon::now()->startOfDay();
             }
 
-            $en = $query->orderBy('jurnal_headers.jurnal_tgl')
+            try {
+                $endDate = Carbon::parse($tanggalSelesai)->endOfDay();
+            } catch (\Exception $e) {
+                $endDate = Carbon::now()->endOfDay();
+            }
+
+            $query->whereBetween('jurnal_headers.jurnal_tgl', [$startDate, $endDate]);
+        }
+
+        $en = $query->orderBy('jurnal_headers.jurnal_tgl')
             ->get()
             ->groupBy('coa_akun');
-
-        if($en->isEmpty()){
-            return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
-        }
 
         $ledgers = [];
         foreach ($en as $coaAkun => $transactions) {
@@ -137,18 +170,26 @@ class ReportController extends Controller
 
     public function arusKas(Request $request){
 
+        return view('report.views.template');
     }
 
     public function labaRugi(Request $request)
     {
         if($request->isMethod('post')){
+
+
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $ttd1 = $request->input('text_input1');
+            $ttd2 = $request->input('text_input2');
+
             $tahunSebelumnya = date('Y');
             $jurnal = Jurnal::whereNull('is_deleted')
                         ->with(['details' => function($query) {
                             $query->where('coa_akun', '>=', '4');
                         }])
                         ->where('created_by', auth()->user()->id)
-                        ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                        ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                         ->get();
 
             if($jurnal->isEmpty()){
@@ -201,13 +242,13 @@ class ReportController extends Controller
 
             $labaRugiBersih = $totalPendapatan - $totalBiaya;
 
-            // da($data);
-
             $pdf = PDF::loadView('report.labarugi', [
                 'data' => $data,
                 'tahunSebelumnya' => $tahunSebelumnya,
                 'kategori' => $kategori,
-                'labaRugiBersih' => $labaRugiBersih
+                'labaRugiBersih' => $labaRugiBersih,
+                'ttd1' => $ttd1,
+                'ttd2' => $ttd2,
             ]);
             return $pdf->download('labarugi_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
@@ -218,7 +259,8 @@ class ReportController extends Controller
     public function perubahanEkuitas(Request $request) {
         if($request->isMethod('post')){
             $tahunSebelumnya = date('Y') - 1;
-            $tahunSekarang = date('Y');
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
     
             $jurnalDulu = Jurnal::whereNull('is_deleted')
                             ->with('details')
@@ -226,7 +268,7 @@ class ReportController extends Controller
                             ->where('created_by', auth()->user()->id)->get();
             $jurnalSekarang = Jurnal::whereNull('is_deleted')
                             ->with('details')
-                            ->whereYear('jurnal_tgl', $tahunSekarang)
+                            ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                             ->where('created_by', auth()->user()->id)->get();
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted')->get();
     
@@ -343,13 +385,15 @@ class ReportController extends Controller
 
     public function neraca(Request $request){
         if($request->isMethod('post')){
-            $ttd1 = $request->input('ttd1', date('Y'));
-            $ttd2 = $request->input('ttd2', date('m'));
-            $tanggal = date('Y');
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $ttd1 = $request->input('text_input1');
+            $ttd2 = $request->input('text_input2');
+
             $jurnal = Jurnal::whereNull('is_deleted')
                             ->with('details')
                             ->where('created_by', auth()->user()->id)
-                            ->whereYear('jurnal_tgl', $tanggal)
+                            ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                             ->get();
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
 
@@ -373,6 +417,8 @@ class ReportController extends Controller
             $pdf = PDF::loadView('report.neraca', [
                 'data' => $data,
                 'totals' => $totals,
+                'ttd1' => $ttd1,
+                'ttd2' => $ttd2,
             ]);
             return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
@@ -383,11 +429,12 @@ class ReportController extends Controller
     public function neracaSaldo(Request $request){
 
         if($request->isMethod('post')){
-            $tanggal = date('Y');
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
             $jurnal = Jurnal::whereNull('is_deleted')
                             ->with('details')
                             ->where('created_by', auth()->user()->id)
-                            ->whereYear('jurnal_tgl', $tanggal)
+                            ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                             ->get();
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
     
@@ -460,11 +507,11 @@ class ReportController extends Controller
 
     public function neracaPerbandingan(Request $request){
         if($request->isMethod('post')){
-            $ttd1 = $request->input('ttd1', date('Y'));
-            $ttd2 = $request->input('ttd2', date('m'));
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
     
             $tahunSebelumnya = date('Y') - 1;
-            $tahunSekarang = date('Y');
+            // $tahunSekarang = date('Y');
             $jurnalTahunSebelumnya = Jurnal::whereNull('is_deleted')
                                            ->with('details')
                                            ->where('created_by', auth()->user()->id)
@@ -473,7 +520,7 @@ class ReportController extends Controller
             $jurnalTahunSekarang = Jurnal::whereNull('is_deleted')
                                          ->with('details')
                                          ->where('created_by', auth()->user()->id)
-                                         ->whereYear('jurnal_tgl', $tahunSekarang)
+                                         ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                                          ->get();
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
     

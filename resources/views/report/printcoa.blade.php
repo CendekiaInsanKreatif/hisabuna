@@ -28,7 +28,7 @@
         }
         th, td {
             text-align: left;
-            padding: 3px;
+            padding: 8px;
             font-size: 12px;
         }
         th {
@@ -45,13 +45,15 @@
 </head>
 <body>
     <h1>{{ auth()->user()->company_name }}</h1>
-    <h4>COA</h4>
+    <h4>Chart of Account</h4>
 
     <table>
         <thead>
             <tr>
                 <th style="text-align: center">Kode Akun</th>
                 <th style="text-align: center">Nama Akun</th>
+                <th style="text-align: center">Level</th>
+                <th style="text-align: center">Golongan</th>
                 <th style="text-align: center">Saldo Normal</th>
             </tr>
         </thead>
@@ -59,8 +61,10 @@
             @foreach ($data as $item)
                 <tr>
                     <td>{{ $item->nomor_akun }}</td>
-                    <td>{{ $item->nama_akun }}</td>
-                    <td>{{ $item->saldo_normal }}</td>
+                    <td style="padding-left: {{ $item->level * 15 }}px;">{{ $item->nama_akun }}</td>
+                    <td style="text-align: center">{{ $item->level }}</td>
+                    <td>{{ $item->golongan }}</td>
+                    <td style="text-align: center">{{ $item->saldo_normal }}</td>
                 </tr>
             @endforeach
         </tbody>

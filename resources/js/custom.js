@@ -1,8 +1,11 @@
 import jQuery from 'jquery';
+import 'jquery-ui/ui/widgets/datepicker';
+
 
 window.$ = window.jQuery = jQuery;
 
 $(document).ready(function() {
+
     $('#coaTable th').click(function() {
         var table = $(this).parents('table').eq(0);
         var rows = table.find('tr:gt(0)').toArray().sort((a, b) => {

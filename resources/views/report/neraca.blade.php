@@ -27,6 +27,8 @@
 </head>
 <body>
 <table>
+    <caption><h2><u>NERACA</u></h2></caption>
+    <caption>{{ auth()->user()->company_name }}</caption>
     @foreach ($data as $category => $subcategories)
         <tr>
             <th colspan="2" class="category"><h2>{{ $category }}</h2></th>
@@ -51,6 +53,23 @@
             <td class="total" style="text-align: right">{{ number_format($totals[$category]['Total'], 0, ',', '.') }}</td>
         </tr>
     @endforeach
+</table>
+<table style="width: 100%; margin-top: 70px; border-top: 1px solid black; padding-top: 20px;">
+    <tr>
+        <td style="text-align: center; width: 35%;">
+            <div>Dibuat oleh, {{ $ttd1 }}</div>
+            <div style="height: 80px;"></div>
+            <div><strong>Staff Keuangan</strong></div>
+        </td>
+        <td style="width: 10%;"></td>
+        <td style="width: 10%;"></td>
+        <td style="width: 10%;"></td>
+        <td style="text-align: center; width: 35%;">
+            <div>Disetujui oleh, {{ $ttd2 }}</div>
+            <div style="height: 80px;"></div>
+            <div><strong>Manager Keuangan</strong></div>
+        </td>
+    </tr>
 </table>
 
 </body>

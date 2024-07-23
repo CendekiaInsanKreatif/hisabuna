@@ -35,6 +35,7 @@
 <body>
     <table>
         <caption>Neraca Saldo</caption>
+        <caption>{{ auth()->user()->company_name }}</caption>
         <tr>
             <th>Keterangan</th>
             <th>Saldo</th>

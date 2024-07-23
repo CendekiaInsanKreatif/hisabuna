@@ -64,12 +64,11 @@
 </head>
 <body>
     <header class="header">
-        <h1>PT. DIGITAL TRANSFORMASI INDONESIA</h1>
-        <h4>Pusat Inovasi dan Transformasi Digital</h4>
+        <h1>{{ auth()->user()->company_name }}</h1>
         <br>
         <br>
-        <h2><u>JURNAL TRANSAKSI</u></h2>
-        <h4>(TRANSACTION JOURNAL)</h4>
+        <h2><u>{{ $jurnal['jenis'] == 'RV' ? 'JURNAL KAS MASUK' : ($jurnal['jenis'] == 'PV' ? 'JURNAL KAS KELUAR' : ($jurnal['jenis'] == 'JV' ? 'JURNAL UMUM' : '')) }}</u></h2>
+        <h4>{{ $jurnal['jenis'] == 'RV' ? 'RECEIVE VOUCHER' : ($jurnal['jenis'] == 'PV' ? 'PAYMENT VOUCHER' : ($jurnal['jenis'] == 'JV' ? 'JOURNAL VOUCHER' : '')) }}</h4>
     </header>
     <br>
     <table>
@@ -80,7 +79,7 @@
             </tr>
             <tr>
                 <td rowspan="2" style="text-align: center; vertical-align: top; width: 60%; height: 5px; border: 1px solid black;"><b><em>{{ $jurnal['keterangan'] }}</em></b></td>
-                <td style="width: 40%; height: 5px;">&nbsp;&nbsp;Nomor Jurnal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $jurnal['jenis'].' - '.$jurnal['no_transaksi'] }}</td>
+                <td style="width: 40%; height: 5px;">&nbsp;&nbsp;Jenis Jurnal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $jurnal['jenis'] }}</td>
             </tr>
             <tr>
                 <td style="width: 40%; height: 5px">&nbsp;&nbsp;Nomor Transaksi&nbsp;&nbsp;&nbsp;: {{ $jurnal['id'] }}</td>

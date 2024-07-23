@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
@@ -27,12 +28,25 @@ class JurnalController extends Controller
         return view('jurnal.index', compact('jurnal'));
     }
 
+    public function lampiran(Jurnal $jurnal)
+    {   
+        $lampiran = Storage::disk('public')->files('lampiran/' . $jurnal->id);
+
+        // da($lampiran);
+
+        return view('report.views.lampiran', compact('jurnal', 'lampiran'));
+    }
+
     /**
      * Show the form for creating a new resource.
      */
     public function create()
     {
-        $coa = Coa::whereNull('is_deleted')->where('level', 5)->where('created_by', auth()->user()->id)->get()->toArray();
+        $coa = Coa::whereNull('is_deleted')
+                    ->where('level', 5)
+                    ->where('created_by', auth()->user()->id)
+                    ->get()
+                    ->toArray();
         return view('jurnal.form', compact('coa'));
     }
 
@@ -40,6 +54,29 @@ class JurnalController extends Controller
     {
         DB::beginTransaction();
         try {
+            $validator = Validator::make($request->all(), [
+                'jenis' => 'required|string',
+                'keterangan_header' => 'required|string',
+                'no_akun' => 'required|array',
+                'no_akun.*' => 'required|string|exists:coas,nomor_akun',
+                'debit' => 'required|array',
+                'debit.*' => 'required|numeric|min:0',
+                'kredit' => 'required|array',
+                'kredit.*' => 'required|numeric|min:0',
+                'tanggal_bukti' => 'required|array',
+                'tanggal_bukti.*' => 'required|date',
+                'keterangan' => 'required|array',
+                'keterangan.*' => 'nullable|string',
+                'lampiran' => 'nullable|array',
+                'lampiran.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            ]);
+
+            if($validator->fails()){
+                return redirect()->route('jurnal.create')->with('message', 'Validasi gagal, silakan periksa kembali input Anda.')
+                    ->with('color', 'red');
+            }
+
+
             $input = $request->all();
 
             $debit = array_map(function($x) {
@@ -83,19 +120,40 @@ class JurnalController extends Controller
                 $debit = (int) $db;
                 $kredit = (int) $kr;
 
+
+                Coa::where('nomor_akun', $noAkun)->where('created_by', auth()->user()->id)->update([
+                    'saldo_berjalan_debit' => $debit,
+                    'saldo_berjalan_credit' => $kredit,
+                ]);
+
+                $tgl_bukti = \Carbon\Carbon::parse($input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
+
                 $details[] = [
                     'jurnal_id' => $dataJurnal->id,
                     'coa_akun' => $noAkun,
                     'debit' => $debit,
                     'credit' => $kredit,
                     'keterangan' => $input['keterangan'][$index] ?: $input['keterangan_header'],
+                    'tanggal_bukti' => $tgl_bukti,
                     'created_by' => Auth::user()->id,
                     'created_at' => now()
                 ];
             }
 
-            foreach ($details as $detail) {
-                JurnalDetail::create($detail);
+            foreach ($details as $index => $detail) {
+                $da = JurnalDetail::create($detail);
+        
+                if ($request->hasFile('lampiran')) {
+                    $lampiranFiles = $request->file('lampiran');
+                    if (isset($lampiranFiles[$index])) {
+                        $file = $lampiranFiles[$index];
+                        $filePath = 'lampiran/' . auth()->user()->company_name . '/' . $dataJurnal->id;
+                        $fileName = $da->id . '.' . $file->getClientOriginalExtension();
+                        $file->storeAs($filePath, $fileName, 'public');
+                        $da->lampiran = $filePath . '/' . $fileName;
+                        $da->save();
+                    }
+                }
             }
 
             DB::commit();
@@ -117,6 +175,12 @@ class JurnalController extends Controller
                 ->where('created_by', auth()->user()->id)
                 ->orderBy('jurnal_tgl', 'desc')
                 ->find($jurnal->id);
+
+        if ($jurnal) {
+            foreach ($jurnal->details as $detail) {
+                $detail->tanggal_bukti = \Carbon\Carbon::parse($detail->tanggal_bukti)->format('Y-m-d');
+            }
+        }
         $coa = Coa::whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
                 ->where('level', 5)
@@ -147,7 +211,8 @@ class JurnalController extends Controller
         DB::beginTransaction();
         try {
             $input = $request->all();
-            // da($input);
+
+            // dd($input);
 
             $existingJournals = Jurnal::whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
@@ -170,6 +235,13 @@ class JurnalController extends Controller
             $jurnal->updated_at = now();
             $jurnal->save();
 
+            if($request->has('lampiran')){
+                $filePath = 'lampiran/' . auth()->user()->company_name . '/' . $jurnal->id;
+                if (Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->deleteDirectory($filePath);
+                }
+            }
+
             JurnalDetail::where('jurnal_id', $jurnal->id)->delete();
 
             $details = [];
@@ -177,19 +249,34 @@ class JurnalController extends Controller
                 $debit = $input['debit'][$index];
                 $kredit = $input['kredit'][$index];
 
+                $tgl_bukti = \Carbon\Carbon::parse($input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
+
                 $details[] = [
                     'jurnal_id' => $jurnal->id,
                     'coa_akun' => $noAkun,
                     'debit' => $debit,
                     'credit' => $kredit,
                     'keterangan' => $input['keterangan'][$index] ?: $input['keterangan_header'],
+                    'tanggal_bukti' => $tgl_bukti,
                     'created_by' => Auth::user()->id,
                     'created_at' => now()
                 ];
             }
 
-            foreach ($details as $detail) {
-                JurnalDetail::create($detail);
+            foreach ($details as $index => $detail) {
+                $da = JurnalDetail::create($detail);
+        
+                if ($request->hasFile('lampiran')) {
+                    $lampiranFiles = $request->file('lampiran');
+                    if (isset($lampiranFiles[$index])) {
+                        $file = $lampiranFiles[$index];
+                        $filePath = 'lampiran/' . auth()->user()->company_name . '/' . $jurnal->id;
+                        $fileName = $da->id . '.' . $file->getClientOriginalExtension();
+                        $file->storeAs($filePath, $fileName, 'public');
+                        $da->lampiran = $filePath . '/' . $fileName;
+                        $da->save();
+                    }
+                }
             }
 
             DB::commit();

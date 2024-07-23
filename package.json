@@ -16,6 +16,8 @@
         "vite": "^5.0"
     },
     "dependencies": {
-        "jquery": "^3.7.1"
+        "flatpickr": "^4.6.13",
+        "jquery": "^3.7.1",
+        "jquery-ui": "^1.13.3"
     }
 }

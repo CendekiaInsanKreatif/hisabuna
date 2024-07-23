@@ -1,12 +1,3 @@
-@push('style')
-<style>
-    #ledgerContent {
-        width: 100%;
-        font-family: 'Arial', sans-serif;
-    }
-</style>
-@endpush
-
 <div id="ledgerContent">
     <div style="text-align: center;">
         <h1 style="font-size: 1.5em; font-weight: bold; color: #2f855a; margin-bottom: 16px;">BUKU BESAR (LEDGER)</h1>
@@ -27,7 +18,7 @@
             <tbody style="background-color: #ffffff; border-top: 1px solid #e2e8f0;">
                 @foreach ($transactions as $transaction)
                     <tr>
-                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">{{ \Carbon\Carbon::parse($transaction->jurnal_tgl)->format('M d') }}</td>
+                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">{{ \Carbon\Carbon::parse($transaction->jurnal_tgl)->format('d/m/Y') }}</td>
                         <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">
                             @php
                                 $keterangan = $transaction->keterangan;
@@ -41,9 +32,9 @@
                                 echo $output;
                             @endphp
                         </td>
-                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">{{ number_format($transaction->debit, 0, ',', '.') }}</td>
-                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">{{ number_format($transaction->credit, 0, ',', '.') }}</td>
-                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">{{ number_format($transaction->saldo, 0, ',', '.') }}</td>
+                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096; text-align-right;">{{ number_format($transaction->debit, 0, ',', '.') }}</td>
+                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096; text-align-right;">{{ number_format($transaction->credit, 0, ',', '.') }}</td>
+                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096; text-align-right;">{{ number_format($transaction->saldo, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
             </tbody>

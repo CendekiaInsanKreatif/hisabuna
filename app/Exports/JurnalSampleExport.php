@@ -36,6 +36,7 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
     public function headings(): array
     {
         return [
+            'Tanggal Bukti',
             'Akun Coa',
             'Debit',
             'Kredit',
@@ -64,18 +65,19 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                $sheet->getColumnDimension('A')->setWidth(35);
+                $sheet->getColumnDimension('A')->setWidth(10);
                 $sheet->getColumnDimension('B')->setWidth(20);
                 $sheet->getColumnDimension('C')->setWidth(20);
-                $sheet->getColumnDimension('D')->setWidth(50);
+                $sheet->getColumnDimension('D')->setWidth(20);
+                $sheet->getColumnDimension('E')->setWidth(50);
                 $sheet->getRowDimension(1)->setRowHeight(20);
 
-                $sheet->mergeCells('E1:H2');
-                $sheet->setCellValue('E1', 'Selisih');
-                $sheet->mergeCells('E3:H4');
-                $sheet->setCellValue('E3', '=SUM(B:B)-SUM(C:C)');
+                $sheet->mergeCells('F1:H2');
+                $sheet->setCellValue('F1', 'Selisih');
+                $sheet->mergeCells('F3:H4');
+                $sheet->setCellValue('F3', '=SUM(B:B)-SUM(C:C)');
 
-                $sheet->getStyle('E1:H2')->applyFromArray([
+                $sheet->getStyle('F1:H2')->applyFromArray([
                     'font' => [
                         'bold' => true,
                     ],
@@ -95,7 +97,7 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
                         ],
                     ],
                 ]);
-                $sheet->getStyle('E3:H4')->applyFromArray([
+                $sheet->getStyle('F3:H4')->applyFromArray([
                     'font' => [
                         'bold' => true,
                     ],
@@ -116,7 +118,7 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
                     ],
                 ]);
 
-                $sheet->getStyle('A1:D1')->applyFromArray([
+                $sheet->getStyle('A1:E1')->applyFromArray([
                     'font' => [
                         'bold' => true,
                     ],
@@ -180,6 +182,7 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
     {
         $coas = Coa::whereNull('is_deleted')
                     ->where('created_by', Auth::user()->id)
+                    ->where('level', '5')
                     ->get(['nomor_akun', 'nama_akun']);
         return $coas->pluck('nama_akun', 'nomor_akun')->toArray();
     }

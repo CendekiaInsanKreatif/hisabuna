@@ -1,7 +1,11 @@
 <div id="ledgerContent">
     <div style="text-align: center;">
-        <h1 style="font-size: 1.5em; font-weight: bold; color: #2f855a; margin-bottom: 16px;">BUKU BESAR (LEDGER)</h1>
-        <h2><?php echo e(auth()->user()->company_name); ?></h2>
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" style="width: 50px; height: 50px;">
+        <h1><?php echo e(auth()->user()->company_name); ?></h1>
+        <br>
+        <h3 style="font-size: 1.5em; font-weight: bold; color: #101111; margin: 0; padding: 0;"><u>BUKU BESAR (LEDGER)</u></h3>
+        <p>Periode <?php echo e(\Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y')); ?> s/d <?php echo e(\Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y')); ?></p>
+        <br>
     </div>
     <?php $__currentLoopData = $ledgers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coaAkun => $transactions): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <h2 style="font-size: 1.25em; font-weight: 600; color: #4a5568;"><?php echo e($coaAkun); ?></h2>

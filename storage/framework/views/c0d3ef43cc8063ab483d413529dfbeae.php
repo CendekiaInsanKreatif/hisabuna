@@ -73,7 +73,7 @@
                         <?php if($item == 'keterangan'): ?>                        
                         <textarea name="<?php echo e($item); ?>_header" id="<?php echo e($item); ?>" 
                                   class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" 
-                                  x-model="keteranganHeader"><?php echo e($jurnal->$item); ?></textarea>
+                                  value="<?php echo e($jurnal->$item); ?>"><?php echo e($jurnal->$item); ?></textarea>
                         <?php elseif($item == 'jenis'): ?>
                             <select name="<?php echo e($item); ?>" id="<?php echo e($item); ?>" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">
                                 <option value="">Pilih Jenis</option>
@@ -128,10 +128,10 @@
                                         <input type="text" :name="'nama_akun[' + index + ']'" readonly class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.coa.nama_akun">
                                     </td>
                                     <td class="py-2 px-4">
-                                        <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.debit">
+                                        <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.debit" x-on:input="formatCurrency($event, 'debit', index)">
                                     </td>
                                     <td class="py-2 px-4">
-                                        <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.credit">
+                                        <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.credit" x-on:input="formatCurrency($event, 'kredit', index)">
                                     </td>
                                     <td class="py-2 px-4">
                                         <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-red-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong mr-2" x-on:click="rows.splice(index, 1)">
@@ -169,7 +169,7 @@
         </div>
     </div>
     <?php else: ?>
-    <div x-data="jurnalApp()">
+    <div x-data="jurnalApp()" x-init="init()">
         <div class="container mx-auto px-4">
             <form action="<?php echo e(route('jurnal.store')); ?>" method="post" enctype="multipart/form-data">
                 <?php echo csrf_field(); ?>
@@ -234,6 +234,20 @@
                                     </button>
                                 </th>
                             </tr>
+                            <tr class="text-left">
+                                <th class="py-2 px-4" colspan="1">
+                                    <span class="text-gray-500"></span>
+                                </th>
+                                <th class="py-2 px-4">
+                                    <h4>Debit: <span class="text-gray-500" x-text="debit"></span></h4>
+                                </th>
+                                <th class="py-2 px-4">
+                                    <h4>Kredit: <span class="text-gray-500" x-text="kredit"></span></h4>
+                                </th>
+                                <th class="py-2 px-4">
+                                    <h4>Selisih: <span class="text-gray-500" x-text="selisih"></span></h4>
+                                </th>
+                            </tr>
                         </thead>
                         <template x-for="(row, index) in rows" :key="index">
                         <tbody class="bg-gray-100 text-center" id="tBody">
@@ -246,10 +260,10 @@
                                             <input type="text" :name="'nama_akun[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.nama_akun" readonly required>
                                         </td>
                                         <td class="py-2 px-4">
-                                            <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.debit" x-on:input="formatCurrency($event, 'debit', index)">
+                                            <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.debit" x-on:input="formatCurrency($event, 'debit', index)" required>
                                         </td>
                                         <td class="py-2 px-4">
-                                            <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.kredit" x-on:input="formatCurrency($event, 'kredit', index)">
+                                            <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.kredit" x-on:input="formatCurrency($event, 'kredit', index)" required>
                                         </td>
                                         <td class="py-2 px-4">
                                             <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-red-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" x-on:click="removeRow(index)">
@@ -308,6 +322,7 @@
             }
 
             $('#jurnalDetail tbody').each(function() {
+                
                 $(this).find('input, textarea').each(function() {
                     if ($(this).prop('required') && $(this).val().trim() === '') {
                         isValid = false;
@@ -315,6 +330,11 @@
                         errorMessage += fieldName.replace('_', ' ') + ' harus diisi.<br>';
                     }
                 });
+
+                if (totalDebit !== totalCredit) {
+                    isValid = false;
+                    errorMessage += 'Total debit dan kredit harus seimbang.<br>';
+                }
             });
 
             if (!isValid) {
@@ -360,6 +380,17 @@
         return {
             keteranganHeader: '',
             rows: Array.isArray(jurnal) ? jurnal : [],
+            debit: 0,
+            kredit: 0,
+            selisih: 0,
+
+            init(){
+                this.debit = this.rows.reduce((acc, row) => acc + (parseFloat(row.debit) || 0), 0);
+                this.kredit = this.rows.reduce((acc, row) => acc + (parseFloat(row.kredit) || 0), 0);
+                this.selisih = this.debit - this.kredit;
+            },
+
+
             addRow() {
                 this.rows.push({
                     keterangan: this.keteranganHeader,
@@ -444,7 +475,6 @@
         };
     }
 </script>
-
 <?php $__env->stopPush(); ?>
  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>

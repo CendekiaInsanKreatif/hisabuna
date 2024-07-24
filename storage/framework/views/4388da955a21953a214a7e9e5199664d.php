@@ -74,7 +74,7 @@
                     <table class="w-full min-w-full" id="jurnalTable">
                         <thead>
                             <tr>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th style="width: 10px" class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
                                         Nomor Transaksi
                                         <span class="ml-2">
@@ -82,15 +82,15 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-2 py-1 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th style="width: 10px" class="bg-gray-100 px-2 py-1 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
-                                        Nomor Jurnal
+                                        Jenis Jurnal
                                         <span class="ml-2">
                                             <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th style="width: 10px" class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
                                         Tanggal
                                         <span class="ml-2">
@@ -98,7 +98,7 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
                                         Keterangan
                                         <span class="ml-2">
@@ -106,7 +106,7 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
+                                <th style="width: 50px" class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
                                     <div class="flex items-center justify-center">
                                         Action
                                     </div>
@@ -114,9 +114,9 @@
                             </tr>
                         </thead>
                         <tbody id="jurnalTableBody">
-                            <template x-for="jurnal in paginatedData" :key="jurnal.id">
+                            <template x-for="(jurnal, index) in paginatedData" :key="jurnal.id">
                                 <tr @mouseover="hover = true" @mouseout="hover = false">
-                                    <td class="text-left text-sm font-sans px-2 py-1" x-text="jurnal.no_transaksi"></td>
+                                    <td class="text-left text-sm font-sans px-2 py-1" x-text="jurnal.no_urut_transaksi"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1" x-text="jurnal.jenis"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1" x-text="new Date(jurnal.jurnal_tgl).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1 break-words" x-text="jurnal.keterangan"></td>

@@ -8,8 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
-use Illuminate\Support\Str;
-use App\Models\Company;
 
 
 class ProfileController extends Controller
@@ -19,7 +17,7 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
-        $user = $request->user()->load('company');
+        $user = $request->user();
         return view('profile.edit', [
             'user' => $user,
         ]);
@@ -28,25 +26,27 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
-        da($request->all());
-        $user = $request->user();
 
-        $validatedData = $request->validated();
+        $user = $request->user();
         $data = $request->all();
 
-        if ($request->hasFile('profile')) {
-            $profileImage = $request->file('profile');
-            $profileImageName = $user->id . '.' . $profileImage->getClientOriginalExtension();
-            $profileImagePath = $profileImage->storeAs('profiles', $profileImageName, 'public');
-            $data['profile'] = $profileImagePath;
+        // dd($data);
+        if ($data['company_logo']) {
+            $lampiranFile = $request->file('company_logo');
+            // da($lampiranFile);
+            $filePath = 'profiles/' . $user->company_name;
+            $fileName = $user->id . '.' . $lampiranFile->getClientOriginalExtension();
+            $lampiranFile->storeAs($filePath, $fileName, 'public');
+            $data['company_logo'] = $filePath . '/' . $fileName;
         }
 
         $user->fill([
             'name' => $data['name'],
             'email' => $data['email'],
-            'profile' => $data['profile'] ?? $user->profile,
+            'company_name' => $data['company_name'],
+            'company_logo' => $data['company_logo'],
         ]);
 
         if ($user->isDirty('email')) {
@@ -55,22 +55,22 @@ class ProfileController extends Controller
 
         $user->save();
 
-        if ($user->company) {
-            $user->company->update([
-                'name' => $data['company_name'],
-                'desc' => $data['company_desc'],
-                'logo' => $data['logo'] ?? $user->company->logo,
-            ]);
-        } else {
-            $company = Company::create([
-                'name' => $data['company_name'],
-                'desc' => $data['company_desc'],
-                'logo' => $data['logo'],
-            ]);
+        // if ($user->company) {
+        //     $user->company->update([
+        //         'name' => $data['company_name'],
+        //         'desc' => $data['company_desc'],
+        //         'logo' => $data['logo'] ?? $user->company->logo,
+        //     ]);
+        // } else {
+        //     $company = Company::create([
+        //         'name' => $data['company_name'],
+        //         'desc' => $data['company_desc'],
+        //         'logo' => $data['logo'],
+        //     ]);
 
-            $user->company_id = $company->id;
-            $user->save();
-        }
+        //     $user->company_id = $company->id;
+        //     $user->save();
+        // }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

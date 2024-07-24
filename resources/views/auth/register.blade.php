@@ -26,14 +26,21 @@
                 @endif
             </div>
             <div class="flex flex-col p-5 gap-5 w-full max-w-md">
-                <form method="POST" action="{{ route('register') }}">
+                <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
                     @csrf
 
-                    <!-- Email Address -->
+                    <!-- Name -->
                     <div>
                         <x-input-label for="name" :value="__('Name')" />
                         <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
                         <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                    </div>
+
+                    <!-- Logo --> 
+                    <div>
+                        <x-input-label for="image" :value="__('Logo')" />
+                        <input type="file" name="image" id="profile_image" accept=".jpg,.png,.jpeg" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        {{-- <x-input-error :messages="$errors->get('image')" class="mt-2" /> --}}
                     </div>
 
                     <!-- Email Address -->

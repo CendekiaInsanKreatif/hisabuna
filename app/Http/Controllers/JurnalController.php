@@ -308,7 +308,8 @@ class JurnalController extends Controller
                         'nama_akun' => $akun[1],
                         'debit' => $row['debit'],
                         'kredit' => $row['kredit'],
-                        'keterangan' => $row['keterangan']
+                        'keterangan' => $row['keterangan'],
+                        'tanggal_bukti' => $row['tanggal_bukti']
                     ];
                 }
             }

@@ -65,8 +65,8 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                $sheet->getColumnDimension('A')->setWidth(10);
-                $sheet->getColumnDimension('B')->setWidth(20);
+                $sheet->getColumnDimension('A')->setWidth(20);
+                $sheet->getColumnDimension('B')->setWidth(30);
                 $sheet->getColumnDimension('C')->setWidth(20);
                 $sheet->getColumnDimension('D')->setWidth(20);
                 $sheet->getColumnDimension('E')->setWidth(50);
@@ -75,7 +75,7 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
                 $sheet->mergeCells('F1:H2');
                 $sheet->setCellValue('F1', 'Selisih');
                 $sheet->mergeCells('F3:H4');
-                $sheet->setCellValue('F3', '=SUM(B:B)-SUM(C:C)');
+                $sheet->setCellValue('F3', '=SUM(C:C)-SUM(D:D)');
 
                 $sheet->getStyle('F1:H2')->applyFromArray([
                     'font' => [
@@ -153,7 +153,7 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
                 }
 
                 $sheet->getParent()->addNamedRange(
-                    new NamedRange('COA_LIST', $coaSheet, 'A1:A' . ($row - 1))
+                    new NamedRange('COA_LIST', $coaSheet, 'DataCoa!$A$1:$A$' . ($row - 1))
                 );
 
                 $validation = new DataValidation();
@@ -164,10 +164,9 @@ class JurnalSampleExport implements FromCollection, WithHeadings, WithColumnForm
                 $validation->setShowErrorMessage(true);
                 $validation->setShowDropDown(true);
                 $validation->setFormula1('=COA_LIST');
-                $validation->setFormula2('100');
 
                 for ($row = 2; $row <= 1000; $row++) {
-                    $sheet->getCell("A$row")->setDataValidation(clone $validation);
+                    $sheet->getCell("B$row")->setDataValidation(clone $validation);
                 }
             }
         ];

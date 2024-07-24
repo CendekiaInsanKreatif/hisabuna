@@ -35,7 +35,6 @@ class ProfileController extends Controller
         // dd($data);
         if ($data['company_logo']) {
             $lampiranFile = $request->file('company_logo');
-            // da($lampiranFile);
             $filePath = 'profiles/' . $user->company_name;
             $fileName = $user->id . '.' . $lampiranFile->getClientOriginalExtension();
             $lampiranFile->storeAs($filePath, $fileName, 'public');

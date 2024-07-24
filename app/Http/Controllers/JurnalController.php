@@ -32,8 +32,6 @@ class JurnalController extends Controller
     {   
         $lampiran = Storage::disk('public')->files('lampiran/' . $jurnal->id);
 
-        // da($lampiran);
-
         return view('report.views.lampiran', compact('jurnal', 'lampiran'));
     }
 
@@ -43,7 +41,7 @@ class JurnalController extends Controller
     public function create()
     {
         $coa = Coa::whereNull('is_deleted')
-                    ->where('level', 5)
+                    // ->where('level', 5)
                     ->where('created_by', auth()->user()->id)
                     ->get()
                     ->toArray();
@@ -54,29 +52,6 @@ class JurnalController extends Controller
     {
         DB::beginTransaction();
         try {
-            $validator = Validator::make($request->all(), [
-                'jenis' => 'required|string',
-                'keterangan_header' => 'required|string',
-                'no_akun' => 'required|array',
-                'no_akun.*' => 'required|string|exists:coas,nomor_akun',
-                'debit' => 'required|array',
-                'debit.*' => 'required|numeric|min:0',
-                'kredit' => 'required|array',
-                'kredit.*' => 'required|numeric|min:0',
-                'tanggal_bukti' => 'required|array',
-                'tanggal_bukti.*' => 'required|date',
-                'keterangan' => 'required|array',
-                'keterangan.*' => 'nullable|string',
-                'lampiran' => 'nullable|array',
-                'lampiran.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
-            ]);
-
-            if($validator->fails()){
-                return redirect()->route('jurnal.create')->with('message', 'Validasi gagal, silakan periksa kembali input Anda.')
-                    ->with('color', 'red');
-            }
-
-
             $input = $request->all();
 
             $debit = array_map(function($x) {
@@ -333,7 +308,8 @@ class JurnalController extends Controller
                         'nama_akun' => $akun[1],
                         'debit' => $row['debit'],
                         'kredit' => $row['kredit'],
-                        'keterangan' => $row['keterangan']
+                        'keterangan' => $row['keterangan'],
+                        'tanggal_bukti' => $row['tanggal_bukti']
                     ];
                 }
             }

@@ -1,7 +1,11 @@
 <div id="ledgerContent">
     <div style="text-align: center;">
-        <h1 style="font-size: 1.5em; font-weight: bold; color: #2f855a; margin-bottom: 16px;">BUKU BESAR (LEDGER)</h1>
-        <h2>{{ auth()->user()->company_name }}</h2>
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" style="width: 50px; height: 50px;">
+        <h1>{{ auth()->user()->company_name }}</h1>
+        <br>
+        <h3 style="font-size: 1.5em; font-weight: bold; color: #101111; margin: 0; padding: 0;"><u>BUKU BESAR (LEDGER)</u></h3>
+        <p>Periode {{ \Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y') }}</p>
+        <br>
     </div>
     @foreach ($ledgers as $coaAkun => $transactions)
         <h2 style="font-size: 1.25em; font-weight: 600; color: #4a5568;">{{ $coaAkun }}</h2>

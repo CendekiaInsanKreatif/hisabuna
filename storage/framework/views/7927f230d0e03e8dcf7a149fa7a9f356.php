@@ -137,7 +137,7 @@
                         <tbody id="coaTableBody">
                             <template x-for="coa in paginatedData" :key="coa.id">
                                 <tr @mouseover="hover = true" @mouseout="hover = false">
-                                    <td class="text-left px-4 py-1" x-text="coa.nomor_akun"></td>
+                                    <td class="text-left px-4 py-1" x-text="formatNomorAkun(coa.nomor_akun)"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.nama_akun"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.level"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.saldo_normal"></td>
@@ -302,6 +302,20 @@
                         const matchesSearch = coa.nama_akun.toLowerCase().includes(this.searchInput.toLowerCase());
                         return matchesCategory && matchesSearch;
                     });
+                },
+                formatNomorAkun(nomor_akun) {
+                    let formatted = nomor_akun.replace(/\D/g, ''); // Hapus karakter non-digit
+                    if (formatted.length > 6) {
+                        // Format untuk level 5, misalnya 111-11-011
+                        formatted = formatted.slice(0, 3) + '-' + formatted.slice(3, 5) + '-' + formatted.slice(5);
+                    } else if (formatted.length > 4) {
+                        // Format untuk level 4, misalnya 111-11
+                        formatted = formatted.slice(0, 3) + '-' + formatted.slice(3);
+                    } else {
+                        // Format untuk level 3 atau kurang, misalnya 111
+                        formatted = formatted.slice(0, 3);
+                    }
+                    return formatted;
                 },
                 exportCoaTable() {
                     window.location.href = '<?php echo e(route('coas.export')); ?>';

@@ -36,8 +36,10 @@ class CoaController extends Controller
             'nomor_akun'    => 'required|regex:/^[0-9\-]+$/',
             'nama_akun'     => 'required|string',
         ]);
-
-        $check = Coa::where('nomor_akun', $request->nomor_akun)->where('created_by', Auth::user()->id)->first();
+        
+        $check = Coa::where('nomor_akun', $request->nomor_akun)
+                ->where('created_by', Auth::user()->id)
+                ->first();
 
         if($validator->fails()){
             return redirect()->route('coas.index')->with('message', 'Validasi Error')->with('color', 'red');
@@ -49,89 +51,102 @@ class CoaController extends Controller
 
         $nomor_akun     = $request->nomor_akun;
         $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
-        $jumlah_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
-        if($jumlah_nomor_akun == "6") {
-            $level      = $jumlah_nomor_akun - 1;
-        }else if($jumlah_nomor_akun > "6"){
-            $level      = $jumlah_nomor_akun - 2;
-        }else{
-            $level      = $jumlah_nomor_akun + 0;
+        $real_akun = $nomor_akun_tanpa_tanda_hubung;
+        // Menentukan level berdasarkan panjang nomor akun
+        $jumlah_digit_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
+        $level = 0;
+        
+        // Menentukan level berdasarkan jumlah digit nomor akun
+        if ($jumlah_digit_nomor_akun == 1) {
+            $level = 1;
+        } elseif ($jumlah_digit_nomor_akun == 2) {
+            $level = 2;
+        } elseif ($jumlah_digit_nomor_akun == 3) {
+            $level = 3;
+        } elseif ($jumlah_digit_nomor_akun == 5) {
+            $level = 4;
+        } elseif ($jumlah_digit_nomor_akun == 8) {
+            $level = 5;
+        } else {
+            return redirect()->route('coas.index')
+                            ->with('message', 'Format nomor akun tidak valid')
+                            ->with('color', 'red');
+        }
+        
+        // Menentukan parent_id berdasarkan level
+        $parent_id = null;
+        if ($level == 2) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 1); // Parent Level 1
+        } elseif ($level == 3) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 2); // Parent Level 2
+        } elseif ($level == 4) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 3); // Parent Level 3
+        } elseif ($level == 5) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 5); // Parent Level 4
         }
 
         $nama_akun      = $request->nama_akun;
-
-        switch ($level) {
-            case 1:
-                $parent_id = null;
-                $saldo_normal = "debit";
-                $golongan = "Aset";
-                // $arus_kas = "aktifitas_operasional";
-                // $saldo_awal_debit = 0;
-                // $saldo_awal_credit = 0;
-                // $saldo_berjalan_debit = 0;
-                // $saldo_berjalan_credit = 0;
+        // Menentukan saldo_normal, golongan otomatis
+        $awal = substr($nomor_akun_tanpa_tanda_hubung, 0, 1);
+        switch ($awal) {
+            case '1':
+                $saldo_normal = 'debit';
+                $golongan = 'Aset';
                 break;
-            case 2:
-                $parent_id = substr($nomor_akun, 0, 1);
-                $saldo_normal = "credit";
-                $golongan = "Liabilitas";
-                // $arus_kas = "aktifitas_operasional";
-                // $saldo_awal_debit = 0;
-                // $saldo_awal_credit = 0;
-                // $saldo_berjalan_debit = 0;
-                // $saldo_berjalan_credit = 0;
+            case '2':
+                $saldo_normal = 'credit';
+                $golongan = 'Liabilitas';
                 break;
-            case 3:
-                $parent_id = substr($nomor_akun, 0, 2);
-                $saldo_normal = "credit";
-                $golongan = "Ekuitas";
-                // $arus_kas = "aktifitas_operasional";
-                // $saldo_awal_debit = 0;
-                // $saldo_awal_credit = 0;
-                // $saldo_berjalan_debit = 0;
-                // $saldo_berjalan_credit = 0;
+            case '3':
+                $saldo_normal = 'credit';
+                $golongan = 'Ekuitas';
                 break;
-            case 4:
-                $parent_id = substr($nomor_akun, 0, 3);
-                $saldo_normal = "credit";
-                $golongan = "Pendapatan";
-                // $arus_kas = "aktifitas_operasional";
-                // $saldo_awal_debit = 0;
-                // $saldo_awal_credit = 0;
-                // $saldo_berjalan_debit = 0;
-                // $saldo_berjalan_credit = 0;
+            case '4':
+                $saldo_normal = 'credit';
+                $golongan = 'Pendapatan';
                 break;
-            case 5:
-                $parent_id = substr($nomor_akun, 0, 4);
-                $saldo_normal = "debit";
-                $golongan = "Beban";
-                // $arus_kas = "aktifitas_operasional";
-                // $saldo_awal_debit = 0;
-                // $saldo_awal_credit = 0;
-                // $saldo_berjalan_debit = 0;
-                // $saldo_berjalan_credit = 0;
+            case '5':
+                $saldo_normal = 'debit';
+                $golongan = 'Beban';
+                break;
+            case '6':
+                $saldo_normal = 'debit';
+                $golongan = 'Beban Umum';
+                break;
+            case '7':
+                $saldo_normal = 'credit';
+                $golongan = 'Pendapatan Lainnya';
+                break;
+            case '8':
+                $saldo_normal = 'debit';
+                $golongan = 'Beban Lainnya';
                 break;
             default:
-                $parent_id = substr($nomor_akun, 0, 5);
-                $saldo_normal = "debit";
-                $golongan = "Beban Umum";
-                // $arus_kas = "aktifitas_operasional";
-                // $saldo_awal_debit = 0;
-                // $saldo_awal_credit = 0;
-                // $saldo_berjalan_debit = 0;
-                // $saldo_berjalan_credit = 0;
+                $saldo_normal = 'credit';
+                $golongan = 'Beban Umum'; // Nilai default untuk golongan
+                break;
         }
+        
+        // Verifikasi keberadaan parent akun
+        //dd($parent_id, $level);
+        if ($level > 1 && $parent_id) {
+            $parent_level = $level - 1;
+            $selCoa = Coa::where('nomor_akun', $parent_id)
+                        ->where('level', $parent_level)
+                        ->where('created_by', Auth::user()->id)
+                        ->first();
 
-        $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
-
-        if($level != 1 && empty($selCoa)){
-            return redirect()->route('coas.index')->with('message', 'Akun Level '.$level.' tidak ditemukan')->with('color', 'red');
+            if (empty($selCoa)) {
+                return redirect()->route('coas.index')
+                                ->with('message', 'Akun Level ' . $parent_level . ' tidak ditemukan untuk parent dengan nomor akun ' . $parent_id)
+                                ->with('color', 'red');
+            }
         }
 
         $data = [
             'parent_id'    => $selCoa->id ?? null,
             'subchild'     => ($selCoa->subchild ?? 0) + 1,
-            'nomor_akun'   => $nomor_akun,
+            'nomor_akun'   => $real_akun,
             'nama_akun'    => $nama_akun,
             'level'        => $level,
             'saldo_normal' => $saldo_normal,
@@ -150,6 +165,25 @@ class CoaController extends Controller
             return redirect()->route('coas.index')->with('message', 'Berhasil membuat data')->with('color', 'green');
         } else {
             return redirect()->route('coas.index')->with('message', 'Gagal membuat data')->with('color', 'red');
+        }
+    }
+
+    // Metode untuk menentukan saldo_normal
+    private function determineSaldoNormal($nomor_akun)
+    {
+        // Menentukan saldo_normal berdasarkan awalan nomor akun
+        $awal = substr($nomor_akun, 0, 1);
+        
+        switch ($awal) {
+            case '1':
+            case '5':
+                return 'debit';
+            case '2':
+            case '3':
+            case '4':
+                return 'credit';
+            default:
+                return 'credit'; // Nilai default untuk saldo_normal
         }
     }
 
@@ -172,54 +206,89 @@ class CoaController extends Controller
 
         $nomor_akun = $coa->nomor_akun = $input['nomor_akun'];
         $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
+        $real_akun = $nomor_akun_tanpa_tanda_hubung;
         $jumlah_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
+        $level = 0;
 
-        if ($jumlah_nomor_akun == 6) {
-            $level = $jumlah_nomor_akun - 1;
-        } elseif ($jumlah_nomor_akun > 6) {
-            $level = $jumlah_nomor_akun - 2;
+       // Menentukan level berdasarkan jumlah digit nomor akun
+       if ($jumlah_digit_nomor_akun == 1) {
+        $level = 1;
+        } elseif ($jumlah_digit_nomor_akun == 2) {
+            $level = 2;
+        } elseif ($jumlah_digit_nomor_akun == 3) {
+            $level = 3;
+        } elseif ($jumlah_digit_nomor_akun == 5) {
+            $level = 4;
+        } elseif ($jumlah_digit_nomor_akun == 8) {
+            $level = 5;
         } else {
-            $level = $jumlah_nomor_akun;
+            return redirect()->route('coas.index')
+                            ->with('message', 'Format nomor akun tidak valid')
+                            ->with('color', 'red');
+        }
+
+        // Menentukan parent_id berdasarkan level
+        $parent_id = null;
+        if ($level == 2) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 1); // Parent Level 1
+        } elseif ($level == 3) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 2); // Parent Level 2
+        } elseif ($level == 4) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 3); // Parent Level 3
+        } elseif ($level == 5) {
+            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 5); // Parent Level 4
         }
 
         $nama_akun = $input['nama_akun'];
 
-        switch ($level) {
-            case 1:
-                $golongan = "Aset";
-                $parent_id = null;
-                $saldo_normal = "debit";
+        // Menentukan saldo_normal, golongan otomatis
+        $awal = substr($nomor_akun_tanpa_tanda_hubung, 0, 1);
+        switch ($awal) {
+            case '1':
+                $saldo_normal = 'debit';
+                $golongan = 'Aset';
                 break;
-            case 2:
-                $golongan = "Liabilitas";
-                $parent_id = substr($nomor_akun, 0, 1);
-                $saldo_normal = "credit";
+            case '2':
+                $saldo_normal = 'credit';
+                $golongan = 'Liabilitas';
                 break;
-            case 3:
-                $golongan = "Ekuitas";
-                $parent_id = substr($nomor_akun, 0, 2);
-                $saldo_normal = "credit";
+            case '3':
+                $saldo_normal = 'credit';
+                $golongan = 'Ekuitas';
                 break;
-            case 4:
-                $golongan = "Pendapatan";
-                $parent_id = substr($nomor_akun, 0, 3);
-                $saldo_normal = "credit";
+            case '4':
+                $saldo_normal = 'credit';
+                $golongan = 'Pendapatan';
                 break;
-            case 5:
-                $golongan = "Beban";
-                $parent_id = substr($nomor_akun, 0, 4);
-                $saldo_normal = "debit";
+            case '5':
+                $saldo_normal = 'debit';
+                $golongan = 'Beban';
+                break;
+            case '6':
+                $saldo_normal = 'debit';
+                $golongan = 'Beban Umum';
+                break;
+            case '7':
+                $saldo_normal = 'credit';
+                $golongan = 'Pendapatan Lainnya';
+                break;
+            case '8':
+                $saldo_normal = 'debit';
+                $golongan = 'Beban Lainnya';
                 break;
             default:
-                $golongan = "Beban Umum";
-                $parent_id = substr($nomor_akun, 0, 5);
-                $saldo_normal = "debit";
+                $saldo_normal = 'credit';
+                $golongan = 'Beban Umum'; // Nilai default untuk golongan
+                break;
         }
 
-        $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
+
+        $selCoa = Coa::where('nomor_akun', $parent_id)
+                      ->where('created_by', Auth::user()
+                      ->id)->first();
         $data = [
             'parent_id'    => $selCoa->id ?? null,
-            'nomor_akun'   => $nomor_akun,
+            'nomor_akun'   => $real_akun,
             'nama_akun'    => $nama_akun,
             'level'        => $level,
             'golongan'     => $golongan,
@@ -271,56 +340,105 @@ class CoaController extends Controller
         $path = $request->file('file')->getRealPath();
         $excel = Excel::toArray(new CoaImport, $request->file('file'))[0];
 
+        // dd($excel);
         usort($excel, function ($a, $b) {
-            return strlen($a['no_akun']) <=> strlen($b['no_akun']);
+            // dd($a['no_akun']);
+            return strlen($a['kode_akun']) <=> strlen($b['kode_akun']);
         });
 
+        // dd($excel);
+
         foreach ($excel as $key => $value) {
-            $nomor_akun     = $value['no_akun'];
+            $nomor_akun     = $value['kode_akun'];
             $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
+            $real_akun = $nomor_akun_tanpa_tanda_hubung;
             $jumlah_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
-            if($jumlah_nomor_akun == "6") {
-                $level      = $jumlah_nomor_akun - 1;
-            }else if($jumlah_nomor_akun > "6"){
-                $level      = $jumlah_nomor_akun - 2;
-            }else{
-                $level      = $jumlah_nomor_akun + 0;
+            $level = 0;
+
+            // Menentukan level berdasarkan jumlah digit nomor akun
+            if ($jumlah_digit_nomor_akun == 1) {
+                $level = 1;
+            } elseif ($jumlah_digit_nomor_akun == 2) {
+                $level = 2;
+            } elseif ($jumlah_digit_nomor_akun == 3) {
+                $level = 3;
+            } elseif ($jumlah_digit_nomor_akun == 5) {
+                $level = 4;
+            } elseif ($jumlah_digit_nomor_akun == 8) {
+                $level = 5;
+            } else {
+                return redirect()->route('coas.index')
+                                ->with('message', 'Format nomor akun tidak valid')
+                                ->with('color', 'red');
             }
 
+            // Menentukan parent_id berdasarkan level
+            $parent_id = null;
+            if ($level == 2) {
+                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 1); // Parent Level 1
+            } elseif ($level == 3) {
+                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 2); // Parent Level 2
+            } elseif ($level == 4) {
+                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 3); // Parent Level 3
+            } elseif ($level == 5) {
+                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 5); // Parent Level 4
+            }
 
             $nama_akun      = $value['nama_akun'];
 
-            switch ($level) {
-                case 1:
-                    $parent_id = null;
+            // Menentukan saldo_normal, golongan otomatis
+            $awal = substr($nomor_akun_tanpa_tanda_hubung, 0, 1);
+            switch ($awal) {
+                case '1':
+                    $saldo_normal = 'debit';
+                    $golongan = 'Aset';
                     break;
-                case 2:
-                    $parent_id = substr($nomor_akun, 0, 1);
+                case '2':
+                    $saldo_normal = 'credit';
+                    $golongan = 'Liabilitas';
                     break;
-                case 3:
-                    $parent_id = substr($nomor_akun, 0, 2);
+                case '3':
+                    $saldo_normal = 'credit';
+                    $golongan = 'Ekuitas';
                     break;
-                case 4:
-                    $parent_id = substr($nomor_akun, 0, 3);
+                case '4':
+                    $saldo_normal = 'credit';
+                    $golongan = 'Pendapatan';
                     break;
-                case 5:
-                    $parent_id = substr($nomor_akun, 0, 4);
+                case '5':
+                    $saldo_normal = 'debit';
+                    $golongan = 'Beban';
+                    break;
+                case '6':
+                    $saldo_normal = 'debit';
+                    $golongan = 'Beban Umum';
+                    break;
+                case '7':
+                    $saldo_normal = 'credit';
+                    $golongan = 'Pendapatan Lainnya';
+                    break;
+                case '8':
+                    $saldo_normal = 'debit';
+                    $golongan = 'Beban Lainnya';
                     break;
                 default:
-                    $parent_id = substr($nomor_akun, 0, 5);
+                    $saldo_normal = 'credit';
+                    $golongan = 'Beban Umum'; // Nilai default untuk golongan
+                    break;
             }
 
-            $saldo_normal = "debit";
-
-            $selCoa = Coa::where('nomor_akun', $parent_id)->where('created_by', Auth::user()->id)->first();
+            $selCoa = Coa::where('nomor_akun', $parent_id)
+                        ->where('created_by', Auth::user()->id)
+                        ->first();
 
             $data[] = [
                 'parent_id'    => $selCoa->id ?? null,
                 'subchild'     => ($selCoa->subchild ?? 0) + 1,
-                'nomor_akun'   => $nomor_akun,
+                'nomor_akun'   => $real_akun,
                 'nama_akun'    => $nama_akun,
                 'level'        => $level,
                 'saldo_normal' => $saldo_normal,
+                'golongan'     => $golongan,
                 'created_at'   => now(),
                 'created_by'   => Auth::user()->id,
             ];

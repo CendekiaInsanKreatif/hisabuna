@@ -1,10 +1,7 @@
 <x-app-layout>
-    @php
-        // da(old('name'));
-    @endphp
     @section('content')
         <div class="container mx-auto px-2 py-2 rounded-lg bg-gray-100">
-            <form action="{{ route('profile.update') }}" method="POST" class="bg-white rounded-lg shadow-lg w-full p-6 space-y-6">
+            <form action="{{ route('profile.update') }}" method="POST" class="bg-white rounded-lg shadow-lg w-full p-6 space-y-6" enctype="multipart/form-data">
                 @csrf
                 @method('PATCH')
                 <div class="flex flex-wrap md:flex-nowrap">
@@ -31,18 +28,14 @@
                         <div class="space-y-4">
                             <label for="profile_image" class="block text-sm font-medium text-gray-800">Logo Perusahaan</label>
                             <div class="flex items-center">
-                                <input type="file" name="profile" id="profile_image" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <img id="profile_image_preview" src="{{ asset('storage/profile/' . $user->profile) }}" alt="Preview Image" class="hidden w-20 h-20 rounded-md object-cover ml-4">
+                                <input type="file" name="company_logo" id="profile_image" accept=".jpg,.png,.jpeg" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <img id="profile_image_preview" src="{{ asset('storage/' . $user->company_logo) }}" alt="Preview Image" class="w-20 h-20 rounded-md object-cover ml-4">
                             </div>
                         </div>
                         <div class="space-y-4">
                             <label for="company_name" class="block text-sm font-medium text-gray-800">Nama Perusahaan</label>
                             <input type="text" name="company_name" id="company_name" value="{{ auth()->user()->company_name }}" required class="mt-1 block w-full px-4 py-3 border border-gray-400 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                         </div>
-                        {{-- <div class="space-y-4">
-                            <label for="company_desc" class="block text-sm font-medium text-gray-800">Deskripsi Perusahaan</label>
-                            <textarea name="company_desc" id="company_desc" rows="4" class="mt-1 block w-full px-4 py-3 border border-gray-400 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">{{ auth()->user()->company_desc }}</textarea>
-                        </div> --}}
                     </div>
                 </div>
                 <div class="flex justify-end">
@@ -67,6 +60,7 @@
                 reader.readAsDataURL(file);
             }
         });
+
         $('#company_logo').change(function(event) {
             var file = event.target.files[0];
             if (file) {

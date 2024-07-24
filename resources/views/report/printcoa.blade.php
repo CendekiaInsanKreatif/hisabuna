@@ -59,8 +59,19 @@
         </thead>
         <tbody>
             @foreach ($data as $item)
+                @php
+                    $formattedNomorAkun = preg_replace('/\D/', '', $item->nomor_akun);
+                    if (strlen($formattedNomorAkun) > 6) {
+                        $formattedNomorAkun = substr($formattedNomorAkun, 0, 3) . '-' . substr($formattedNomorAkun, 3, 2) . '-' . substr($formattedNomorAkun, 5);
+                    } elseif (strlen($formattedNomorAkun) > 4) {
+                        $formattedNomorAkun = substr($formattedNomorAkun, 0, 3) . '-' . substr($formattedNomorAkun, 3);
+                    } else {
+                        $formattedNomorAkun = substr($formattedNomorAkun, 0, 3);
+                    }
+                @endphp
+
                 <tr>
-                    <td>{{ $item->nomor_akun }}</td>
+                    <td>{{ $formattedNomorAkun }}</td>
                     <td style="padding-left: {{ $item->level * 15 }}px;">{{ $item->nama_akun }}</td>
                     <td style="text-align: center">{{ $item->level }}</td>
                     <td>{{ $item->golongan }}</td>

@@ -169,12 +169,64 @@ class ReportController extends Controller
     }
 
     public function arusKas(Request $request){
-
         if($request->isMethod('post')){
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $ttd1 = $request->input('text_input1');
+            $ttd2 = $request->input('text_input2');
+    
+            $jurnal = Jurnal::whereNull('is_deleted')
+                        ->with(['details' => function($query) {
+                            $query->where('coa_akun', '>=', '1');
+                        }])
+                        ->where('created_by', auth()->user()->id)
+                        ->whereBetween('jurnal_tgl', [$start_date, $end_date])
+                        ->get();
+    
+            if($jurnal->isEmpty()){
+                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+            }
+    
+            $data = [
+                'aktifitas_operasional' => ['Jumlah' => 0, 'Detail' => []],
+                'aktifitas_pendanaan' => ['Jumlah' => 0, 'Detail' => []],
+                'aktifitas_investasi' => ['Jumlah' => 0, 'Detail' => []],
+            ];
+    
+            foreach ($jurnal as $entry) {
+                foreach ($entry->details as $detail) {
+                    $parent = Coa::where(['nomor_akun' => substr($detail->coa_akun, 0, 1), 'created_by' => auth()->user()->id])->first();
+                    $child = Coa::where(['nomor_akun' => $detail->coa_akun, 'created_by' => auth()->user()->id])->first();
+    
+                    if ($parent->saldo_normal == 'db' || $parent->saldo_normal == 'debit') {
+                        $nilai = $detail->debit - $detail->credit;
+                    } else {
+                        $nilai = $detail->credit - $detail->debit;
+                    }
 
-            dd($request->all());
+                    // da($parent);
+    
+                    $kategori = $parent->arus_kas;
+
+                    da($kategori);
+    
+                    $data[$kategori]['Jumlah'] += $nilai;
+                    $data[$kategori]['Detail'][$child->nama_akun] = ($data[$kategori]['Detail'][$child->nama_akun] ?? 0) + $nilai;
+                }
+            }
+
+            // da($data);
+    
+            $pdf = PDF::loadView('report.aruskas', [
+                'data' => $data,
+                'start_date' => $start_date,
+                'end_date' => $end_date,
+                'ttd1' => $ttd1,
+                'ttd2' => $ttd2,
+            ]);
+            return $pdf->download('aruskas_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
-
+    
         return view('report.views.template');
     }
 

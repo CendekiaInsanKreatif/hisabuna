@@ -85,7 +85,7 @@ $maxWidth = [
             <div x-data="{ search: '' }" class="card bg-white shadow-lg rounded-xl border border-gray-200 p-4">
                 <div class="card-body mt-1 bg-white shadow-md rounded-lg p-1" style="max-height: 300px; position: relative;">
                     <div class="sticky top-0 bg-white z-10">
-                        <input type="text" placeholder="Cari Akun . . ." x-model="search" class="w-full px-4 py-2 mb-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600">
+                        <input type="text" placeholder="Cari Akun . . ." x-model="search" id="searchBarAkun" class="w-full px-4 py-2 mb-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600">
                     </div>
                     <div class="overflow-y-auto" style="max-height: 250px;">
                         <table class="w-full min-w-full text-sm text-left text-gray-700" id="jurnalDetail">
@@ -104,6 +104,7 @@ $maxWidth = [
                                         x-show="Object.values({{ json_encode($item2) }}).join(' ').toLowerCase().includes(search.toLowerCase())"
                                         x-on:click="
                                             let obj = { isDetail: isDetail, data: {{ json_encode($item2) }} };
+                                            document.getElementById('searchBarAkun').value = '';
                                             document.getElementsByName('no_akun[' + isDetail + ']')[0].value = obj.data.nomor_akun;
                                             document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
                                             let firstChar = obj.data.nomor_akun.charAt(0);

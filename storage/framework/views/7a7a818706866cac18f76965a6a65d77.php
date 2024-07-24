@@ -82,7 +82,7 @@
                 <td style="width: 40%; height: 5px;">&nbsp;&nbsp;Jenis Jurnal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo e($jurnal['jenis']); ?></td>
             </tr>
             <tr>
-                <td style="width: 40%; height: 5px">&nbsp;&nbsp;Nomor Transaksi&nbsp;&nbsp;&nbsp;: <?php echo e($jurnal['id']); ?></td>
+                <td style="width: 40%; height: 5px">&nbsp;&nbsp;Nomor Transaksi&nbsp;&nbsp;&nbsp;: <?php echo e($jurnal['no_urut_transaksi']); ?></td>
             </tr>
         </tbody>
     </table>

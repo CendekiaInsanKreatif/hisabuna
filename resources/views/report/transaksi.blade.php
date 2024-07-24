@@ -82,7 +82,7 @@
                 <td style="width: 40%; height: 5px;">&nbsp;&nbsp;Jenis Jurnal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $jurnal['jenis'] }}</td>
             </tr>
             <tr>
-                <td style="width: 40%; height: 5px">&nbsp;&nbsp;Nomor Transaksi&nbsp;&nbsp;&nbsp;: {{ $jurnal['id'] }}</td>
+                <td style="width: 40%; height: 5px">&nbsp;&nbsp;Nomor Transaksi&nbsp;&nbsp;&nbsp;: {{ $jurnal['no_urut_transaksi'] }}</td>
             </tr>
         </tbody>
     </table>

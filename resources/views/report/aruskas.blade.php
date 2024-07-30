@@ -26,10 +26,32 @@
         .total-row {
             font-weight: bold;
         }
+
+        .footer.content {
+            display: flex;
+            align-items: center;
+        }
+
+        .company-logo {
+            width: 5rem;
+            height: 5rem;
+            margin-right: 8rem;
+        }
+
+        .company-name {
+            font-size: 1.25rem; /* Ukuran font yang sesuai */
+            position: relative;
+            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        }
     </style>
 </head>
 <body>
-    <h1>Arus Kas</h1>
+    <div class="footer content">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
+        <span class="company-name">{{ auth()->user()->company_name }}</span>
+    </div>
+    <h2><u>Arus Kas</u></h2>
+    {{-- <h1>Arus Kas</h1> --}}
     <p>Periode: {{ $start_date }} - {{ $end_date }}</p>
 
     @php

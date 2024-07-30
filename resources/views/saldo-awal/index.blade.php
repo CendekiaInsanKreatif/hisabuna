@@ -22,8 +22,8 @@
                 <p class="text-2xl font-semibold text-emerald-500">Saldo Awal</p>
             </div>
             <div class="card bg-white shadow-lg rounded-xl border border-gray-200 p-2 w-full md:w-auto">
-                <div class="container mx-auto p-4">
-                    <div class="flex flex-wrap gap-4 md:gap-6 items-center">
+                <div class="container mx-auto p-1">
+                    <div class="flex flex-wrap gap-1 md:gap-3 items-center">
                         <div id="filter_akun" class="flex-grow py-1 px-2 flex flex-wrap gap-2">
                             <button @click="filterCategory('all')" class="btn-akun py-1 bg-gray-200 rounded px-3 hover:bg-emerald-500 transition duration-300">Semua</button>
                             <button @click="filterCategory('neraca')" class="btn-akun py-1 bg-gray-200 rounded px-3 hover:bg-emerald-500 transition duration-300">Neraca</button>
@@ -46,19 +46,27 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-2 ml-auto mt-4 md:mt-0">
-                            <a href="{{ route('report.print-coa') }}" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">Print</a>
-                            <button x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.import') }}', name: 'coas.import', title: 'Import Akun', type: 'custom' })" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">Import</button>
-                            <form method="POST" action="{{ route('coas.export') }}">
-                                @csrf
-                                <button type="submit" class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">
-                                  Sample
-                                </button>
-                            </form>
+                        <div class="w-full mt-1 md:mt-0">
+                            <div class="card-body overflow-x-auto mb-1">
+                                <div class="flex gap-4 mt-4 w-full">
+                                    <div class="bg-gray-100 p-1 rounded-lg shadow-md text-center w-full">
+                                        <p class="text-sm font-medium text-gray-700">Saldo Awal Debit</p>
+                                        <p class="text-lg font-semibold text-emerald-500" x-text="totalSaldoAwalDebit"></p>
+                                    </div>
+                                    <div class="bg-gray-100 p-1 rounded-lg shadow-md text-center w-full">
+                                        <p class="text-sm font-medium text-gray-700">Saldo Awal Kredit</p>
+                                        <p class="text-lg font-semibold text-emerald-500" x-text="totalSaldoAwalKredit"></p>
+                                    </div>
+                                    <div class="bg-gray-100 p-1 rounded-lg shadow-md text-center w-full">
+                                        <p class="text-sm font-medium text-gray-700">Selisih</p>
+                                        <p class="text-lg font-semibold text-emerald-500" x-text="selisihSaldoAwal"></p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-body overflow-x-auto mt-1">
+                
                     <table class="w-full min-w-full" id="coaTable">
                         <thead>
                             <tr>
@@ -104,10 +112,10 @@
                         <tbody id="coaTableBody">
                             <template x-for="coa in paginatedData" :key="coa.id">
                                 <tr @mouseover="hover = true" @mouseout="hover = false">
-                                    <td class="text-left px-4 py-1" x-text="coa.nomor_akun"></td>
+                                    <td class="text-left px-4 py-1" x-text="formatNomorAkun(coa.nomor_akun)"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.nama_akun"></td>
-                                    <td class="text-left px-4 py-1" x-text="coa.saldo_awal_debit"></td>
-                                    <td class="text-left px-4 py-1" x-text="coa.saldo_awal_credit"></td>
+                                    <td class="text-left px-4 py-1" x-text="formatCurrency(coa.saldo_awal_debit)"></td>
+                                    <td class="text-left px-4 py-1" x-text="formatCurrency(coa.saldo_awal_credit)"></td>
                                     <td class="text-left px-4 py-1 items-center text-center mt-1">
                                         <x-primary-button
                                             class="w-full md:w-auto lg:w-auto md:mt-0 mt-1"
@@ -144,6 +152,9 @@
                 searchInput: '',
                 allData: [],
                 hover: false,
+                totalSaldoAwalDebit: 0,
+                totalSaldoAwalKredit: 0,
+                selisihSaldoAwal: 0,
                 get paginatedData() {
                     const filteredData = this.filteredData();
                     const start = (this.currentPage - 1) * this.rowsPerPage;
@@ -178,6 +189,10 @@
                             this.allData = data;
                             this.totalRows = data.length;
                             this.totalPage = Math.ceil(this.totalRows / this.rowsPerPage);
+
+                            this.totalSaldoAwalDebit = this.formatCurrency(data.reduce((acc, coa) => acc + coa.saldo_awal_debit, 0));
+                            this.totalSaldoAwalKredit = this.formatCurrency(data.reduce((acc, coa) => acc + coa.saldo_awal_credit, 0));
+                            this.selisihSaldoAwal = this.formatCurrency(data.reduce((acc, coa) => acc + coa.saldo_awal_debit - coa.saldo_awal_credit, 0));
                         } else {
                             console.error('Unexpected data format:', data);
                             alert('Error: Unexpected data format. Please check the data returned from the server.');
@@ -188,6 +203,13 @@
                     } finally {
                         overlay.style.display = 'none';
                     }
+                },
+                formatCurrency(value) {
+                    let parsedValue = parseFloat(value.toString().replace(/\./g, '').replace(/,/g, '.'));
+                    if (isNaN(parsedValue)) {
+                        parsedValue = 0;
+                    }
+                    return parsedValue.toLocaleString('id-ID');
                 },
                 renderCoaTable() {
                     const filteredData = this.filteredData();
@@ -219,6 +241,20 @@
                 },
                 exportCoaTable() {
                     window.location.href = '{{ route('coas.export') }}';
+                },
+                formatNomorAkun(nomor_akun) {
+                    let formatted = nomor_akun.replace(/\D/g, ''); // Hapus karakter non-digit
+                    if (formatted.length > 6) {
+                        // Format untuk level 5, misalnya 111-11-011
+                        formatted = formatted.slice(0, 3) + '-' + formatted.slice(3, 5) + '-' + formatted.slice(5);
+                    } else if (formatted.length > 4) {
+                        // Format untuk level 4, misalnya 111-11
+                        formatted = formatted.slice(0, 3) + '-' + formatted.slice(3);
+                    } else {
+                        // Format untuk level 3 atau kurang, misalnya 111
+                        formatted = formatted.slice(0, 3);
+                    }
+                    return formatted;
                 },
                 init() {
                     this.fetchCoaData();

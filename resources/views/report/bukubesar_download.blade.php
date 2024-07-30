@@ -14,8 +14,8 @@
                 <tr>
                     <th scope="col" style="width: 20%; padding: 8px; text-align: left; font-size: 0.65rem; font-weight: 500; color: #718096; text-transform: uppercase;">Tanggal</th>
                     <th scope="col" style="min-width: 10cm; padding: 8px; text-align: left; font-size: 0.65rem; font-weight: 500; color: #ffffff; text-transform: uppercase;">Keterangan</th>
-                    <th scope="col" style="width: 16.66%; padding: 8px; text-align: left; font-size: 0.65rem; font-weight: 500; color: #718096; text-transform: uppercase;">Debit<div style="color: #e53e3e;">Bertambah</div></th>
-                    <th scope="col" style="width: 16.66%; padding: 8px; text-align: left; font-size: 0.65rem; font-weight: 500; color: #718096; text-transform: uppercase;">Kredit<div style="color: #e53e3e;">Berkurang</div></th>
+                    <th scope="col" style="width: 16.66%; padding: 8px; text-align: left; font-size: 0.65rem; font-weight: 500; color: #718096; text-transform: uppercase;">Debit<div style="color: #e53e3e;">{{ $transactions->first()->coa->saldo_normal == 'debit' ? 'Bertambah' : 'Berkurang' }}</div></th>
+                    <th scope="col" style="width: 16.66%; padding: 8px; text-align: left; font-size: 0.65rem; font-weight: 500; color: #718096; text-transform: uppercase;">Kredit<div style="color: #e53e3e;">{{ $transactions->first()->coa->saldo_normal == 'credit' ? 'Bertambah' : 'Berkurang' }}</div></th>
                     <th scope="col" style="width: 16.66%; padding: 8px; text-align: left; font-size: 0.65rem; font-weight: 500; color: #718096; text-transform: uppercase;">Saldo</th>
                 </tr>
             </thead>

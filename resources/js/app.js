@@ -1,11 +1,14 @@
 import './bootstrap';
 import './custom';
 
-import jQuery from 'jquery';
+import $ from 'jquery';
+import flatpickr from 'flatpickr';
 import Alpine from 'alpinejs';
-import 'jquery-ui/ui/widgets/datepicker';
 
-window.$ = window.jQuery = jQuery;
+window.$ = window.jQuery = $;
 window.Alpine = Alpine;
+
+console.log('jQuery:', window.$);
+console.log('flatpickr:', flatpickr);
 
 Alpine.start();

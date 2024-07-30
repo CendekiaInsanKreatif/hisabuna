@@ -31,30 +31,28 @@
 <?php endif; ?>
 
     <main class="flex h-screen w-full flex-wrap">
-        <div class="flex-1 bg-emerald-500 flex items-center justify-center md:flex-1/2">
+        <div class="flex-1 bg-emerald-500 hidden md:flex items-center justify-center md:flex-1/2">
             <img class="max-w-md w-full" src="/images/login-artwork.png" alt="Login artwork Hisabuna" />
         </div>
         <div class="flex-1 flex flex-col bg-emerald-50 items-center justify-center md:flex-1/2">
             <div class="w-full p-5 max-w-md grid place-items-center">
                 <div class="relative">
-                    <img
-                        src="/images/brand/logo-hisabuna-color.svg"
-                        height="32"
-                        width="120"
-                        alt="logo hisabuna"
-                    />
+                    <img src="/images/brand/logo-hisabuna-color.svg" class="w-40" alt="Official Logo of Hisabuna" />
                 </div>
             </div>
-            <div class="h-16 flex items-center w-full px-5 py-2 max-w-md">
+            <div class="h-5 flex items-center w-full max-w-md">
                 <?php if(session('error')): ?>
-                    <div class="flex gap-2 border border-<?php echo e(session('color')); ?>-400 bg-<?php echo e(session('color')); ?>-100 p-2 rounded w-full">
-                        <div class="border border-<?php echo e(session('color')); ?>-400 rounded-full size-5 text-xs text-<?php echo e(session('color')); ?>-400 font-bold grid place-items-center">!</div>
+                    <div
+                        class="flex gap-2 border border-<?php echo e(session('color')); ?>-400 bg-<?php echo e(session('color')); ?>-100 p-2 rounded w-full">
+                        <div
+                            class="border border-<?php echo e(session('color')); ?>-400 rounded-full size-5 text-xs text-<?php echo e(session('color')); ?>-400 font-bold grid place-items-center">
+                            !</div>
                         <p class="text-sm text-<?php echo e(session('color')); ?>-400"><?php echo e(session('error')); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
             <div class="flex flex-col p-5 gap-5 w-full max-w-md">
-                <form method="POST" action="<?php echo e(route('login')); ?>">
+                <form method="POST" action="<?php echo e(route('login')); ?>" class="flex flex-col">
                     <?php echo csrf_field(); ?>
 
                     <!-- Email Address -->
@@ -187,6 +185,27 @@
 <?php endif; ?>
                     </div>
 
+                    <div class="mt-4 flex justify-between items-center">
+                        <div class="flex-1">
+                            <label for="remember_me">
+                                <input id="remember_me" type="checkbox"
+                                    class="rounded text-emerald-500 border border-zinc-300  shadow-sm focus:ring-emerald-500"
+                                    name="remember">
+                                <span class="ml-2 text-sm "><?php echo e(__('Stay signed-in')); ?></span>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center space-between space-x-4">
+                            <?php if(Route::has('password.request')): ?>
+                                <a class="underline text-sm text-emerald-600  hover:text-emerald-900  rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                                    href="<?php echo e(route('password.request')); ?>">
+                                    <?php echo e(__('Forgot your password?')); ?>
+
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
                     <!-- Remember Me -->
                     <div class="mt-4">
                         <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
@@ -212,21 +231,15 @@
 <?php unset($__componentOriginald411d1792bd6cc877d687758b753742c); ?>
 <?php endif; ?>
                     </div>
-                    <a href="<?php echo e(route('register')); ?>" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong block mt-1 w-full text-center">Register</a>
 
-
-                    <div class="flex items-center justify-end mt-4 space-x-4">
-                        <label for="remember_me" class="inline-flex items-center">
-                            <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"><?php echo e(__('Remember me')); ?></span>
-                        </label>
-                        <?php if(Route::has('password.request')): ?>
-                            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="<?php echo e(route('password.request')); ?>">
-                                <?php echo e(__('Forgot your password?')); ?>
-
-                            </a>
-                        <?php endif; ?>
+                    <div class="mt-4">
+                        <p>New to Hisabuna?
+                            <a href="<?php echo e(route('register')); ?>" class="text-emerald-600 underline">Create new account</a>
+                        </p>
                     </div>
+
+
+
                 </form>
             </div>
         </div>

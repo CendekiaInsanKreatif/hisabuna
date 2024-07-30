@@ -5,6 +5,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            font-size: 12px;
         }
         table {
             width: 100%;
@@ -23,12 +24,32 @@
         h2, h4 {
             margin: 0;
         }
+        
+        .footer.content {
+            display: flex;
+            align-items: center;
+        }
+
+        .company-logo {
+            width: 5rem;
+            height: 5rem;
+            margin-right: 8rem;
+        }
+
+        .company-name {
+            font-size: 1.25rem; /* Ukuran font yang sesuai */
+            position: relative;
+            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        }
     </style>
 </head>
 <body>
 <table>
-    <caption><h2><u>NERACA</u></h2></caption>
-    <caption><?php echo e(auth()->user()->company_name); ?></caption>
+    <div class="footer content">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Company Logo" class="company-logo">
+        <span class="company-name"><?php echo e(auth()->user()->company_name); ?></span>
+    </div>
+    <h2><u>NERACA</u></h2>  
     <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $subcategories): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <tr>
             <th colspan="2" class="category"><h2><?php echo e($category); ?></h2></th>

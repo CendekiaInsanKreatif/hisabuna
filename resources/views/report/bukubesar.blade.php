@@ -69,28 +69,24 @@
     @push('script')
     <script type="module">
         $(document).ready(function() {
-            $('#tanggal_mulai').datepicker({
-                dateFormat: 'dd-mm-yy',
-                changeMonth: true,
-                changeYear: true,
-                showButtonPanel: true,
-                onClose: function(dateText, inst) { 
-                    var tanggalMulai = new Date(inst.selectedYear, inst.selectedMonth, inst.selectedDay);
-                    $(this).datepicker('setDate', tanggalMulai);
-                    $('#tanggal_selesai').datepicker('option', 'minDate', tanggalMulai);
-                    $('#tanggal_selesai').datepicker('setDate', tanggalMulai);
+            flatpickr("#tanggal_mulai", {
+                dateFormat: "d-m-Y",
+                onChange: function(selectedDates, dateStr, instance) {
+                    var tanggalMulai = selectedDates[0];
+                    flatpickr("#tanggal_selesai", {
+                        dateFormat: "d-m-Y",
+                        minDate: tanggalMulai,
+                        defaultDate: tanggalMulai
+                    });
                 }
             });
 
-            $('#tanggal_selesai').datepicker({
-                dateFormat: 'dd-mm-yy',
-                changeMonth: true,
-                changeYear: true,
-                showButtonPanel: true,
-                beforeShow: function(input, inst) {
-                    var tanggalMulai = $('#tanggal_mulai').datepicker('getDate');
+            flatpickr("#tanggal_selesai", {
+                dateFormat: "d-m-Y",
+                onOpen: function(selectedDates, dateStr, instance) {
+                    var tanggalMulai = flatpickr("#tanggal_mulai").selectedDates[0];
                     if (tanggalMulai) {
-                        $(this).datepicker('option', 'minDate', tanggalMulai);
+                        instance.set("minDate", tanggalMulai);
                     }
                 }
             });

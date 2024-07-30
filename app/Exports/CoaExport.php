@@ -19,9 +19,6 @@ class CoaExport implements WithMultipleSheets
 {
     use Exportable;
 
-    /**
-     * @return array
-     */
     public function sheets(): array
     {
         return [
@@ -43,8 +40,6 @@ class CoaImportSheet implements FromCollection, WithHeadings, WithEvents
         return [
             'Kode Akun',
             'Nama Akun',
-            'Level',
-            'Golongan'
         ];
     }
 
@@ -58,14 +53,12 @@ class CoaImportSheet implements FromCollection, WithHeadings, WithEvents
                 // Set lebar kolom
                 $sheet->getColumnDimension('A')->setWidth(15); // Kode Akun
                 $sheet->getColumnDimension('B')->setWidth(35); // Nama Akun
-                $sheet->getColumnDimension('C')->setWidth(10); // Level
-                $sheet->getColumnDimension('D')->setWidth(10); // Golongan
 
                 // Set tinggi baris
                 $sheet->getRowDimension(1)->setRowHeight(20);
-                
+
                 // Set gaya header
-                $sheet->getStyle('A1:D1')->applyFromArray([
+                $sheet->getStyle('A1:B1')->applyFromArray([
                     'font' => [
                         'bold' => true,
                     ],
@@ -86,8 +79,10 @@ class CoaImportSheet implements FromCollection, WithHeadings, WithEvents
                         ],
                     ],
                 ]);
-                
-               
+
+                for ($row = 2; $row <= 10; $row++) {
+                    $sheet->setCellValue("D{$row}", '=IF(ISBLANK(A' . $row . '), "", IF(ISNUMBER(FIND("-", A' . $row . ')), 5, LEN(A' . $row . ')))');
+                }
             }
         ];
     }
@@ -98,10 +93,14 @@ class CoaExistingSheet implements FromCollection, WithHeadings, WithColumnFormat
     public function collection()
     {
         $coa = Coa::whereNull('is_deleted')
-        ->where('created_by', Auth::user()->id)
-        ->orderBy('nomor_akun')
-        ->get(['nomor_akun', 'nama_akun', 'level', 'golongan']);
+            ->where('created_by', Auth::user()->id)
+            ->orderBy('nomor_akun')
+            ->get(['nomor_akun', 'nama_akun']);
 
+        $coa->transform(function ($item) {
+            $item->level = $this->calculateLevel($item->nomor_akun);
+            return $item;
+        });
 
         return $coa;
     }
@@ -111,8 +110,6 @@ class CoaExistingSheet implements FromCollection, WithHeadings, WithColumnFormat
         return [
             'Kode Akun',
             'Nama Akun',
-            'Level',
-            'Golongan'
         ];
     }
 
@@ -130,15 +127,13 @@ class CoaExistingSheet implements FromCollection, WithHeadings, WithColumnFormat
                 // Set lebar kolom
                 $sheet->getColumnDimension('A')->setWidth(15); // Kode Akun
                 $sheet->getColumnDimension('B')->setWidth(35); // Nama Akun
-                $sheet->getColumnDimension('C')->setWidth(10); // Level
-                $sheet->getColumnDimension('D')->setWidth(10); // Golongan
 
                 // Set tinggi baris
                 $sheet->getRowDimension(1)->setRowHeight(20);
 
-                $sheet->getStyle('A1:D1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $sheet->getStyle('A1:B1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
-                $sheet->getStyle('A1:D1')->applyFromArray([
+                $sheet->getStyle('A1:B1')->applyFromArray([
                     'font' => [
                         'bold' => true,
                     ],
@@ -160,9 +155,16 @@ class CoaExistingSheet implements FromCollection, WithHeadings, WithColumnFormat
                     ],
                 ]);
 
-
                 $sheet->setTitle('Data Coa Yang Sudah Ada');
             }
         ];
+    }
+
+    private function calculateLevel($kodeAkun)
+    {
+        if (strpos($kodeAkun, '-') !== false) {
+            return 5;
+        }
+        return strlen($kodeAkun);
     }
 }

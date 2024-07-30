@@ -33,7 +33,7 @@ class ProfileController extends Controller
         $data = $request->all();
 
         // dd($data);
-        if ($data['company_logo']) {
+        if($request->hasFile('company_logo')){
             $lampiranFile = $request->file('company_logo');
             $filePath = 'profiles/' . $user->company_name;
             $fileName = $user->id . '.' . $lampiranFile->getClientOriginalExtension();
@@ -44,8 +44,10 @@ class ProfileController extends Controller
         $user->fill([
             'name' => $data['name'],
             'email' => $data['email'],
+            'no_hp' => $data['no_hp'],
+            'no_telp' => $data['no_telp'],
             'company_name' => $data['company_name'],
-            'company_logo' => $data['company_logo'],
+            'company_logo' => $data['company_logo'] ?? $user->company_logo,
         ]);
 
         if ($user->isDirty('email')) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Coa;
+use App\Models\JurnalDetail;
 use App\Exports\CoaExport;
 use App\Imports\CoaImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -207,7 +208,7 @@ class CoaController extends Controller
         $nomor_akun = $coa->nomor_akun = $input['nomor_akun'];
         $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
         $real_akun = $nomor_akun_tanpa_tanda_hubung;
-        $jumlah_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
+        $jumlah_digit_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
         $level = 0;
 
        // Menentukan level berdasarkan jumlah digit nomor akun
@@ -311,6 +312,11 @@ class CoaController extends Controller
     public function destroy($id)
     {
         $coa = Coa::find($id);
+        $jurnal = JurnalDetail::where('coa_akun', $coa->nomor_akun)->first();
+
+        if($jurnal){
+            return redirect()->route('coas.index')->with('message', 'Akun tidak dapat dihapus karena sudah digunakan')->with('color', 'red');
+        }
 
         if (!$coa) {
             return redirect()->route('coas.index')->with('message', 'Data not found')->with('color', 'red');
@@ -322,7 +328,8 @@ class CoaController extends Controller
             'deleted_by'    => Auth::user()->id,
         ];
 
-        $update = $coa->update($data);
+        $coa->update($data);
+        $coa->delete();
 
         if ($update) {
             return redirect()->route('coas.index')->with('message', 'Berhasil menghapus data')->with('color', 'green');
@@ -356,15 +363,15 @@ class CoaController extends Controller
             $level = 0;
 
             // Menentukan level berdasarkan jumlah digit nomor akun
-            if ($jumlah_digit_nomor_akun == 1) {
+            if ($jumlah_nomor_akun == 1) {
                 $level = 1;
-            } elseif ($jumlah_digit_nomor_akun == 2) {
+            } elseif ($jumlah_nomor_akun == 2) {
                 $level = 2;
-            } elseif ($jumlah_digit_nomor_akun == 3) {
+            } elseif ($jumlah_nomor_akun == 3) {
                 $level = 3;
-            } elseif ($jumlah_digit_nomor_akun == 5) {
+            } elseif ($jumlah_nomor_akun == 5) {
                 $level = 4;
-            } elseif ($jumlah_digit_nomor_akun == 8) {
+            } elseif ($jumlah_nomor_akun == 8) {
                 $level = 5;
             } else {
                 return redirect()->route('coas.index')
@@ -431,34 +438,50 @@ class CoaController extends Controller
                         ->where('created_by', Auth::user()->id)
                         ->first();
 
-            $data[] = [
-                'parent_id'    => $selCoa->id ?? null,
-                'subchild'     => ($selCoa->subchild ?? 0) + 1,
-                'nomor_akun'   => $real_akun,
-                'nama_akun'    => $nama_akun,
-                'level'        => $level,
-                'saldo_normal' => $saldo_normal,
-                'golongan'     => $golongan,
-                'created_at'   => now(),
-                'created_by'   => Auth::user()->id,
-            ];
+            // Cek apakah data sudah ada
+            $existingCoa = Coa::where('nomor_akun', $real_akun)
+                              ->where('created_by', Auth::user()->id)
+                              ->first();
+
+            if (!$existingCoa) {
+                $data[] = [
+                    'parent_id'    => $selCoa->id ?? null,
+                    'subchild'     => ($selCoa->subchild ?? 0) + 1,
+                    'nomor_akun'   => $real_akun,
+                    'nama_akun'    => $nama_akun,
+                    'level'        => $level,
+                    'saldo_normal' => $saldo_normal,
+                    'golongan'     => $golongan,
+                    'arus_kas'     => 'aktifitas_operasional',
+                    'saldo_awal_debit' => 0,
+                    'saldo_awal_credit' => 0,
+                    'saldo_berjalan_debit' => 0,
+                    'saldo_berjalan_credit' => 0,
+                    'created_at'   => now(),
+                    'created_by'   => Auth::user()->id,
+                ];
+            }
         }
 
-        $coa = Coa::insert($data);
-        if ($coa) {
-            $updateCoa = Coa::where('created_by', Auth::user()->id)->get();
-            foreach ($updateCoa as $coa) {
-                $parent_id = $coa->level > 1 ? Coa::where('nomor_akun', substr($coa->nomor_akun, 0, $coa->level - 1))
-                                             ->where('created_by', Auth::user()->id)
-                                             ->value('id') : null;
-                $coa->update([
-                    'parent_id' => $parent_id,
-                    'subchild' => Coa::where('parent_id', $coa->id)->where('created_by', Auth::user()->id)->count()
-                ]);
+        if (!empty($data)) {
+            $coa = Coa::insert($data);
+            if ($coa) {
+                $updateCoa = Coa::where('created_by', Auth::user()->id)->get();
+                foreach ($updateCoa as $coa) {
+                    $parent_id = $coa->level > 1 ? Coa::where('nomor_akun', substr($coa->nomor_akun, 0, $coa->level - 1))
+                                                 ->where('created_by', Auth::user()->id)
+                                                 ->value('id') : null;
+                    $coa->update([
+                        'parent_id' => $parent_id,
+                        'subchild' => Coa::where('parent_id', $coa->id)->where('created_by', Auth::user()->id)->count()
+                    ]);
+                }
+                return redirect()->back()->with('message', 'Data Coa berhasil di import')->with('color', 'green');
+            } else {
+                return redirect()->back()->with('message', 'Data Coa gagal di import')->with('color', 'red');
             }
-            return redirect()->back()->with('message', 'Data Coa berhasil di import')->with('color', 'green');
         } else {
-            return redirect()->back()->with('message', 'Data Coa gagal di import')->with('color', 'red');
+            return redirect()->back()->with('message', 'Tidak ada data baru yang diimport')->with('color', 'yellow');
         }
     }
 
@@ -480,6 +503,8 @@ class CoaController extends Controller
         $pdf = PDF::loadView('report.printcoa', ['data' => $flatArray]);
         return $pdf->download('coa_'.auth()->user()->name.'.pdf');
     }
+
+    
 
     private function buildTree($elements, $parentId = 0) {
         $branch = [];

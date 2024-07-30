@@ -19,7 +19,7 @@ class JurnalDetail extends Model
 
     public function coa()
     {
-        return $this->belongsTo(Coa::class, 'coa_akun', 'nomor_akun');
+        return $this->belongsTo(Coa::class, 'coa_akun', 'nomor_akun')->where('created_by', auth()->user()->id);
     }
 }
 

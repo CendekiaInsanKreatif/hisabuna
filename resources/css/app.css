@@ -4,11 +4,69 @@
 
 /* @import url('datepicker-style.css');
 @import url('https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css'); */
+/* Flatpickr Custom Styles */
+.flatpickr-calendar {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.flatpickr-months {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.flatpickr-weekdays {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.flatpickr-days {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0.5rem;
+}
+
+.flatpickr-day {
+    width: 2rem;
+    height: 2rem;
+    line-height: 2rem;
+    text-align: center;
+    margin: 0.25rem;
+    border-radius: 0.375rem;
+    transition: background 0.3s, color 0.3s;
+}
+
+.flatpickr-day:hover {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.flatpickr-day.selected {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.flatpickr-day.today {
+    border: 1px solid #10b981;
+    color: #10b981;
+}
+
+
+/* @import url('/css/global.css'); */
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
 }
+
 /* #f3f4f6 */
 ::-webkit-scrollbar-track {
     background: #f3f4f6;

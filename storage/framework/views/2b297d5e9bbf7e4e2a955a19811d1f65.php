@@ -25,11 +25,32 @@
         .total {
             font-weight: bold;
         }
+
+        .footer.content {
+            display: flex;
+            align-items: center;
+        }
+
+        .company-logo {
+            width: 5rem;
+            height: 5rem;
+            margin-right: 8rem;
+        }
+
+        .company-name {
+            font-size: 1.25rem; /* Ukuran font yang sesuai */
+            position: relative;
+            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        }
     </style>
 </head>
 <body>
-<h2><u>LAPORAN LABA RUGI</u></h2>
-<h4><?php echo e(auth()->user()->company_name); ?></h4>
+
+<div class="footer content">
+    <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Company Logo" class="company-logo">
+    <span class="company-name"><?php echo e(auth()->user()->company_name); ?></span>
+</div>
+<h2><u>LAPORAN LABA RUGI</u></h2>  
 <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
 <table>
         <h3 style="padding: 0; margin: 0;"><?php echo e($category); ?></h3>

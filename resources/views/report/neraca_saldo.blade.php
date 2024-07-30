@@ -30,12 +30,34 @@
             font-size: 24px;
             margin: 5px 0;
         }
+
+        .footer.content {
+            display: flex;
+            align-items: center;
+        }
+
+        .company-logo {
+            width: 5rem;
+            height: 5rem;
+            margin-right: 8rem;
+        }
+
+        .company-name {
+            font-size: 1.25rem; /* Ukuran font yang sesuai */
+            position: relative;
+            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        }
     </style>
 </head>
 <body>
     <table>
-        <caption>Neraca Saldo</caption>
-        <caption>{{ auth()->user()->company_name }}</caption>
+        {{-- <caption>Neraca Saldo</caption>
+        <caption>{{ auth()->user()->company_name }}</caption> --}}
+        <div class="footer content">
+            <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
+            <span class="company-name">{{ auth()->user()->company_name }}</span>
+        </div>
+        <h2><u>Neraca Saldo</u></h2>
         <tr>
             <th>Keterangan</th>
             <th>Saldo</th>
@@ -50,19 +72,19 @@
                         @if($account !== 'Total')
                             <tr>
                                 <td style="padding-left: 30px;">{{ $account }}</td>
-                                <td style="text-align: right">{{ number_format($balance, 2) }}</td>
+                                <td style="text-align: right">{{ number_format($balance, 0) }}</td>
                             </tr>
                         @endif
                     @endforeach
                     <tr>
                         <td style="padding-left: 30px;"><strong>Total {{ $subcategory }}</strong></td>
-                        <td style="text-align: right"><strong>{{ number_format($accounts['Total'], 2) }}</strong></td>
+                        <td style="text-align: right"><strong>{{ number_format($accounts['Total'], 0) }}</strong></td>
                     </tr>
                 @endif
             @endforeach
             <tr>
                 <td><strong>Total {{ $mainCategory }}</strong></td>
-                <td style="text-align: right"><strong>{{ number_format($subcategories['Total'], 2) }}</strong></td>
+                <td style="text-align: right"><strong>{{ number_format($subcategories['Total'], 0) }}</strong></td>
             </tr>
             <tr>
                 <td colspan="2">&nbsp;</td>

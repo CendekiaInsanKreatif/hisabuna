@@ -38,7 +38,7 @@
 
                     <!-- Logo --> 
                     <div>
-                        <x-input-label for="image" :value="__('Logo')" />
+                        <x-input-label for="profile_image" :value="__('Logo')" />
                         <input type="file" name="image" id="profile_image" accept=".jpg,.png,.jpeg" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         {{-- <x-input-error :messages="$errors->get('image')" class="mt-2" /> --}}
                     </div>
@@ -48,6 +48,18 @@
                         <x-input-label for="email" :value="__('Email')" />
                         <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
                         <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                    </div>
+
+                    <div class="mt-4">
+                        <x-input-label for="no_hp" :value="__('No HP')" />
+                        <x-text-input id="no_hp" class="block mt-1 w-full" type="text" name="no_hp" :value="old('no_hp')" required autocomplete="username" />
+                        <x-input-error :messages="$errors->get('no_hp')" class="mt-2" />
+                    </div>
+
+                    <div class="mt-4">
+                        <x-input-label for="no_telp" :value="__('No Telp')" />
+                        <x-text-input id="no_telp" class="block mt-1 w-full" type="text" name="no_telp" :value="old('no_telp')" required autocomplete="username" />
+                        <x-input-error :messages="$errors->get('no_telp')" class="mt-2" />
                     </div>
 
                     <div class="mt-4">
@@ -94,4 +106,16 @@
             </div>
         </div>
     </main>
+    @push('script')
+        <script>
+            $(document).ready(function() {
+                $('#no_hp').on('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+                $('#no_telp').on('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            });
+        </script>
+    @endpush
 </x-guest-layout>

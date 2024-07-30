@@ -23,6 +23,8 @@ class User extends Authenticatable
         'password',
         'company_name',
         'company_logo',
+        'no_hp',
+        'no_telp',
         'roles',
     ];
 

@@ -63,7 +63,6 @@
                                 </div>
                             </div>
                         </div>
-                        
                     </div>
                 </div>
                 <div class="card-body overflow-x-auto mt-1">
@@ -120,7 +119,7 @@
                         <tbody id="coaTableBody">
                             <template x-for="coa in paginatedData" :key="coa.id">
                                 <tr @mouseover="hover = true" @mouseout="hover = false">
-                                    <td class="text-left px-4 py-1" x-text="coa.nomor_akun"></td>
+                                    <td class="text-left px-4 py-1" x-text="formatNomorAkun(coa.nomor_akun)"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.nama_akun"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.level"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.golongan"></td>
@@ -130,6 +129,7 @@
                                             <?php echo csrf_field(); ?>
                                             <?php echo method_field('PUT'); ?>
                                             <select class="form-select block w-full mt-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" x-model="coa.arus_kas" @change="submitForm(coa.id, $event.target.value)">
+                                                <option value="" :selected="coa.arus_kas === ''">Kategori Arus Kas</option>
                                                 <option value="aktifitas_operasional" :selected="coa.arus_kas === 'aktifitas_operasional'">Aktivitas Operasional</option>
                                                 <option value="aktifitas_investasi" :selected="coa.arus_kas === 'aktifitas_investasi'">Aktivitas Investasi</option>
                                                 <option value="aktifitas_pendanaan" :selected="coa.arus_kas === 'aktifitas_pendanaan'">Aktivitas Pendanaan</option>
@@ -262,6 +262,20 @@
                         console.error('Error updating Arus Kas:', error);
                         alert('Error updating Arus Kas. Please try again later.');
                     }
+                },
+                formatNomorAkun(nomor_akun) {
+                    let formatted = nomor_akun.replace(/\D/g, ''); // Hapus karakter non-digit
+                    if (formatted.length > 6) {
+                        // Format untuk level 5, misalnya 111-11-011
+                        formatted = formatted.slice(0, 3) + '-' + formatted.slice(3, 5) + '-' + formatted.slice(5);
+                    } else if (formatted.length > 4) {
+                        // Format untuk level 4, misalnya 111-11
+                        formatted = formatted.slice(0, 3) + '-' + formatted.slice(3);
+                    } else {
+                        // Format untuk level 3 atau kurang, misalnya 111
+                        formatted = formatted.slice(0, 3);
+                    }
+                    return formatted;
                 },
                 init() {
                     this.fetchCoaData();

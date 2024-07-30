@@ -28,46 +28,69 @@
             text-align: center;
             margin-top: 20px;
         }
+
+        .footer.content {
+            display: flex;
+            align-items: center;
+        }
+
+        .company-logo {
+            width: 5rem;
+            height: 5rem;
+            margin-right: 8rem;
+        }
+
+        .company-name {
+            font-size: 1.25rem; /* Ukuran font yang sesuai */
+            position: relative;
+            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        }
     </style>
 </head>
+
 <body>
+    {{-- <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
+    <h4>{{ auth()->user()->company_name }}</h4> --}}
+    <div class="footer content">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
+        <span class="company-name">{{ auth()->user()->company_name }}</span>
+    </div>
     <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
-    <h4>{{ auth()->user()->company_name }}</h4>
     <table>
         <thead>
             <tr>
                 <th></th>
-                <th>2024</th>
+                <th>{{ $tahunSekarang }}</th>
                 <th>Penambahan / (Pengurangan)</th>
-                <th>2023</th>
+                <th>{{ $tahunSebelumnya }}</th>
             </tr>
         </thead>
         <tbody>
             @php
-                $modal2024 = $data['2024']['Modal Disetor'];
-                $saldo2024 = $data['2024']['Saldo Tahun Berjalan'];
-                $modal2023 = $data['2023']['Modal Disetor'];
-                $saldo2023 = $data['2023']['Saldo Tahun Berjalan'];
-                $modalDiff = $data[0]['Modal Disetor'];
+                $modalSekarang = $data[$tahunSekarang][$totalsSekarang['namaAkun']];
+                $saldoSekarang = $data[$tahunSekarang]['Saldo Tahun Berjalan'];
+                $modalDulu = $data[$tahunSebelumnya][$totalsDulu['namaAkun']];
+                $saldoDulu = $data[$tahunSebelumnya]['Saldo Tahun Berjalan'];
+                $modalDiff = $data[0][$totalsDulu['namaAkun']];
                 $saldoDiff = $data[0]['Saldo Tahun Berjalan'];
             @endphp
             <tr>
                 <td>Modal Disetor</td>
-                <td style="text-align: right;">{{ number_format($modal2024, 0, ',', '.') }}</td>
+                <td style="text-align: right;">{{ number_format($modalSekarang, 0, ',', '.') }}</td>
                 <td style="text-align: right;">{{ number_format($modalDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modal2023, 0, ',', '.') }}</td>
+                <td style="text-align: right;">{{ number_format($modalDulu, 0, ',', '.') }}</td>
             </tr>
             <tr>
                 <td>Saldo Tahun Berjalan</td>
-                <td style="text-align: right;">{{ number_format($saldo2024, 0, ',', '.') }}</td>
+                <td style="text-align: right;">{{ number_format($saldoSekarang, 0, ',', '.') }}</td>
                 <td style="text-align: right;">{{ number_format($saldoDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($saldo2023, 0, ',', '.') }}</td>
+                <td style="text-align: right;">{{ number_format($saldoDulu, 0, ',', '.') }}</td>
             </tr>
             <tr class="total">
                 <td>Jumlah Ekuitas</td>
-                <td style="text-align: right;">{{ number_format($modal2024 + $saldo2024, 0, ',', '.') }}</td>
+                <td style="text-align: right;">{{ number_format($modalSekarang + $saldoSekarang, 0, ',', '.') }}</td>
                 <td style="text-align: right;">{{ number_format($modalDiff + $saldoDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modal2023 + $saldo2023, 0, ',', '.') }}</td>
+                <td style="text-align: right;">{{ number_format($modalDulu + $saldoDulu, 0, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>

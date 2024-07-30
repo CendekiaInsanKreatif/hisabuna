@@ -223,7 +223,7 @@
                     return this.allData.filter(coa => {
                         const matchesCategory = (this.filter === 'all' ||
                             (this.filter === 'neraca' && ['1', '2', '3'].includes(coa.nomor_akun.charAt(0))) ||
-                            (this.filter === 'labarugi' && ['4', '5', '6'].includes(coa.nomor_akun.charAt(0))) ||
+                            (this.filter === 'labarugi' && ['4', '5', '6', '7', '8'].includes(coa.nomor_akun.charAt(0))) ||
                             (coa.level.startsWith(this.filter))
                         );
                         const matchesSearch = coa.nama_akun.toLowerCase().includes(this.searchInput.toLowerCase());

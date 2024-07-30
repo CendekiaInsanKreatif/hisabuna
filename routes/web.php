@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CoaController;
 use App\Http\Controllers\JurnalController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\Report_Controller;
 use App\Http\Controllers\ArusKasController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return view('jurnal.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -43,9 +44,18 @@ Route::middleware('auth')->group(function () {
     })->name('saldo-awal.index');
 
     Route::match(['put', 'patch'], 'saldo-awal/{id}', function(Request $request, $id) {
+
+        if(strpos($request->input('saldo_awal_debit'), '.') !== false){
+            $debit = str_replace('.', '', $request->input('saldo_awal_debit'));
+            $credit = str_replace('.', '', $request->input('saldo_awal_credit'));
+        }else{
+            $debit = $request->input('saldo_awal_debit');
+            $credit = $request->input('saldo_awal_credit');
+        }
+
         Coa::where('id', $id)->update([
-            'saldo_awal_debit' => $request->input('saldo_awal_debit'),
-            'saldo_awal_credit' => $request->input('saldo_awal_credit'),
+            'saldo_awal_debit' => $debit,
+            'saldo_awal_credit' => $credit,
         ]);
 
         return redirect()->route('saldo-awal.index')->with('message', 'Berhasil Update Saldo Awal')->with('color', 'green');
@@ -94,19 +104,36 @@ Route::middleware('auth')->group(function () {
 
     // API Rouye
     Route::prefix('api')->group(function () {
+        Route::get('labarugi', [Report_Controller::class, 'labaRugi'])->name('api.labarugi');
+        Route::get('perubahanekuitas', [Report_Controller::class, 'perubahanEkuitas'])->name('api.perubahanekuitas');
+        Route::get('neraca', [Report_Controller::class, 'neraca'])->name('api.neraca');
+        Route::get('neraca-saldo', [Report_Controller::class, 'neracaSaldo'])->name('api.neracasaldo');
+        Route::get('neraca-perbandingan', [Report_Controller::class, 'neracaPerbandingan'])->name('api.neracaperbandingan');
+        Route::get('aruskas', [Report_Controller::class, 'arusKas'])->name('api.aruskas');
+
         Route::get('coas', function () {
-            $coa = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get();
+            $coa = Coa::whereNull('is_deleted')
+                      ->where('created_by', auth()->user()->id)
+                      ->orderBy('nomor_akun')
+                      ->orderBy('level')
+                      ->get();
+            // da($coa);
             return response()->json($coa);
         });
         
         Route::get('arus-kas', function () {
-            $arusKas = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->where('level', '=', 4)->get();
+            $arusKas = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get();
             return response()->json($arusKas);
         });
 
         Route::get('saldo-awal', function () {
-            $saldoAwal = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->where('level', '=', 5)->get();
+            $saldoAwal = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->orderBy('saldo_awal_debit', 'desc')->get();
             return response()->json($saldoAwal);
+        });
+
+        Route::get('coa-update', function () {
+            $coa = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get();
+            return response()->json($coa);
         });
 
         Route::get('jurnal', function () {
@@ -119,7 +146,6 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('files', function () {
-            // return "hello";
             Storage::disk('ftp')->put('test.txt', 'Hello World');
         });
     });

@@ -25,6 +25,8 @@ class JurnalController extends Controller
     {
         $jurnal = Jurnal::with('details')->whereNull('is_deleted')->where('created_by', auth()->user()->id)->get()->toArray();
 
+        // da($jurnal);
+
         return view('jurnal.index', compact('jurnal'));
     }
 
@@ -41,7 +43,7 @@ class JurnalController extends Controller
     public function create()
     {
         $coa = Coa::whereNull('is_deleted')
-                    // ->where('level', 5)
+                    ->where('level', 5)
                     ->where('created_by', auth()->user()->id)
                     ->get()
                     ->toArray();
@@ -50,9 +52,12 @@ class JurnalController extends Controller
 
     public function store(Request $request)
     {
+        // da($request->all());
         DB::beginTransaction();
         try {
             $input = $request->all();
+
+            // da($input);
 
             $debit = array_map(function($x) {
                 return (int) str_replace('.', '', $x);
@@ -60,6 +65,7 @@ class JurnalController extends Controller
             $kredit = array_map(function($x) {
                 return (int) str_replace('.', '', $x);
             }, $input['kredit']);
+
             $sumDebit = array_sum($debit);
             $sumKredit = array_sum($kredit);
 
@@ -76,6 +82,8 @@ class JurnalController extends Controller
                 $input['no_transaksi'] = 1;
             }
 
+            // da($input);
+
             $dataJurnal = Jurnal::create([
                 'jenis' => strtoupper($input['jenis']),
                 'no_urut_transaksi' => $jurnal->count() + 1,
@@ -87,8 +95,15 @@ class JurnalController extends Controller
                 'created_at' => now()
             ]);
 
+            // da($input);
+
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {
+                if(strpos($noAkun, '-')){
+                    $coaAkun = str_replace('-', '', $noAkun);
+                }else{
+                    $coaAkun = $noAkun;
+                }
                 $db = str_replace('.', '', $input['debit'][$index]);
                 $kr = str_replace('.', '', $input['kredit'][$index]);
 
@@ -96,16 +111,19 @@ class JurnalController extends Controller
                 $kredit = (int) $kr;
 
 
-                Coa::where('nomor_akun', $noAkun)->where('created_by', auth()->user()->id)->update([
+                Coa::where('nomor_akun', $coaAkun)->where('created_by', auth()->user()->id)->update([
                     'saldo_berjalan_debit' => $debit,
                     'saldo_berjalan_credit' => $kredit,
                 ]);
 
-                $tgl_bukti = \Carbon\Carbon::parse($input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
+                // da($input);
+                $tgl_bukti = \Carbon\Carbon::createFromFormat('d-m-Y', $input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
+
+                // dd($tgl_bukti);
 
                 $details[] = [
                     'jurnal_id' => $dataJurnal->id,
-                    'coa_akun' => $noAkun,
+                    'coa_akun' => $coaAkun,
                     'debit' => $debit,
                     'credit' => $kredit,
                     'keterangan' => $input['keterangan'][$index] ?: $input['keterangan_header'],
@@ -114,6 +132,8 @@ class JurnalController extends Controller
                     'created_at' => now()
                 ];
             }
+
+            // da($details);
 
             foreach ($details as $index => $detail) {
                 $da = JurnalDetail::create($detail);
@@ -158,7 +178,7 @@ class JurnalController extends Controller
         }
         $coa = Coa::whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
-                ->where('level', 5)
+                // ->where('level', 5)
                 ->get()
                 ->toArray();
 
@@ -183,11 +203,13 @@ class JurnalController extends Controller
             return redirect()->route('jurnal.index')->with('message', 'Debit tidak sama dengan kredit.')->with('color', 'red');
         }
 
+        // da($request->all());
+
         DB::beginTransaction();
         try {
             $input = $request->all();
 
-            // dd($input);
+            // da($input);
 
             $existingJournals = Jurnal::whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
@@ -204,11 +226,13 @@ class JurnalController extends Controller
             $jurnal->jenis = strtoupper($input['jenis']);
             $jurnal->no_transaksi = $input['no_transaksi'];
             $jurnal->jurnal_tgl = now();
-            $jurnal->subtotal = array_sum($input['debit']);
+            $jurnal->subtotal = $sumDebit;
             $jurnal->keterangan = $input['keterangan_header'];
             $jurnal->updated_by = Auth::user()->id;
             $jurnal->updated_at = now();
             $jurnal->save();
+
+            // da($input);
 
             if($request->has('lampiran')){
                 $filePath = 'lampiran/' . auth()->user()->company_name . '/' . $jurnal->id;
@@ -221,14 +245,15 @@ class JurnalController extends Controller
 
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {
-                $debit = $input['debit'][$index];
-                $kredit = $input['kredit'][$index];
+                $coaAkun = str_replace('-', '', $noAkun);
+                $debit = (int) str_replace('.', '', $input['debit'][$index]);
+                $kredit = (int) str_replace('.', '', $input['kredit'][$index]);
 
-                $tgl_bukti = \Carbon\Carbon::parse($input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
+                $tgl_bukti = \Carbon\Carbon::createFromFormat('d-m-Y', $input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
 
                 $details[] = [
                     'jurnal_id' => $jurnal->id,
-                    'coa_akun' => $noAkun,
+                    'coa_akun' => $coaAkun,
                     'debit' => $debit,
                     'credit' => $kredit,
                     'keterangan' => $input['keterangan'][$index] ?: $input['keterangan_header'],

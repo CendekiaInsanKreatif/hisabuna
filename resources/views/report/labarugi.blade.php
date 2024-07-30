@@ -25,11 +25,33 @@
         .total {
             font-weight: bold;
         }
+
+        .footer.content {
+            display: flex;
+            align-items: center;
+        }
+
+        .company-logo {
+            width: 5rem;
+            height: 5rem;
+            margin-right: 8rem;
+        }
+
+        .company-name {
+            font-size: 1.25rem; /* Ukuran font yang sesuai */
+            position: relative;
+            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        }
     </style>
 </head>
 <body>
-<h2><u>LAPORAN LABA RUGI</u></h2>
-<h4>{{ auth()->user()->company_name }}</h4>
+{{-- <h2><u>LAPORAN LABA RUGI</u></h2>
+<h4>{{ auth()->user()->company_name }}</h4> --}}
+<div class="footer content">
+    <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
+    <span class="company-name">{{ auth()->user()->company_name }}</span>
+</div>
+<h2><u>LAPORAN LABA RUGI</u></h2>  
 @foreach ($data as $category => $details)
 <table>
         <h3 style="padding: 0; margin: 0;">{{ $category }}</h3>

@@ -88,7 +88,7 @@ unset($__defined_vars); ?>
                 return value.toLocaleString('id-ID');
             }
             return '';
-        }
+    }
 }" x-init="$watch('show', value => {
     if (value) {
         document.body.classList.add('overflow-y-hidden');
@@ -144,7 +144,6 @@ unset($__defined_vars); ?>
                                         x-on:click="
                                             let obj = { isDetail: isDetail, data: <?php echo e(json_encode($item2)); ?> };
                                             document.getElementById('searchBarAkun').value = '';
-                                            
                                             document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
                                             let firstChar = obj.data.nomor_akun.charAt(0);
                                             let teksDebit, teksKredit, styleDebit, styleKredit;
@@ -165,10 +164,6 @@ unset($__defined_vars); ?>
                                                 styleKredit = 'color: red;';
                                             }
 
-
-                                            
-                                            
-                                            
                                             document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
                                             document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
                                             document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
@@ -251,6 +246,9 @@ unset($__defined_vars); ?>
                 <input type="hidden" name="_method" x-bind:value="method">
                 <h2 class="text-xl font-medium text-gray-900 dark:text-gray-100 text-center" x-text="title"></h2>
                 <?php if(is_array($field) && count($field) > 0): ?>
+                <?php
+                    // print_r($field);
+                ?>
                     <div class="mt-4 flex flex-wrap" x-data="data">
                         <div class="w-full md:w-1/2 p-2">
                             <?php $__currentLoopData = $field; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -259,14 +257,14 @@ unset($__defined_vars); ?>
                                         <label for="<?php echo e($item['name']); ?>"><?php echo e(__($item['label'])); ?></label>
                                         <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\')','placeholder' => $item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label']),'xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'credit\' : false)','placeholder' => $item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label']),'xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\')','placeholder' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])),'x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
+<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'credit\' : false)','placeholder' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])),'x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal18c21970322f9e5c938bc954620c12bb)): ?>
@@ -288,14 +286,14 @@ unset($__defined_vars); ?>
                                         <label for="<?php echo e($item['name']); ?>"><?php echo e(__($item['label'])); ?></label>
                                         <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\')','placeholder' => ''.e(__($item['label'])).'','xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'debit\' : false)','placeholder' => ''.e(__($item['label'])).'','xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\')','placeholder' => ''.e(__($item['label'])).'','x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
+<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'debit\' : false)','placeholder' => ''.e(__($item['label'])).'','x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal18c21970322f9e5c938bc954620c12bb)): ?>

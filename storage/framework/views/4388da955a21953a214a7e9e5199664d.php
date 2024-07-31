@@ -122,7 +122,7 @@
                                     <td class="text-left text-sm font-sans px-2 py-1 break-words" x-text="jurnal.keterangan"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1 flex items-center justify-center">
                                         <div class="inline-flex flex-col md:flex-row gap-1">
-                                            <a :href="`<?php echo e(route('report.transaksi', '')); ?>/${jurnal.id}`" class="btn bg-gray-200 rounded py-1 px-4 hover:bg-emerald-500 transition duration-300">Print</a>
+                                            <a :href="`<?php echo e(route('report.transaksi', '')); ?>/${jurnal.id}`" class="btn bg-gray-200 rounded py-1 px-3 items-center justify-center hover:bg-emerald-500 transition duration-300">Print</a>
                                             <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto','xData' => '{data: jurnal}','xOn:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('jurnal.show', '')).'/${jurnal.id}`, name: \'jurnal.show\', title: \'Lihat Jurnal\', data: jurnal, type: \'form\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -143,7 +143,7 @@
 <?php unset($__componentOriginald411d1792bd6cc877d687758b753742c); ?>
 <?php endif; ?>
                                             <a class="w-full md:w-auto py-1 px-2 inline-flex items-center justify-center bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong" :href="`<?php echo e(url('jurnal')); ?>/${jurnal.id}/edit`">
-                                                edit
+                                                Edit
                                             </a>
 
                                         </div>

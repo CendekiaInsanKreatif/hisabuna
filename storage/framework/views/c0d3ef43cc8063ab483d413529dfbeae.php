@@ -15,7 +15,7 @@
                 [
                     'name' => 'nomor_akun',
                     'type' => 'text',
-                    'label' => 'Nomer Akun',
+                    'label' => 'Nomor Akun',
                     'required' => true,
                 ],
                 [

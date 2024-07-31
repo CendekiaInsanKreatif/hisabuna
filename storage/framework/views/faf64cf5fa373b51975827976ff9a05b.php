@@ -100,7 +100,7 @@
                             <tr>
                                 <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
-                                        Nomer Akun
+                                        Nomor Akun
                                         <span class="ml-2">
                                             <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
                                         </span>
@@ -142,19 +142,21 @@
                                 <tr @mouseover="hover = true" @mouseout="hover = false">
                                     <td class="text-left px-4 py-1" x-text="formatNomorAkun(coa.nomor_akun)"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.nama_akun"></td>
-                                    <td class="text-left px-4 py-1" x-text="formatCurrency(coa.saldo_awal_debit)"></td>
-                                    <td class="text-left px-4 py-1" x-text="formatCurrency(coa.saldo_awal_credit)"></td>
+                                    <td class="text-right px-4 py-1" x-text="formatCurrency(coa.saldo_awal_debit)"></td>
+                                    <td class="text-right px-4 py-1" x-text="formatCurrency(coa.saldo_awal_credit)"></td>
                                     <td class="text-left px-4 py-1 items-center text-center mt-1">
                                         <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','xOn:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('saldo-awal.update', '')).'/${coa.id}`, name: \'saldo-awal.update\', title: \'Edit Saldo Awal\', data: coa, method: \'PUT\', type: \'form\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1 flex items-center justify-center space-x-2','xOn:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('saldo-awal.update', '')).'/${coa.id}`, name: \'saldo-awal.update\', title: \'Edit Saldo Awal\', data: coa, method: \'PUT\', type: \'form\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('primary-button'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','x-on:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('saldo-awal.update', '')).'/${coa.id}`, name: \'saldo-awal.update\', title: \'Edit Saldo Awal\', data: coa, method: \'PUT\', type: \'form\' })']); ?><?php echo e(__('Edit')); ?> <?php echo $__env->renderComponent(); ?>
+<?php $component->withAttributes(['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1 flex items-center justify-center space-x-2','x-on:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('saldo-awal.update', '')).'/${coa.id}`, name: \'saldo-awal.update\', title: \'Edit Saldo Awal\', data: coa, method: \'PUT\', type: \'form\' })']); ?><img src="<?php echo e(asset('images/icons/ic-write.svg')); ?>" class="w-4 h-4"><?php echo e(__('Edit')); ?>
+
+                                         <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginald411d1792bd6cc877d687758b753742c)): ?>
 <?php $attributes = $__attributesOriginald411d1792bd6cc877d687758b753742c; ?>
@@ -169,7 +171,7 @@
                             </template>
                         </tbody>
                     </table>
-                    <div class="pagination flex justify-center p-4 space-x-2">
+                    <div class="pagination flex justify-center p-4 space-x-2 px-4 py-2">
                         <button @click="prevPage" class="prev bg-emerald-600 text-white py-1 px-3 rounded">Previous</button>
                         <div id="pageNumbers" class="flex space-x-2">
                             <template x-for="page in pagesToShow" :key="page">

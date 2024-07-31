@@ -44,19 +44,32 @@ Route::middleware('auth')->group(function () {
     })->name('saldo-awal.index');
 
     Route::match(['put', 'patch'], 'saldo-awal/{id}', function(Request $request, $id) {
+        $coa = Coa::find($id);
 
-        if(strpos($request->input('saldo_awal_debit'), '.') !== false){
-            $debit = str_replace('.', '', $request->input('saldo_awal_debit'));
-            $credit = str_replace('.', '', $request->input('saldo_awal_credit'));
-        }else{
-            $debit = $request->input('saldo_awal_debit');
-            $credit = $request->input('saldo_awal_credit');
+        if (!$coa) {
+            return redirect()->route('saldo-awal.index')->with('message', 'Coa tidak ditemukan')->with('color', 'red');
         }
 
-        Coa::where('id', $id)->update([
-            'saldo_awal_debit' => $debit,
-            'saldo_awal_credit' => $credit,
-        ]);
+        $debit = $request->input('saldo_awal_debit');
+        $credit = $request->input('saldo_awal_credit');
+
+        if (strpos($debit, '.') !== false) {
+            $debit = (int) str_replace('.', '', $debit);
+        } else {
+            $debit = (int) $debit;
+        }
+
+        if (strpos($credit, '.') !== false) {
+            $credit = (int) str_replace('.', '', $credit);
+        } else {
+            $credit = (int) $credit;
+        }
+
+        if ($request->saldo_awal_debit != 0) {
+            $coa->update(['saldo_awal_debit' => $debit, 'saldo_awal_credit' => 0]);
+        } else {
+            $coa->update(['saldo_awal_debit' => 0, 'saldo_awal_credit' => $credit]);
+        }
 
         return redirect()->route('saldo-awal.index')->with('message', 'Berhasil Update Saldo Awal')->with('color', 'green');
     })->name('saldo-awal.update');
@@ -113,8 +126,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('coas', function () {
             $coa = Coa::whereNull('is_deleted')
-                      ->where('created_by', auth()->user()->id)
-                      ->orderBy('nomor_akun')
+                    // ->where('level', '=', 5)
+                    ->where('created_by', auth()->user()->id)
+                    ->orderBy('nomor_akun')
                       ->orderBy('level')
                       ->get();
             // da($coa);
@@ -127,7 +141,7 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('saldo-awal', function () {
-            $saldoAwal = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->orderBy('saldo_awal_debit', 'desc')->get();
+            $saldoAwal = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->where('level', '=', 5)->orderBy('nomor_akun', 'asc')->get();
             return response()->json($saldoAwal);
         });
 

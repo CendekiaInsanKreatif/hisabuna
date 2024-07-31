@@ -60,7 +60,7 @@
                 return value.toLocaleString('id-ID');
             }
             return '';
-        }
+    }
 }" x-init="$watch('show', value => {
     if (value) {
         document.body.classList.add('overflow-y-hidden');
@@ -115,7 +115,6 @@
                                         x-on:click="
                                             let obj = { isDetail: isDetail, data: {{ json_encode($item2) }} };
                                             document.getElementById('searchBarAkun').value = '';
-                                            {{-- document.getElementsByName('no_akun[' + isDetail + ']')[0].value = obj.data.nomor_akun; --}}
                                             document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
                                             let firstChar = obj.data.nomor_akun.charAt(0);
                                             let teksDebit, teksKredit, styleDebit, styleKredit;
@@ -136,12 +135,6 @@
                                                 styleKredit = 'color: red;';
                                             }
 
-
-                                            {{-- console.log(jurnalApp.rows) --}}
-                                            {{-- jurnalApp.rows[isDetail].no_akun = formatNomorAkun(obj.data.nomor_akun);
-                                            jurnalApp.rows[isDetail].nama_akun = obj.data.nama_akun; --}}
-                                            {{-- jurnalApp.rows[isDetail].debit = teksDebit;
-                                            jurnalApp.rows[isDetail].kredit = teksKredit; --}}
                                             document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
                                             document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
                                             document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
@@ -189,6 +182,9 @@
                 <input type="hidden" name="_method" x-bind:value="method">
                 <h2 class="text-xl font-medium text-gray-900 dark:text-gray-100 text-center" x-text="title"></h2>
                 @if (is_array($field) && count($field) > 0)
+                @php
+                    // print_r($field);
+                @endphp
                     <div class="mt-4 flex flex-wrap" x-data="data">
                         <div class="w-full md:w-1/2 p-2">
                             @foreach ($field as $index => $item)
@@ -199,7 +195,7 @@
                                             type="{{ $item['type'] }}" class="mt-1 block w-full"
                                             x-bind:readonly="name.includes('show')"
                                             x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
-                                            x-bind:disabled="name.includes('show')" :placeholder="$item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])"
+                                            x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'credit' : false)" :placeholder="$item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])"
                                             x-bind:value="name.includes('create') ? '' : (name.includes('saldo-awal') ? formatCurrencyValue(data.{{ $item['name'] }}) : data.{{ $item['name'] }})" />
                                     </div>
                                 @endif
@@ -214,7 +210,7 @@
                                             type="{{ $item['type'] }}" class="mt-1 block w-full"
                                             x-bind:readonly="name.includes('show')"
                                             x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
-                                            x-bind:disabled="name.includes('show')"
+                                            x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'debit' : false)"
                                             placeholder="{{ __($item['label']) }}"
                                             x-bind:value="name.includes('create') ? '' : (name.includes('saldo-awal') ? formatCurrencyValue(data.{{ $item['name'] }}) : data.{{ $item['name'] }})" />
                                     </div>

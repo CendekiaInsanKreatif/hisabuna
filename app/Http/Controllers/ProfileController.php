@@ -32,7 +32,6 @@ class ProfileController extends Controller
         $user = $request->user();
         $data = $request->all();
 
-        // dd($data);
         if($request->hasFile('company_logo')){
             $lampiranFile = $request->file('company_logo');
             $filePath = 'profiles/' . $user->company_name;

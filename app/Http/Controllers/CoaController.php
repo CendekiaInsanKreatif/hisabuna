@@ -129,7 +129,6 @@ class CoaController extends Controller
         }
         
         // Verifikasi keberadaan parent akun
-        //dd($parent_id, $level);
         if ($level > 1 && $parent_id) {
             $parent_level = $level - 1;
             $selCoa = Coa::where('nomor_akun', $parent_id)
@@ -354,6 +353,9 @@ class CoaController extends Controller
         });
 
         // dd($excel);
+        $data = []; // Initialize the data array
+        $existingAccounts = []; // Array to store existing accounts
+        $duplicatesInExcel = []; // Array to store duplicate accounts in the Excel file
 
         foreach ($excel as $key => $value) {
             $nomor_akun     = $value['kode_akun'];
@@ -443,7 +445,13 @@ class CoaController extends Controller
                               ->where('created_by', Auth::user()->id)
                               ->first();
 
-            if (!$existingCoa) {
+            //dd($existingCoa);
+
+            if ($existingCoa || in_array($real_akun, $existingAccounts)) {
+                $duplicatesInExcel[] = $real_akun; // Simpan nomor akun duplikat
+            } else {
+                $existingAccounts[] = $real_akun; // Tambahkan ke daftar akun yang sudah ada
+    
                 $data[] = [
                     'parent_id'    => $selCoa->id ?? null,
                     'subchild'     => ($selCoa->subchild ?? 0) + 1,
@@ -461,6 +469,11 @@ class CoaController extends Controller
                     'created_by'   => Auth::user()->id,
                 ];
             }
+        }
+    
+        if (!empty($duplicatesInExcel)) {
+            // Jika ada duplikat, kirim pesan error dengan daftar nomor akun duplikat
+            return redirect()->back()->with('message', 'Nomor akun berikut sudah ada: ' . implode(', ', $duplicatesInExcel))->with('color', 'red');
         }
 
         if (!empty($data)) {

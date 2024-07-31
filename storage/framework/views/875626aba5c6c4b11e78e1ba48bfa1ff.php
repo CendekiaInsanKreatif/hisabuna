@@ -14,7 +14,7 @@
                 [
                     'name' => 'nomor_akun',
                     'type' => 'text',
-                    'label' => 'Nomer Akun',
+                    'label' => 'Nomor Akun',
                     'required' => true,
                 ],
                 [
@@ -71,7 +71,7 @@
                             <tr>
                                 <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
-                                        Nomer Akun
+                                        Nomor Akun
                                         <span class="ml-2">
                                             <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
                                         </span>

@@ -98,7 +98,7 @@ unset($__defined_vars); ?>
         document.body.classList.remove('overflow-y-hidden');
     }
 })"
-    x-on:open-modal.window="console.log($event.detail); method = $event.detail.method; route = $event.detail.route; data = $event.detail.data; title = $event.detail.title; show = true; name = $event.detail.name; type = $event.detail.type; isDetail = $event.detail.isDetail; detailCount = $event.detail.count;"
+    x-on:open-modal.window="console.log($event.detail); method = $event.detail.method; route = $event.detail.route; data = $event.detail.data; title = $event.detail.title; show = true; name = $event.detail.name; type = $event.detail.type; isDetail = $event.detail.isDetail; detailCount = $event.detail.count; from = $event.detail.from;"
     x-on:close-modal.window="show = false" x-on:close.stop="show = false" x-on:keydown.escape.window="show = false"
     x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()" x-show="show"
@@ -246,9 +246,6 @@ unset($__defined_vars); ?>
                 <input type="hidden" name="_method" x-bind:value="method">
                 <h2 class="text-xl font-medium text-gray-900 dark:text-gray-100 text-center" x-text="title"></h2>
                 <?php if(is_array($field) && count($field) > 0): ?>
-                <?php
-                    // print_r($field);
-                ?>
                     <div class="mt-4 flex flex-wrap" x-data="data">
                         <div class="w-full md:w-1/2 p-2">
                             <?php $__currentLoopData = $field; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -310,41 +307,42 @@ unset($__defined_vars); ?>
                         </div>
                     </div>
                     <template x-if="name.includes('jurnal')">
-                        <table class="min-w-full divide-y divide-gray-200 mt-4">
-                            <thead class="bg-gray-50">
-                                <?php
-                                    $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit', 'Lampiran'];
-                                ?>
-                                <?php $__currentLoopData = $header; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <th scope="col"
-                                        class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        <?php echo e($item); ?>
-
-                                    </th>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200 overflow-y-auto">
-                                <template x-for="(detail, index) in data.details" :key="index">
-                                    <tr>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="detail.coa_akun"></td>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="detail.coa.nama_akun"></td>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="new Intl.NumberFormat('id-ID').format(detail.debit)"></td>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="new Intl.NumberFormat('id-ID').format(detail.credit)"></td>
-                                        <td
+                        <div class="overflow-y-auto" style="max-height: 250px;">
+                            <table class="min-w-full divide-y divide-gray-200 mt-4">
+                                <thead class="bg-gray-50">
+                                    <?php
+                                        $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit', 'Lampiran'];
+                                    ?>
+                                    <?php $__currentLoopData = $header; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <th scope="col"
                                             class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            <a :href="`<?php echo e(asset('storage')); ?>/${detail.lampiran}`" target="_blank"
-                                                class="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold rounded">
-                                                <span>Lihat</span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                                            <?php echo e($item); ?>
+
+                                        </th>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </thead>
+                                    <tbody>
+                                        <template x-for="(detail, index) in data.details" :key="index">
+                                            <tr class="bg-white divide-y divide-gray-200">
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="detail.coa_akun"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="detail.coa.nama_akun"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="new Intl.NumberFormat('id-ID').format(detail.debit)"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="new Intl.NumberFormat('id-ID').format(detail.credit)"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    <a :href="`<?php echo e(asset('storage')); ?>/${detail.lampiran}`" target="_blank"
+                                                        class="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold rounded">
+                                                        <span>Lihat</span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                            </table>
+                        </div>
                     </template>
                 <?php endif; ?>
                 <div class="mt-4 flex justify-end space-x-2">

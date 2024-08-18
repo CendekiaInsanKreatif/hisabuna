@@ -69,7 +69,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2">
                     <?php $__currentLoopData = $field; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <div class="col-span-1">
-                        <label for="<?php echo e($item); ?>" class="block text-sm font-medium text-gray-700"><?php echo e(ucwords(str_replace('_', ' ', $item))); ?></label>
+                        <label for="<?php echo e($item); ?>" class="block text-sm font-medium text-gray-700"><?php echo e(ucwords(str_replace('_', ' ', $item))); ?> <?php if($item != 'no_transaksi'): ?><span class="text-red-500">*</span><?php endif; ?></label>
                         <?php if($item == 'keterangan'): ?>                        
                         <textarea name="<?php echo e($item); ?>_header" id="<?php echo e($item); ?>" x-ref="<?php echo e($item); ?>"
                                   class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" 
@@ -154,16 +154,16 @@
                                 </tr>
                                 <tr>
                                     <td class="py-1 px-2" colspan="2">
-                                        <label for="keterangan" class="block text-sm font-medium text-gray-700">Keterangan</label>
+                                        <label for="keterangan" class="block text-sm font-medium text-gray-700">Keterangan<span class="text-red-500">*</span></label>
                                         <textarea :name="'keterangan[' + index + ']'" 
                                                     class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" 
                                                     x-model="row.keterangan" 
                                                     x-on:dblclick="setKeteranganToRow(index)"></textarea>
                                     </td>
                                     <td class="py-1 px-2">
-                                        <label class="block text-sm font-medium text-gray-700">Tanggal Bukti</label>
+                                        <label class="block text-sm font-medium text-gray-700">Tanggal Bukti<span class="text-red-500">*</span></label>
                                         <input type="text" :name="'tanggal_bukti[' + index + ']'" 
-                                                        class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker" 
+                                                        class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-5000 focus:ring-opacity-50 datepicker" 
                                                         x-model="row.tanggal_bukti"
                                                         :x-ref="'tanggal_bukti_' + index"
                                                         x-datepicker
@@ -199,7 +199,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2">
                     <?php $__currentLoopData = $field; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <div class="col-span-1">
-                        <label for="<?php echo e($item); ?>" class="block text-sm font-medium text-gray-700"><?php echo e(ucwords(str_replace('_', ' ', $item))); ?></label>
+                        <label for="<?php echo e($item); ?>" class="block text-sm font-medium text-gray-700"><?php echo e(ucwords(str_replace('_', ' ', $item))); ?> <?php if($item != 'no_transaksi'): ?><span class="text-red-500">*</span><?php endif; ?></label>
                         <?php if($item == 'keterangan'): ?>
                             <textarea name="<?php echo e($item); ?>_header" id="<?php echo e($item); ?>" value="<?php echo e(old($item)); ?>" x-ref="<?php echo e($item); ?>"
                                       class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
@@ -285,14 +285,14 @@
                                     </tr>
                                     <tr>
                                         <td class="py-1 px-2" colspan="2">
-                                            <label for="keterangan" class="block text-sm font-medium text-gray-700">Keterangan</label>
+                                            <label for="keterangan" class="block text-sm font-medium text-gray-700">Keterangan&nbsp;<span class="text-red-500">*</span></label>
                                             <textarea :name="'keterangan[' + index + ']'" 
                                                     class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" 
                                                     x-model="row.keterangan" 
                                                     x-on:dblclick="setKeteranganToRow(index)"></textarea>
                                         </td>
                                         <td class="py-1 px-2">
-                                            <label class="block text-sm font-medium text-gray-700">Tanggal Bukti</label>
+                                            <label class="block text-sm font-medium text-gray-700">Tanggal Bukti&nbsp;<span class="text-red-500">*</span></label>
                                             <input type="text" :name="'tanggal_bukti[' + index + ']'" 
                                                     class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker" x-on:dblclick="setToday(index)"
                                                     x-model="row.tanggal_bukti" x-datepicker readonly required>                                            
@@ -314,7 +314,6 @@
 <?php $__env->stopSection(); ?>
 <?php $__env->startPush('script'); ?>
 <script type="text/javascript">
-
     function jurnalApp() {
         let jurnal = <?php echo json_encode($jurnal->details ?? [], 15, 512) ?>;
 
@@ -338,6 +337,7 @@
             selisih: 0,
             errorMessage: '',
             isValid: true,
+            isImport: false,
 
             init() {
                 this.$errorElement = document.querySelector('[x-ref="alertError"]');
@@ -448,7 +448,6 @@
                     kredit: ''
                 });
 
-                // console.log(this.rows)
                 this.updateTotals();
             },
 
@@ -459,7 +458,6 @@
             },
 
             setKeteranganToRow(index) {
-                // console.log(this.rows[index])
                 console.log(this.keteranganHeader)
                 this.rows[index].keterangan = this.keteranganHeader;;
             },
@@ -467,11 +465,11 @@
             
             updateTotals() {
                 this.totalDebit = this.rows.reduce((sum, row) => {
-                    let debit = parseFloat(row.debit.replace(/\./g, '').replace(',', '.')) || 0;
+                    let debit = parseFloat((row.debit || '0').toString().replace(/\./g, '').replace(',', '.')) || 0;
                     return sum + debit;
                 }, 0);
                 this.totalCredit = this.rows.reduce((sum, row) => {
-                    let kredit = parseFloat(row.kredit.replace(/\./g, '').replace(',', '.')) || 0;
+                    let kredit = parseFloat((row.kredit || '0').toString().replace(/\./g, '').replace(',', '.')) || 0;
                     return sum + kredit;
                 }, 0);
                 this.selisih = this.totalDebit - this.totalCredit;
@@ -495,34 +493,114 @@
             },
             
             importJurnal() {
+                const overlay = document.getElementById('overlay');
+                overlay.style.display = 'flex';
+
                 let getFile = document.getElementById('importFile').files;
                 if (getFile.length === 0) {
                     document.getElementById('importFile').focus();
                     alert('Silakan pilih file untuk diimport.');
+                    overlay.style.display = 'none';
                     return;
                 }
                 let formData = new FormData();
                 formData.append('file', getFile[0]);
-                fetch('<?php echo e(route('jurnal.import')); ?>', {
+                fetch('<?php echo e(route('jurnal.import.html')); ?>', {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('input[name=_token]').value
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        data.rows.forEach(row => {
-                            this.rows.push(row);
-                        });
+                    // if(data.html === 0){
+                    //     alert(data.message);
+                    //     overlay.style.display = 'none';
+                    //     return;
+                    // }
+
+                    if (data.html) {
+                        const jurnalDetailTbody = document.querySelector('#tBody');
+                        console.log(jurnalDetailTbody)
+                        if (jurnalDetailTbody) {
+                            jurnalDetailTbody.innerHTML = data.html;
+                            this.updateTotals();
+                            this.isImport = true;
+                            this.importUpdate();
+                        } else {
+                            alert('Elemen tabel jurnalDetail tidak ditemukan.');
+                        }
                     } else {
-                        console.error('Failed to import:', data.message);
+                        alert('Terjadi kesalahan saat mengimpor jurnal.');
                     }
+                    overlay.style.display = 'none';
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    this.isValid = false;
+                    this.errorMessage = 'Terjadi kesalahan saat mengimpor jurnal.';
+                    if (this.$refs.errorElement) {
+                        this.$refs.errorElement.removeAttribute('hidden');
+                        setTimeout(() => {
+                            this.$refs.errorElement.setAttribute('hidden', true);
+                        }, 3000);
+                    }
+                    overlay.style.display = 'none';
                 });
+            },
+
+            importUpdate(){
+                const tbody = document.querySelectorAll('#tBody tr').length / 2;
+
+                // Reset totalDebit and totalCredit before recalculating
+                this.totalDebit = 0;
+                this.totalCredit = 0;
+
+                for(let i = 0; i < tbody; i++){
+                    let no_akun = document.getElementsByName('no_akun[' + i + ']')[0].value;
+                    let nama_akun = document.getElementsByName('nama_akun[' + i + ']')[0].value;
+                    let debit = document.getElementsByName('debit[' + i + ']')[0].value;
+                    let kredit = document.getElementsByName('kredit[' + i + ']')[0].value;
+                    let tanggal_bukti = document.getElementsByName('tanggal_bukti[' + i + ']')[0].value;
+
+                    // Convert tanggal_bukti from value like 45443 to date format
+                    let date = new Date((tanggal_bukti - (25567 + 2)) * 86400 * 1000);
+                    let formattedDate = date.toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+
+                    // Initialize flatpickr for tanggal_bukti
+                    flatpickr(document.getElementsByName('tanggal_bukti[' + i + ']')[0], {
+                        dateFormat: 'd-m-Y',
+                        allowInput: true,
+                        defaultDate: formattedDate
+                    });
+
+                    this.totalDebit += parseFloat(debit) || 0;
+                    this.totalCredit += parseFloat(kredit) || 0;
+                }
+                this.selisih = this.totalDebit - this.totalCredit;
+            },
+
+            processImportedData(rows) {
+                const chunkSize = 1000;
+                let index = 0;
+
+                const processChunk = () => {
+                    const chunk = rows.slice(index, index + chunkSize);
+                    this.rows = this.rows.concat(chunk);
+                    this.updateTotals();
+                    index += chunkSize;
+
+                    if (index < rows.length) {
+                        setTimeout(processChunk, 0);
+                    }
+                };
+
+                processChunk();
             },
             
             downloadSample() {
@@ -560,41 +638,60 @@
                     this.errorMessage += 'Keterangan Header harus diisi.<br>';
                 }
 
-                if (this.rows.length === 0) {
-                    this.isValid = false;
-                    this.errorMessage += 'Detail jurnal tidak boleh kosong.<br>';
+                if(this.isImport){
+                    const tbody = document.querySelectorAll('#tBody tr').length / 2;
+
+                    for(let i = 0; i < tbody; i++){
+                        let no_akun = document.getElementsByName('no_akun[' + i + ']')[0].value;
+                        let nama_akun = document.getElementsByName('nama_akun[' + i + ']')[0].value;
+                        let debit = document.getElementsByName('debit[' + i + ']')[0].value;
+                        let kredit = document.getElementsByName('kredit[' + i + ']')[0].value;
+                        let tanggal_bukti = document.getElementsByName('tanggal_bukti[' + i + ']')[0].value;
+                    }
+
+                    console.log(tbody)
+
+                }else{
+                    if (this.rows.length === 0) {
+                        this.isValid = false;
+                        this.errorMessage += 'Detail jurnal tidak boleh kosong.<br>';
+                    }
+
+                    let totalDebit = 0;
+                    let totalCredit = 0;
+
+                    this.rows.forEach((row, index) => {
+                        let no_akun = document.getElementsByName('no_akun[' + index + ']')[0].value;
+                        let nama_akun = document.getElementsByName('nama_akun[' + index + ']')[0].value;
+    
+                        console.log(row.tanggal_bukti)
+    
+                        if ((parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) || row.debit === '' || row.kredit === '') {
+                            this.isValid = false;
+                            // if (row.tanggal_bukti.trim() === '') this.errorMessage += `Tanggal bukti pada baris ${index + 1} harus diisi.<br>`;
+                            if (parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) this.errorMessage += `Debit atau kredit pada baris ${index + 1} harus diisi.<br>`;
+                            if (row.debit === '') this.errorMessage += `Debit pada baris ${index + 1} harus diisi.<br>`;
+                            if (row.kredit === '') this.errorMessage += `Kredit pada baris ${index + 1} harus diisi.<br>`;
+                        }
+    
+                        if(no_akun === '' || nama_akun === ''){
+                            this.isValid = false;
+                            this.errorMessage += `No Akun atau Nama Akun pada baris ${index + 1} harus diisi.<br>`;
+                        }
+    
+                        totalDebit += parseFloat(row.debit) || 0;
+                        totalCredit += parseFloat(row.kredit) || 0;
+                    });
+
                 }
 
-                let totalDebit = 0;
-                let totalCredit = 0;
-
-                this.rows.forEach((row, index) => {
-                    let no_akun = document.getElementsByName('no_akun[' + index + ']')[0].value;
-                    let nama_akun = document.getElementsByName('nama_akun[' + index + ']')[0].value;
-
-                    if (row.tanggal_bukti.trim() === '' || (parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) || row.debit === '' || row.kredit === '') {
-                        this.isValid = false;
-                        if (row.tanggal_bukti.trim() === '') this.errorMessage += `Tanggal bukti pada baris ${index + 1} harus diisi.<br>`;
-                        if (parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) this.errorMessage += `Debit atau kredit pada baris ${index + 1} harus diisi.<br>`;
-                        if (row.debit === '') this.errorMessage += `Debit pada baris ${index + 1} harus diisi.<br>`;
-                        if (row.kredit === '') this.errorMessage += `Kredit pada baris ${index + 1} harus diisi.<br>`;
-                    }
-
-                    if(no_akun === '' || nama_akun === ''){
-                        this.isValid = false;
-                        this.errorMessage += `No Akun atau Nama Akun pada baris ${index + 1} harus diisi.<br>`;
-                    }
-
-                    totalDebit += parseFloat(row.debit) || 0;
-                    totalCredit += parseFloat(row.kredit) || 0;
-                });
 
                 console.log(this.rows)
 
-                if(this.rows.length === 1){
-                    this.isValid = false;
-                    this.errorMessage += 'Masukan Detail Pembanding.<br>';
-                }
+                // if(this.rows.length === 1){
+                //     this.isValid = false;
+                //     this.errorMessage += 'Masukan Detail Pembanding.<br>';
+                // }
 
                 if (parseFloat(this.selisih) !== 0) {
                     this.isValid = false;
@@ -613,9 +710,13 @@
             },
 
             submitForm(event) {
+                const overlay = document.getElementById('overlay');
+                overlay.style.display = 'flex';
+
                 if (!this.validateForm()) {
                     event.preventDefault();
-                }else{
+                    overlay.style.display = 'none';
+                } else {
                     event.target.submit();
                 }
             }

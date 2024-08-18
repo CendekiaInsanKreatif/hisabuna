@@ -113,7 +113,20 @@
                 </tr>
             <?php endif; ?>
             <tr style="border-bottom: 1px solid black;">
-                <td>&nbsp;&nbsp;&nbsp;<?php echo e($detail['coa_akun']); ?></td>
+                <td>
+                    <?php
+                        $formattedNomorAkun = preg_replace('/\D/', '', $detail['coa_akun']);
+                        if (strlen($formattedNomorAkun) > 6) {
+                            $formattedNomorAkun = substr($formattedNomorAkun, 0, 3) . '-' . substr($formattedNomorAkun, 3, 2) . '-' . substr($formattedNomorAkun, 5);
+                        } elseif (strlen($formattedNomorAkun) > 4) {
+                            $formattedNomorAkun = substr($formattedNomorAkun, 0, 3) . '-' . substr($formattedNomorAkun, 3);
+                        } else {
+                            $formattedNomorAkun = substr($formattedNomorAkun, 0, 3);
+                        }
+                    ?>
+                    &nbsp;&nbsp;&nbsp;<?php echo e($formattedNomorAkun); ?>
+
+                </td>
                 <td>&nbsp;&nbsp;&nbsp;<?php echo e($detail['nama_akun']); ?></td>
                 <td style="text-align: right;"><?php echo e($detail['subtotal'] ? number_format($detail['subtotal'], 0, ',', '.') : 0); ?></td>
                 <td style="text-align: right;"><?php echo e($detail['debit'] ? number_format($detail['debit'], 0, ',', '.') : 0); ?></td>
@@ -138,7 +151,7 @@
                 <td><i>Lampiran: <?php echo e($jurnal['keterangan']); ?></i></td>
             </tr>
             <tr>
-                <td><i>Terbilang : <?php echo e(terbilang($totalDebit).' Rupiah'); ?></i></td>
+                <td><i>Terbilang : <?php echo e(terbilang($totalDebit). ' Rupiah'); ?></i></td>
             </tr>
         </tbody>
     </table>

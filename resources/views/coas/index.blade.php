@@ -38,7 +38,7 @@
                         <div class="cari flex items-center space-x-2 mt-4 md:mt-0">
                             <label for="cari" class="text-sm font-medium text-gray-900 dark:text-white">Cari:</label>
                             <div class="relative">
-                                <input type="text" id="cari" x-model="searchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 pl-3 pr-10 py-1 w-full md:w-64 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Cari Akun..." @keydown.enter="searchCoaTable">
+                                <input type="text" id="cari" x-model="searchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerlad-500 focus:border-emerald-200 pl-3 pr-10 py-1 w-full md:w-64 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-emerlad-500 dark:focus:border-emerald-200" placeholder="Cari Akun..." @keydown.enter="searchCoaTable">
                                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -47,7 +47,7 @@
                             </div>
                         </div>
                         <div class="flex items-center mt-4 md:mt-0">
-                            <button class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4" x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.store') }}', name: 'coas.create', title: 'Tambah Akun', type: 'form' })">
+                            <button class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4" x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.store') }}', name: 'coas.create', title: 'Tambah Akun', type: 'form' })">
                                 Tambah Akun
                             </button>
                         </div>
@@ -108,16 +108,16 @@
                         </thead>
                         <tbody id="coaTableBody">
                             <template x-for="coa in paginatedData" :key="coa.id">
-                                <tr @mouseover="hover = true" @mouseout="hover = false">
+                                <tr @mouseover="hover = true" @mouseout="hover = false" class="cursor-pointer hover:bg-gray-100" x-on:click.prevent="$dispatch('open-modal', { route: `{{ route('coas.show', '') }}/${coa.id}`, name: 'coas.show', title: 'Lihat Akun', data: coa, type: 'form' })">
                                     <td class="text-left px-4 py-1" x-text="formatNomorAkun(coa.nomor_akun)"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.nama_akun"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.level"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.saldo_normal"></td>
                                     <td class="text-left px-4 py-1 items-center text-center mt-1">
-                                        <x-primary-button
+                                        {{-- <x-primary-button
                                             class="w-full md:w-auto lg:w-auto md:mt-0 mt-1"
                                             x-on:click.prevent="$dispatch('open-modal', { route: `{{ route('coas.show', '') }}/${coa.id}`, name: 'coas.show', title: 'Lihat Akun', data: coa, type: 'form' })"
-                                        >{{ __('View') }}</x-primary-button>
+                                        >{{ __('View') }}</x-primary-button> --}}
                                         <x-primary-button
                                             class="w-full md:w-auto lg:w-auto md:mt-0 mt-1"
                                             x-on:click.prevent="$dispatch('open-modal', { route: `{{ route('coas.update', '') }}/${coa.id}`, name: 'coas.update', title: 'Edit Akun', data: coa, method: 'PUT', type: 'form' })"

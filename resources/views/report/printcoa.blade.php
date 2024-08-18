@@ -44,8 +44,11 @@
     </style>
 </head>
 <body>
-    <h1>{{ auth()->user()->company_name }}</h1>
-    <h4>Chart of Account</h4>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 100px; display: block; margin: 0 auto;">
+        <h1 style="margin: 10px 0;">{{ auth()->user()->company_name }}</h1>
+        <h4 style="margin: 0;">Chart of Account</h4>
+    </div>
 
     <table>
         <thead>

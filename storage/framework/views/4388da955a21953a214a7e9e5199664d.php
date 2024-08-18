@@ -27,14 +27,14 @@
     ?>
     <?php if (isset($component)) { $__componentOriginal9f64f32e90b9102968f2bc548315018c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal9f64f32e90b9102968f2bc548315018c = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.modal','data' => ['field' => $fields,'maxWidth' => 'lg','focusable' => true]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.modal','data' => ['field' => $fields,'focusable' => true]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('modal'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['field' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($fields),'maxWidth' => 'lg','focusable' => true]); ?>
+<?php $component->withAttributes(['field' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($fields),'focusable' => true]); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal9f64f32e90b9102968f2bc548315018c)): ?>
@@ -67,14 +67,14 @@
                         </div>
                         <a href="<?php echo e(route('report.daftarjurnal')); ?>" class="btn bg-gray-200 rounded py-1 px-4 hover:bg-emerald-500 transition duration-300">Daftar Jurnal</a>
                     </div>
-                    <a class="py-2 px-4 inline-flex items-center justify-center bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong" href="<?php echo e(route('jurnal.create')); ?>">Tambah Jurnal</a>
+                    <a class="py-2 px-4 inline-flex items-center justify-center bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong" href="<?php echo e(route('jurnal.create')); ?>">Tambah Jurnal</a>
                 </div>
                 </div>
                 <div class="card-body overflow-x-auto">
                     <table class="w-full min-w-full" id="jurnalTable">
                         <thead>
                             <tr>
-                                <th style="width: 10px" class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" style="width: 150px;">
                                     <div class="flex items-center">
                                         Nomor Transaksi
                                         <span class="ml-2">
@@ -82,7 +82,7 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th style="width: 10px" class="bg-gray-100 px-2 py-1 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" style="width: 150px;">
                                     <div class="flex items-center">
                                         Jenis Jurnal
                                         <span class="ml-2">
@@ -90,15 +90,7 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th style="width: 10px" class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                                    <div class="flex items-center">
-                                        Tanggal
-                                        <span class="ml-2">
-                                            <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
-                                        </span>
-                                    </div>
-                                </th>
-                                <th class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
                                         Keterangan
                                         <span class="ml-2">
@@ -106,7 +98,7 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th style="width: 50px" class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
+                                <th class="bg-gray-100 px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center" style="width: 50px;">
                                     <div class="flex items-center justify-center">
                                         Action
                                     </div>
@@ -118,7 +110,6 @@
                                 <tr @mouseover="hover = true" @mouseout="hover = false">
                                     <td class="text-left text-sm font-sans px-2 py-1" x-text="jurnal.no_urut_transaksi"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1" x-text="jurnal.jenis"></td>
-                                    <td class="text-left text-sm font-sans px-2 py-1" x-text="new Date(jurnal.jurnal_tgl).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1 break-words" x-text="jurnal.keterangan"></td>
                                     <td class="text-left text-sm font-sans px-2 py-1 flex items-center justify-center">
                                         <div class="inline-flex flex-col md:flex-row gap-1">
@@ -142,10 +133,9 @@
 <?php $component = $__componentOriginald411d1792bd6cc877d687758b753742c; ?>
 <?php unset($__componentOriginald411d1792bd6cc877d687758b753742c); ?>
 <?php endif; ?>
-                                            <a class="w-full md:w-auto py-1 px-2 inline-flex items-center justify-center bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong" :href="`<?php echo e(url('jurnal')); ?>/${jurnal.id}/edit`">
+                                            <a class="w-full md:w-auto py-1 px-2 inline-flex items-center justify-center bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong" :href="`<?php echo e(url('jurnal')); ?>/${jurnal.id}/edit`">
                                                 Edit
                                             </a>
-
                                         </div>
                                     </td>
                                 </tr>

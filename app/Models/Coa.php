@@ -39,6 +39,24 @@ class Coa extends Model
         return $this->belongsTo(self::class, 'parent_id', 'id');
     }
 
+    public function child()
+    {
+        return $this->hasMany(self::class, 'parent_id', 'id');
+    }
+
+    public function multiChild($levels = 3)
+    {
+        $descendants = collect($this->child);
+
+        if ($levels > 1) {
+            foreach ($this->child as $child) {
+                $descendants = $descendants->merge($child->multiChild($levels - 1));
+            }
+        }
+
+        return $descendants;
+    }
+
     public function jurnalDetails()
     {
         return $this->hasMany(JurnalDetail::class, 'coa_akun', 'nomor_akun');

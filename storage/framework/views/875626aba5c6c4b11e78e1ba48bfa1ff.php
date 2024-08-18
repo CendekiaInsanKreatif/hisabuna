@@ -55,7 +55,7 @@
                         <div class="cari flex items-center space-x-2 mt-4 md:mt-0">
                             <label for="cari" class="text-sm font-medium text-gray-900 dark:text-white">Cari:</label>
                             <div class="relative">
-                                <input type="text" id="cari" x-model="searchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 pl-3 pr-10 py-1 w-full md:w-64 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Cari Akun..." @keydown.enter="searchCoaTable">
+                                <input type="text" id="cari" x-model="searchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerlad-500 focus:border-emerald-200 pl-3 pr-10 py-1 w-full md:w-64 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-emerlad-500 dark:focus:border-emerald-200" placeholder="Cari Akun..." @keydown.enter="searchCoaTable">
                                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -129,7 +129,6 @@
                                             <?php echo csrf_field(); ?>
                                             <?php echo method_field('PUT'); ?>
                                             <select class="form-select block w-full mt-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" x-model="coa.arus_kas" @change="submitForm(coa.id, $event.target.value)">
-                                                <option value="" :selected="coa.arus_kas === ''">Kategori Arus Kas</option>
                                                 <option value="aktifitas_operasional" :selected="coa.arus_kas === 'aktifitas_operasional'">Aktivitas Operasional</option>
                                                 <option value="aktifitas_investasi" :selected="coa.arus_kas === 'aktifitas_investasi'">Aktivitas Investasi</option>
                                                 <option value="aktifitas_pendanaan" :selected="coa.arus_kas === 'aktifitas_pendanaan'">Aktivitas Pendanaan</option>

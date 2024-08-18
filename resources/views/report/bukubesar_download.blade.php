@@ -22,7 +22,7 @@
             <tbody style="background-color: #ffffff; border-top: 1px solid #e2e8f0;">
                 @foreach ($transactions as $transaction)
                     <tr>
-                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">{{ \Carbon\Carbon::parse($transaction->jurnal_tgl)->format('d/m/Y') }}</td>
+                        <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">{{ \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/Y') }}</td>
                         <td style="padding: 8px; white-space: nowrap; font-size: 0.875rem; color: #718096;">
                             @php
                                 $keterangan = $transaction->keterangan;

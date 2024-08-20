@@ -19,7 +19,6 @@
                 <label for="tanggal_selesai" class="block text-sm font-medium text-gray-700">Tanggal Selesai:</label>
                 <input type="text" id="tanggal_selesai" name="tanggal_selesai" value="" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
-            
             <div class="flex flex-col">
                 <label for="akun" class="block text-sm font-medium text-gray-700">Search Akun:</label>
                 <input type="text" id="akun" name="akun" value="<?php echo e($akun); ?>" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
@@ -120,15 +119,23 @@
             });
 
             document.getElementById('download').addEventListener('click', function(event) {
-                event.preventDefault();
+                // event.preventDefault();
                 var tanggalMulai = document.getElementById('tanggal_mulai').value;
                 var tanggalSelesai = document.getElementById('tanggal_selesai').value;
+                var akun = document.getElementById('akun').value;
+                var url = "<?php echo e(route('report.bukubesar.download')); ?>" + "?";
+
                 if (tanggalMulai) {
-                    var url = "<?php echo e(route('report.bukubesar.download')); ?>" + "?tanggal_mulai=" + tanggalMulai + "&tanggal_selesai=" + tanggalSelesai;
-                    window.location.href = url;
-                } else {
-                    alert("Harap pilih tanggal mulai.");
+                    url += "tanggal_mulai=" + tanggalMulai + "&";
                 }
+                if (tanggalSelesai) {
+                    url += "tanggal_selesai=" + tanggalSelesai + "&";
+                }
+                if (akun) {
+                    url += "akun=" + akun;
+                }
+
+                window.location.href = url;
             });
         });
         

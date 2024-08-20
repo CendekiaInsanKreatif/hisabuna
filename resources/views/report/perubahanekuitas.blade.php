@@ -24,7 +24,7 @@
             font-weight: bold;
             background-color: #e8e8e8;
         }
-        h2 {
+        h2, h1 {
             text-align: center;
             margin-top: 20px;
         }
@@ -49,49 +49,35 @@
 </head>
 
 <body>
-    {{-- <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
-    <h4>{{ auth()->user()->company_name }}</h4> --}}
     <div class="footer content">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
-        <span class="company-name">{{ auth()->user()->company_name }}</span>
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
     </div>
+    <h1>{{ auth()->user()->company_name }}</h1>
     <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
     <table>
-        <thead>
+        <caption style="text-align: center; font-size: 14px;">Periode : {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</caption>
+        <br>
+        <thead style="border: 1px solid black;">
             <tr>
-                <th></th>
-                <th>{{ $tahunSekarang }}</th>
-                <th>Penambahan / (Pengurangan)</th>
-                <th>{{ $tahunSebelumnya }}</th>
+                <th style="text-align: center;">Keterangan</th>
+                <th style="text-align: right;">{{ date('Y') }}</th>
+                <th style="text-align: center;">Penambahan / (Pengurangan)</th>
+                <th style="text-align: right;">{{ date('Y') - 1 }}</th>
             </tr>
         </thead>
-        <tbody>
-            @php
-                $modalSekarang = $data[$tahunSekarang][$totalsSekarang['namaAkun']];
-                $saldoSekarang = $data[$tahunSekarang]['Saldo Tahun Berjalan'];
-                $modalDulu = $data[$tahunSebelumnya][$totalsDulu['namaAkun']];
-                $saldoDulu = $data[$tahunSebelumnya]['Saldo Tahun Berjalan'];
-                $modalDiff = $data[0][$totalsDulu['namaAkun']];
-                $saldoDiff = $data[0]['Saldo Tahun Berjalan'];
-            @endphp
-            <tr>
-                <td>Modal Disetor</td>
-                <td style="text-align: right;">{{ number_format($modalSekarang, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDulu, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td>Saldo Tahun Berjalan</td>
-                <td style="text-align: right;">{{ number_format($saldoSekarang, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($saldoDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($saldoDulu, 0, ',', '.') }}</td>
-            </tr>
-            <tr class="total">
-                <td>Jumlah Ekuitas</td>
-                <td style="text-align: right;">{{ number_format($modalSekarang + $saldoSekarang, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDiff + $saldoDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDulu + $saldoDulu, 0, ',', '.') }}</td>
-            </tr>
+        <tbody style="border: 1px solid black;">
+            @foreach ($data as $year => $values)
+                @if ($year == date('Y'))
+                    @foreach ($values as $key => $value)
+                        <tr style="border-bottom: 1px solid black;">
+                            <td>{{ $key }}</td>
+                            <td style="text-align: right;">{{ number_format($value) }}</td>
+                            <td style="text-align: right;">{{ number_format($value - ($data[date('Y') - 1][$key] ?? 0)) }}</td>
+                            <td style="text-align: right;">{{ number_format($data[date('Y') - 1][$key] ?? 0) }}</td>
+                        </tr>
+                    @endforeach
+                @endif
+            @endforeach
         </tbody>
     </table>
 </body>

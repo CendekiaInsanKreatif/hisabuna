@@ -7,15 +7,14 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
+            font-size: 12px;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
             color: #333;
         }
         .container {
             width: 100%;
             margin: auto;
-            background-color: #fff;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
@@ -33,14 +32,12 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            border: 1px solid #333;
         }
         th, td {
-            padding: 8px;
+            padding: 5px;
             font-size: 12px;
             text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
         }
         th:nth-child(1), th:nth-child(4), th:nth-child(8) {
             text-align: center;
@@ -70,10 +67,10 @@
             </div>
         </div>
         <table>
-            <thead>
+            <thead style="border-bottom: 1px solid #333;">
                 <tr>
-                    <th>Nomor Transaksi</th>
-                    <th style="text-align: center">Jenis Jurnal</th>
+                    <th style="text-align: center; width: 30px;">Nomor Transaksi</th>
+                    <th style="text-align: center; width: 30px;">Jenis Jurnal</th>
                     <th style="text-align: center">Keterangan Transaksi</th>
                     <th>Jumlah</th>
                 </tr>
@@ -82,7 +79,7 @@
             </thead>
             <tbody>
                 @foreach($jurnal as $item)
-                    <tr style="{{ $item->jenis == 'RV' ? 'background-color: #fee2e2;' : ($item->jenis == 'PV' ? 'background-color: #f4f4f5;' : ($item->jenis == 'JV' ? 'background-color: #fef9c3;' : '')) }}">
+                    <tr style="{{ $item->jenis == 'RV' ? 'background-color: #fee2e2;' : ($item->jenis == 'PV' ? 'background-color: #f4f4f5;' : ($item->jenis == 'JV' ? 'background-color: #fef9c3;' : '')) }} border-bottom: 1px solid #333;">
                         <td style="text-align: center">{{ $loop->iteration }}</td>
                         <td style="text-align: center">{{ $item->jenis }}</td>
                         <td>{{ $item->keterangan }}</td>

@@ -55,8 +55,6 @@ class JurnalController extends Controller
         try {
             $input = $request->all();
 
-            // da($input);
-
             $debit = array_map(function($x) {
                 return strpos($x, '.') !== false ? (int) str_replace('.', '', $x) : (int) $x;
             }, $input['debit']);
@@ -323,13 +321,14 @@ class JurnalController extends Controller
                         $akun[0] = $coa->nomor_akun;
                         $akun[1] = $coa->nama_akun;
                     }
+                    // da($row);
                     $detail[] = [
                         'no_akun' => $akun[0],
                         'nama_akun' => $akun[1],
                         'debit' => (int) $row['debit'],
                         'kredit' => (int) $row['kredit'],
                         'keterangan' => $row['keterangan'],
-                        'tanggal_bukti' => $row['tanggal_bukti']
+                        'tanggal_bukti' => \Carbon\Carbon::createFromFormat('Y-m-d', gmdate('Y-m-d', ($row['tanggal_bukti'] - 25569) * 86400))->format('Y-m-d')
                     ];
                 }
             }
@@ -348,14 +347,18 @@ class JurnalController extends Controller
     {
         $file = $request->file('file');
         $importedData = $this->import($request);
-        // da($importedData);
-        $html = view('jurnal.partials.jurnal_rows', ['rows' => $importedData])->render();
-        return response()->json(['html' => $html]);
-        // if(!$importedData->original['success']){
-        //     return redirect()->route('jurnal.index')->with('message', 'Gagal membuat jurnal: ' . $importedData->original['message'])->with('color', 'red');
-        //     return response()->json(['html' => 0, 'message' => $importedData->original['message']]);
-        // }else{
-        // }
+        if(isset($importedData['success']) && !$importedData['success']){
+            return response()->json(['html' => 0, 'message' => $importedData['message']]);
+        } else {
+            $cek = "";
+            if (count($importedData) > 1000) {
+                $cek = "Hanya 1000 data pertama yang di import.";
+                $importedData = array_slice($importedData, 0, 1000);
+            }else{
+                $cek = "Data berhasil diimport, Silahkan Tunggu.";
+            }
+            return response()->json(['html' => $importedData, 'message' => $cek]);
+        }
 
     }
 

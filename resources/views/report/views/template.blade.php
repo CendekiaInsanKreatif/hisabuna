@@ -46,11 +46,11 @@
                 @endif
                 @if($route[2] == 'neraca' || $route[2] == 'labarugi')
                     <div class="form-group flex flex-col md:flex-row md:items-center md:space-x-4">
-                        <label for="text_input1" class="block text-sm font-medium text-gray-700 md:w-1/4">Nama Kiri:</label>
+                        <label for="text_input1" class="block text-sm font-medium text-gray-700 md:w-1/4">Dibuat Oleh:</label>
                         <input type="text" id="text_input1" name="text_input1" class="mt-1 block w-full md:w-3/4 border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                     </div>
                     <div class="form-group flex flex-col md:flex-row md:items-center md:space-x-4">
-                        <label for="text_input2" class="block text-sm font-medium text-gray-700 md:w-1/4">Nama Kanan:</label>
+                        <label for="text_input2" class="block text-sm font-medium text-gray-700 md:w-1/4">Disetujui Oleh:</label>
                         <input type="text" id="text_input2" name="text_input2" class="mt-1 block w-full md:w-3/4 border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                     </div>
                 @endif

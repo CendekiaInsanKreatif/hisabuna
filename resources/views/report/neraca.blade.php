@@ -36,11 +36,15 @@
     </style>
 </head>
 <body>
+    <header>
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
+        <div class="header" style="text-align: center;">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Neraca</h2>
+            <h4>Neraca Per: {{ $periode }}</h4>
+        </div>
+    </header>
     <table>
-        <caption><h1 style="font-size: 24px;">{{ auth()->user()->company_name }}</h1></caption>
-        <br>
-        <caption><h1>Laporan Posisi Keuangan</h1></caption>
-        <caption><h3>Periode : {{ $periode }}</h3></caption>
         <thead>
             <tr>
                 <th>&nbsp;</th>
@@ -96,6 +100,23 @@
                 @endif
             @endforeach
         </tbody>
+    </table>
+    <table style="width: 100%; margin-top: 70px;">
+        <tr>
+            <td style="text-align: center; width: 35%;">
+                <div>Dibuat oleh, {{ $ttd1 }}</div>
+                <div style="height: 80px;"></div>
+                <div><strong>Staff Keuangan</strong></div>
+            </td>
+            <td style="width: 10%;"></td>
+            <td style="width: 10%;"></td>
+            <td style="width: 10%;"></td>
+            <td style="text-align: center; width: 35%;">
+                <div>Disetujui oleh, {{ $ttd2 }}</div>
+                <div style="height: 80px;"></div>
+                <div><strong>Manager Keuangan</strong></div>
+            </td>
+        </tr>
     </table>
 </body>
 </html>

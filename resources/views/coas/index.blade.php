@@ -114,17 +114,13 @@
                                     <td class="text-left px-4 py-1" x-text="coa.level"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.saldo_normal"></td>
                                     <td class="text-left px-4 py-1 items-center text-center mt-1">
-                                        {{-- <x-primary-button
-                                            class="w-full md:w-auto lg:w-auto md:mt-0 mt-1"
-                                            x-on:click.prevent="$dispatch('open-modal', { route: `{{ route('coas.show', '') }}/${coa.id}`, name: 'coas.show', title: 'Lihat Akun', data: coa, type: 'form' })"
-                                        >{{ __('View') }}</x-primary-button> --}}
                                         <x-primary-button
                                             class="w-full md:w-auto lg:w-auto md:mt-0 mt-1"
-                                            x-on:click.prevent="$dispatch('open-modal', { route: `{{ route('coas.update', '') }}/${coa.id}`, name: 'coas.update', title: 'Edit Akun', data: coa, method: 'PUT', type: 'form' })"
+                                            x-on:click.prevent.stop="$dispatch('open-modal', { route: `{{ route('coas.update', '') }}/${coa.id}`, name: 'coas.update', title: 'Edit Akun', data: coa, method: 'PUT', type: 'form' })"
                                         >{{ __('Edit') }}</x-primary-button>
                                         <x-primary-button
                                             class="w-full md:w-auto lg:w-auto md:mt-0 mt-1"
-                                            x-on:click.prevent="$dispatch('open-modal', { route: `{{ route('coas.destroy', '') }}/${coa.id}`, name: 'coas.destroy', title: 'Hapus Akun', data: coa, method: 'DELETE', type: 'delete' })"
+                                            x-on:click.prevent.stop="$dispatch('open-modal', { route: `{{ route('coas.destroy', '') }}/${coa.id}`, name: 'coas.destroy', title: 'Hapus Akun', data: coa, method: 'DELETE', type: 'delete' })"
                                         >{{ __('Delete') }}</x-primary-button>
                                     </td>
                                 </tr>

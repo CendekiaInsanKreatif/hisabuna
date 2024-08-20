@@ -142,17 +142,16 @@
                                     <td class="text-left px-4 py-1" x-text="coa.level"></td>
                                     <td class="text-left px-4 py-1" x-text="coa.saldo_normal"></td>
                                     <td class="text-left px-4 py-1 items-center text-center mt-1">
-                                        
                                         <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','xOn:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.update', '')).'/${coa.id}`, name: \'coas.update\', title: \'Edit Akun\', data: coa, method: \'PUT\', type: \'form\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','xOn:click.prevent.stop' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.update', '')).'/${coa.id}`, name: \'coas.update\', title: \'Edit Akun\', data: coa, method: \'PUT\', type: \'form\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('primary-button'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','x-on:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.update', '')).'/${coa.id}`, name: \'coas.update\', title: \'Edit Akun\', data: coa, method: \'PUT\', type: \'form\' })']); ?><?php echo e(__('Edit')); ?> <?php echo $__env->renderComponent(); ?>
+<?php $component->withAttributes(['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','x-on:click.prevent.stop' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.update', '')).'/${coa.id}`, name: \'coas.update\', title: \'Edit Akun\', data: coa, method: \'PUT\', type: \'form\' })']); ?><?php echo e(__('Edit')); ?> <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginald411d1792bd6cc877d687758b753742c)): ?>
 <?php $attributes = $__attributesOriginald411d1792bd6cc877d687758b753742c; ?>
@@ -164,14 +163,14 @@
 <?php endif; ?>
                                         <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','xOn:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.destroy', '')).'/${coa.id}`, name: \'coas.destroy\', title: \'Hapus Akun\', data: coa, method: \'DELETE\', type: \'delete\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','xOn:click.prevent.stop' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.destroy', '')).'/${coa.id}`, name: \'coas.destroy\', title: \'Hapus Akun\', data: coa, method: \'DELETE\', type: \'delete\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('primary-button'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','x-on:click.prevent' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.destroy', '')).'/${coa.id}`, name: \'coas.destroy\', title: \'Hapus Akun\', data: coa, method: \'DELETE\', type: \'delete\' })']); ?><?php echo e(__('Delete')); ?> <?php echo $__env->renderComponent(); ?>
+<?php $component->withAttributes(['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','x-on:click.prevent.stop' => '$dispatch(\'open-modal\', { route: `'.e(route('coas.destroy', '')).'/${coa.id}`, name: \'coas.destroy\', title: \'Hapus Akun\', data: coa, method: \'DELETE\', type: \'delete\' })']); ?><?php echo e(__('Delete')); ?> <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginald411d1792bd6cc877d687758b753742c)): ?>
 <?php $attributes = $__attributesOriginald411d1792bd6cc877d687758b753742c; ?>

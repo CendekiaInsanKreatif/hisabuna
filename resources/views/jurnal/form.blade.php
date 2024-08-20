@@ -233,8 +233,8 @@
                                 </th>
                             </tr>
                         </thead>
-                        <template x-for="(row, index) in rows" :key="index">
-                        <tbody class="bg-gray-100 text-center" id="tBody">
+                        <template x-for="(row, index) in rows" :key="index" id="myTemplate">
+                            <tbody class="bg-gray-100 text-center" id="tBody">
                                     <tr class="border-b">
                                         <td class="py-2 px-4 flex items-center space-x-2">
                                             <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.index') }}', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: index })">
@@ -266,7 +266,7 @@
                                         <td class="py-1 px-2">
                                             <label class="block text-sm font-medium text-gray-700">Tanggal Bukti&nbsp;<span class="text-red-500">*</span></label>
                                             <input type="text" :name="'tanggal_bukti[' + index + ']'" 
-                                                    class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker" x-on:dblclick="setToday(index)"
+                                                    class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker" x-on:dblclick="setToday(index)" :x-ref="'tanggal_bukti_' + index"
                                                     x-model="row.tanggal_bukti" x-datepicker readonly required>                                            
                                         </td>
                                         <td class="py-1 px-1">
@@ -274,8 +274,8 @@
                                             <input style="width: 85px;" type="file" id="lampiran" :name="'lampiran[' + index + ']'" accept=".pdf,.jpg,.png,.jpeg" class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700" x-model="row.lampiran" multiple>
                                         </td>
                                     </tr>
-                                </tbody>
-                            </template>
+                            </tbody>
+                        </template>
                     </table>
                 </div>
             </div>
@@ -364,6 +364,10 @@
                         });
                     }
                 });
+            },
+
+            formatNumber(number) {
+                return number.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
             },
 
             convertDateFormat(dateStr, fromFormat, toFormat) {
@@ -486,30 +490,24 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // if(data.html === 0){
-                    //     alert(data.message);
-                    //     overlay.style.display = 'none';
-                    //     return;
-                    // }
-
-                    if (data.html) {
-                        const jurnalDetailTbody = document.querySelector('#tBody');
-                        console.log(jurnalDetailTbody)
-                        if (jurnalDetailTbody) {
-                            jurnalDetailTbody.innerHTML = data.html;
-                            this.updateTotals();
+                    if(data.html === 0){
+                        alert(data.message);
+                        overlay.style.display = 'none';
+                        return;
+                    }else{
+                        if (data.html && data.html.length > 0) {
+                            alert(data.message);
+                            this.rows = data.html;
                             this.isImport = true;
+                            this.updateTotals();
                             this.importUpdate();
                         } else {
-                            alert('Elemen tabel jurnalDetail tidak ditemukan.');
+                            alert('Terjadi kesalahan saat mengimpor jurnal.');
                         }
-                    } else {
-                        alert('Terjadi kesalahan saat mengimpor jurnal.');
+                        overlay.style.display = 'none';
                     }
-                    overlay.style.display = 'none';
                 })
                 .catch(error => {
-                    console.error('Error:', error);
                     this.isValid = false;
                     this.errorMessage = 'Terjadi kesalahan saat mengimpor jurnal.';
                     if (this.$refs.errorElement) {
@@ -523,38 +521,21 @@
             },
 
             importUpdate(){
-                const tbody = document.querySelectorAll('#tBody tr').length / 2;
-
-                // Reset totalDebit and totalCredit before recalculating
                 this.totalDebit = 0;
                 this.totalCredit = 0;
+                for(let i = 0; i < this.rows.length; i++){
+                    this.totalDebit += parseFloat(this.rows[i].debit) || 0;
+                    this.totalCredit += parseFloat(this.rows[i].kredit) || 0;
 
-                for(let i = 0; i < tbody; i++){
-                    let no_akun = document.getElementsByName('no_akun[' + i + ']')[0].value;
-                    let nama_akun = document.getElementsByName('nama_akun[' + i + ']')[0].value;
-                    let debit = document.getElementsByName('debit[' + i + ']')[0].value;
-                    let kredit = document.getElementsByName('kredit[' + i + ']')[0].value;
-                    let tanggal_bukti = document.getElementsByName('tanggal_bukti[' + i + ']')[0].value;
-
-                    // Convert tanggal_bukti from value like 45443 to date format
-                    let date = new Date((tanggal_bukti - (25567 + 2)) * 86400 * 1000);
-                    let formattedDate = date.toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                    });
-
-                    // Initialize flatpickr for tanggal_bukti
-                    flatpickr(document.getElementsByName('tanggal_bukti[' + i + ']')[0], {
-                        dateFormat: 'd-m-Y',
-                        allowInput: true,
-                        defaultDate: formattedDate
-                    });
-
-                    this.totalDebit += parseFloat(debit) || 0;
-                    this.totalCredit += parseFloat(kredit) || 0;
+                    this.rows[i].debit = this.formatNumber(this.rows[i].debit);
+                    this.rows[i].kredit = this.formatNumber(this.rows[i].kredit);
                 }
+                this.initializeDatePickers();
                 this.selisih = this.totalDebit - this.totalCredit;
+
+                this.totalDebit = this.totalDebit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                this.totalCredit = this.totalCredit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                this.selisih = this.selisih.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
             },
 
             processImportedData(rows) {
@@ -612,7 +593,7 @@
 
                 if(this.isImport){
                     const tbody = document.querySelectorAll('#tBody tr').length / 2;
-
+                    
                     for(let i = 0; i < tbody; i++){
                         let no_akun = document.getElementsByName('no_akun[' + i + ']')[0].value;
                         let nama_akun = document.getElementsByName('nama_akun[' + i + ']')[0].value;
@@ -621,7 +602,7 @@
                         let tanggal_bukti = document.getElementsByName('tanggal_bukti[' + i + ']')[0].value;
                     }
 
-                    console.log(tbody)
+                    // console.log(tbody)
 
                 }else{
                     if (this.rows.length === 0) {

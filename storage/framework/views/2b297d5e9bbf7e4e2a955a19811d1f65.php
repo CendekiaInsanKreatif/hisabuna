@@ -1,38 +1,26 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Laba Rugi</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            margin: 20px;
-            color: #333;
-            font-size: 12px;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
         }
 
-        h2 {
-            text-align: center;
+        .report-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-
-        .company-logo {
-            max-width: 80px;
-            width: 100%;
-            aspect-ratio: 1/1;
-            object-fit: cover;
-        }
-
-        .company-name {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .report-title {
-            font-size: 24px;
-            width: 100%;
-            text-align: center;
-            padding-bottom: 12px;
-        }
 
         table.main-data tr:nth-child(odd) {
             background-color: #f4f4f5;
@@ -64,28 +52,20 @@
             font-size: 14px;
             font-weight: bold;
         }
+
     </style>
 </head>
-
 <body>
-    
-
-    
-
-    <table style="padding-bottom: 8px; border-bottom: black 1px solid;">
-        <tr>
-            <td>
-                <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Company logo"
-                    class="company-logo" />
-            </td>
-            <td style="text-align: right;">
-                <h3 class="company-name"><?php echo e(auth()->user()->company_name); ?></h3>
-            </td>
-        </tr>
-    </table>
-    <h1 class="report-title">LAPORAN LABA RUGI</h1>
-
-    <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    <div class="report-container">
+        <header style="border-bottom: 2px solid #ddd; padding: 10px 20px;">
+            <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
+            <div style="overflow: hidden;">
+                <h1 style="text-align:center; font-size: 20px;"><?php echo e(auth()->user()->company_name); ?></h1>
+                <p style="text-align:center;">Laporan Laba Rugi</p>
+                <p style="text-align:center;">Periode <?php echo e($start); ?> - <?php echo e($end); ?></p>
+            </div>
+        </header>
+        <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <table class="main-data">
             <h3 style="font-size: 20px; padding-bottom: 16px;"><?php echo e($category); ?></h3>
             <?php $__currentLoopData = $details['Detail']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item => $amount): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -99,34 +79,32 @@
                 <td style="text-align: right;"><?php echo e(number_format($details['Jumlah'], 0, ',', '.')); ?></td>
             </tr>
         </table>
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
-    <div style="padding: 24px 0 24px 0;border-bottom: 2px solid black">
-        <table>
-            <tr class="total" style=" font-size: 20px; ">
-                <td>Saldo Laba (Rugi) Tahun Berjalan</td>
-                <td style="text-align: right;"><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></td>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        <div style="padding: 24px 0 24px 0;border-bottom: 2px solid black">
+            <table>
+                <tr class="total" style=" font-size: 20px; ">
+                    <td>Saldo Laba (Rugi) Tahun Berjalan</td>
+                    <td style="text-align: right;"><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></td>
+                </tr>
+            </table>
+        </div>
+        <table style="width: 100%; margin-top: 70px;">
+            <tr>
+                <td style="text-align: center; width: 35%;">
+                    <div>Dibuat oleh, <?php echo e($ttd1); ?></div>
+                    <div style="height: 80px;"></div>
+                    <div><strong>Staff Keuangan</strong></div>
+                </td>
+                <td style="width: 10%;"></td>
+                <td style="width: 10%;"></td>
+                <td style="width: 10%;"></td>
+                <td style="text-align: center; width: 35%;">
+                    <div>Disetujui oleh, <?php echo e($ttd2); ?></div>
+                    <div style="height: 80px;"></div>
+                    <div><strong>Manager Keuangan</strong></div>
+                </td>
             </tr>
         </table>
     </div>
-    <table style="width: 100%; margin-top: 70px;">
-        <tr>
-            <td style="text-align: center; width: 35%;">
-                <div>Dibuat oleh, <?php echo e($ttd1); ?></div>
-                <div style="height: 80px;"></div>
-                <div><strong>Staff Keuangan</strong></div>
-            </td>
-            <td style="width: 10%;"></td>
-            <td style="width: 10%;"></td>
-            <td style="width: 10%;"></td>
-            <td style="text-align: center; width: 35%;">
-                <div>Disetujui oleh, <?php echo e($ttd2); ?></div>
-                <div style="height: 80px;"></div>
-                <div><strong>Manager Keuangan</strong></div>
-            </td>
-        </tr>
-    </table>
 </body>
-
-</html>
-<?php /**PATH /var/www/hisabuna/resources/views/report/labarugi.blade.php ENDPATH**/ ?>
+</html><?php /**PATH /var/www/hisabuna/resources/views/report/labarugi.blade.php ENDPATH**/ ?>

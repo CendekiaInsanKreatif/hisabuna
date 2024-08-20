@@ -1,95 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Neraca Saldo</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Neraca Saldo</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            font-size: 12px;
-            background-color: #f4f4f4;
-            color: #333;
-            margin: 0;
-            padding: 20px;
+        body { 
+            font-family: Arial, sans-serif; 
+            font-size: 12px; 
         }
-        table {
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+        }
+        th, td { 
+            border-bottom: 1px solid #000; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        @media print {
+            body {
+                display: block;
+            }
+            .header {
+                text-align: center;
+                padding: 0;
+            }
+            .header h1, .header h2, .header h4 {
+                margin: 0;
+                font-size: inherit;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+            .header h2 {
+                font-size: 1.5em;
+            }
+            .header h4 {
+                font-size: 1em;
+            }
+        }
+        th { 
+            background-color: #f2f2f2; 
+        }
+        h2, h1, h4 { 
+            text-align: center; 
+        }
+        .indent { 
+            padding-left: 20px; 
+        }
+        .footer {
             width: 100%;
-            background-color: #fff;
-        }
-        th, td {
-            padding: 2px;
-            text-align: left;
-        }
-        th {
             text-align: center;
-            color: #333;
+            position: fixed;
+            bottom: 0;
+            font-size: 10px;
         }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
+        .footer .right::before {
+            float: left;
+            content: "Halaman " counter(page);
         }
-        caption {
-            font-size: 24px;
-            margin: 5px 0;
-        }
-
-        .footer.content {
-            display: flex;
-            align-items: center;
-        }
-
-        .company-logo {
-            width: 5rem;
-            height: 5rem;
-            margin-right: 8rem;
-        }
-
-        .company-name {
-            font-size: 1.25rem; /* Ukuran font yang sesuai */
-            position: relative;
-            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        .footer .left {
+            float: right;
         }
     </style>
 </head>
 <body>
-    <table>
-        {{-- <caption>Neraca Saldo</caption>
-        <caption>{{ auth()->user()->company_name }}</caption> --}}
-        <div class="footer content">
-            <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
-            <span class="company-name">{{ auth()->user()->company_name }}</span>
+    <header>
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
+        <div class="header">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Neraca Saldo</h2>
+            <h4>Periode: {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</h4>
         </div>
-        <h2><u>Neraca Saldo</u></h2>
-        <tr>
-            <th>Keterangan</th>
-            <th>Saldo</th>
-        </tr>
-        @foreach($data as $mainCategory => $subcategories)
+    </header>
+    <table>
+        <thead>
             <tr>
-                <td colspan="2"><strong>{{ $mainCategory }}</strong></td>
+                <th style="text-align: center;">Keterangan</th>
+                <th style="text-align: right;">Debit</th>
+                <th style="text-align: right;">Kredit</th>
             </tr>
-            @foreach($subcategories as $subcategory => $accounts)
-                @if($subcategory !== 'Total')
-                    @foreach($accounts as $account => $balance)
-                        @if($account !== 'Total')
-                            <tr>
-                                <td style="padding-left: 30px;">{{ $account }}</td>
-                                <td style="text-align: right">{{ number_format($balance, 0) }}</td>
-                            </tr>
-                        @endif
-                    @endforeach
-                    <tr>
-                        <td style="padding-left: 30px;"><strong>Total {{ $subcategory }}</strong></td>
-                        <td style="text-align: right"><strong>{{ number_format($accounts['Total'], 0) }}</strong></td>
-                    </tr>
-                @endif
+        </thead>
+        <tbody>
+            @foreach($data as $akun1 => $subcategories)
+                <tr>
+                    <td colspan="3"><strong>{{ $akun1 }}</strong></td>
+                </tr>
+                @foreach($subcategories as $akun2 => $accounts)
+                    @if($akun2 !== 'Total')
+                        <tr>
+                            <td class="indent"><strong>{{ $akun2 }}</strong></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        @foreach($accounts as $xCoa => $balances)
+                            @if($xCoa !== 'Total')
+                                <tr>
+                                    <td class="indent indent"><span>&nbsp;&nbsp;&nbsp;&nbsp;{{ $xCoa }}</span></td>
+                                    <td style="text-align: right;">{{ number_format($balances['debit'], 0, ',', '.') }}</td>
+                                    <td style="text-align: right;">{{ number_format($balances['kredit'], 0, ',', '.') }}</td>
+                                </tr>
+                            @endif
+                        @endforeach
+                        <tr>
+                            <td class="indent"><strong>Total {{ substr($akun2, 4) }}</strong></td>
+                            <td style="text-align: right;"><strong>{{ number_format($accounts['Total']['debit'], 0, ',', '.') }}</strong></td>
+                            <td style="text-align: right;"><strong>{{ number_format($accounts['Total']['kredit'], 0, ',', '.') }}</strong></td>
+                        </tr>
+                    @endif
+                @endforeach
+                <tr>
+                    <td><strong>Total {{ $akun1 }}</strong></td>
+                    <td style="text-align: right;"><strong>{{ number_format($subcategories['Total']['debit'], 0, ',', '.') }}</strong></td>
+                    <td style="text-align: right;"><strong>{{ number_format($subcategories['Total']['kredit'], 0, ',', '.') }}</strong></td>
+                </tr>
             @endforeach
-            <tr>
-                <td><strong>Total {{ $mainCategory }}</strong></td>
-                <td style="text-align: right"><strong>{{ number_format($subcategories['Total'], 0) }}</strong></td>
-            </tr>
-            <tr>
-                <td colspan="2">&nbsp;</td>
-            </tr>
-        @endforeach
+        </tbody>
     </table>
+    <div class="footer">
+        <div class="left">{{ auth()->user()->company_name }}</div>
+        <div class="right"></div>
+    </div>
 </body>
 </html>

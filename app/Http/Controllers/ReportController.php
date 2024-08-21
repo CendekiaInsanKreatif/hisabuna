@@ -193,9 +193,10 @@ class ReportController extends Controller
 
             $jurnal = Jurnal::whereNull('is_deleted')
                         ->with(['details' => function($query) use ($start_date, $end_date) {
-                            $query->where('coa_akun', '>=', '1')
+                            $query->where('coa_akun', '>', '1')
                                   ->where('tanggal_bukti', '>=', $start_date)
-                                  ->where('tanggal_bukti', '<=', $end_date);
+                                  ->where('tanggal_bukti', '<=', $end_date)
+                                  ->orderBy('coa_akun');
                         }])
                         ->where('created_by', auth()->user()->id)
                         ->get();
@@ -204,21 +205,22 @@ class ReportController extends Controller
                 return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
             }
 
-            $coas = Coa::where('created_by', auth()->user()->id)->get()->keyBy('nomor_akun');
+            $coas = Coa::where('created_by', auth()->user()->id)
+                        ->where('nomor_akun', 'not like', '111%')
+                        ->orderBy('nomor_akun')
+                        ->get()
+                        ->keyBy('nomor_akun');
             
-            $data = [
-                'aktifitas_operasional' => ['Jumlah' => 0, 'Detail' => []],
-                'aktifitas_pendanaan' => ['Jumlah' => 0, 'Detail' => []],
-                'aktifitas_investasi' => ['Jumlah' => 0, 'Detail' => []],
-            ];
-
+            $data = [];
+            $totalKas = 0;
             foreach ($jurnal as $entry) {
                 foreach ($entry->details as $detail) {
                     $parent = $coas->get(substr($detail->coa_akun, 0, 1));
                     $child = $coas->get($detail->coa_akun);
                     $aruskas = $coas->get(substr($detail->coa_akun, 0, 5));
-                    if ($parent) {
-                        if ($parent->saldo_normal == 'db' || $parent->saldo_normal == 'debit') {
+                    $lv5 = $coas->get(substr($detail->coa_akun, 0, 8));
+                    if ($lv5) {
+                        if ( $lv5->saldo_normal == 'db' ||  $lv5->saldo_normal == 'debit') {
                             $nilai = $detail->debit - $detail->credit;
                         } else {
                             $nilai = $detail->credit - $detail->debit;
@@ -227,18 +229,32 @@ class ReportController extends Controller
                         $kategori = $aruskas->arus_kas;
 
                         if ($kategori) {
-                            $data[$kategori]['Jumlah'] += $nilai;
-                            $data[$kategori]['Detail'][$child->nama_akun] = ($data[$kategori]['Detail'][$child->nama_akun] ?? 0) + $nilai;
+                            $data[$aruskas->arus_kas][$aruskas->nama_akun] = ($data[$aruskas->arus_kas][$aruskas->nama_akun] ?? 0) + $nilai;
                         }
+                    }
+                    if (strpos($detail->coa_akun, '1110') === 0) {
+                        $totalKas += $detail->debit - $detail->credit;
                     }
                 }
             }
 
-            foreach ($data as $kas => $value) {
-                if($value['Jumlah'] == 0){
-                    unset($data[$kas]);
-                }
+            $getKas = $this->neracaFunc($end_date);
+            foreach ($data as $key => $value) {
+                $data[$key]['Total'] = array_sum($value);
+                $data['Total']['Kenaikan (Penurunan) Kas dan Setara Kas'] = $totalKas;
+                $data['Total']['Kas dan Setara Kas Awal'] = $getKas[date('Y') - 1][1]['Aset Lancar']['Kas dan Setara Kas'];
+                $data['Total']['Kas dan Setara Kas Akhir'] = $getKas[date('Y')][1]['Aset Lancar']['Kas dan Setara Kas'];
+                // da($getKas);
             }
+
+
+            // da($data);
+
+            // foreach ($data as $kas => $value) {
+            //     if($value['Jumlah'] == 0){
+            //         unset($data[$kas]);
+            //     }
+            // }
 
             // da($data);
 
@@ -547,13 +563,13 @@ class ReportController extends Controller
         return $result;
     }
 
-    private function neracaFunc($tanggal, $labaRugi){
+    private function neracaFunc($tanggal, $labaRugi = null){
         $jurnal = JurnalDetail::where('created_by', auth()->user()->id)
             ->where(function($query) {
                 $query->where('coa_akun', 'like', '1%')
                     ->orWhere('coa_akun', 'like', '2%')
                     ->orWhere('coa_akun', 'like', '3%');
-            })->where('tanggal_bukti', '<=', $tanggal)->get();
+            })->where('tanggal_bukti', '<=', $tanggal)->orderBy('coa_akun', 'asc')->get()->keyBy('coa_akun');
 
         $coa = Coa::whereNull('is_deleted')
             ->where(function($query) {
@@ -562,6 +578,7 @@ class ReportController extends Controller
                     ->orWhere('nomor_akun', 'like', '3%');
             })
             ->where('created_by', auth()->user()->id)
+            ->orderBy('nomor_akun', 'asc')
             ->get()
             ->keyBy('nomor_akun');
 
@@ -582,6 +599,7 @@ class ReportController extends Controller
                     )
                     ->where('created_by', auth()->user()->id)
                     ->where('coa_akun', 'like', substr($nomorAkun, 0, 4).'%')
+                    ->orderBy('coa_akun', 'asc')
                     ->first();
 
                 $coasTotals = DB::table('coas')
@@ -591,9 +609,9 @@ class ReportController extends Controller
                     )
                     ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
                     ->where('created_by', auth()->user()->id)
+                    ->orderBy('nomor_akun', 'asc')
                     ->first();
 
-                // da($coasTotals);
 
                 if($nomorAkun === $detail->nomor_akun) {
                     $saldo = 0;
@@ -605,10 +623,12 @@ class ReportController extends Controller
                         $saldo = $coasTotals->saldo_awal_credit + $jurnalTotals->credit - $jurnalTotals->debit;
                         $saldoAwal = $coasTotals->saldo_awal_credit;
                     }
-                    $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldo;
-                    $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldoAwal;
+                    $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldo;
+                    $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldoAwal;
                 }
             }
+
+            // da($data);
 
             foreach($coa as $nomorAkun => $coaDetail) {
                 if ($coaDetail->saldo_awal_debit > 0 || $coaDetail->saldo_awal_credit > 0) {
@@ -623,20 +643,20 @@ class ReportController extends Controller
                         )
                         ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
                         ->where('created_by', auth()->user()->id)
+                        ->orderBy('nomor_akun', 'asc')
                         ->first();
                     
-                        // da($coasTotals);
                     if($coaDetail->saldo_awal_debit != 0 || $coaDetail->saldo_awal_credit != 0){
                         if($coaDetail->saldo_normal == 'debit' && $coaDetail->saldo_awal_credit != 0){
-                            $data[0][$child->nama_akun][$subChild->nama_akun] = $coaDetail->saldo_awal_debit ?: $coaDetail->saldo_awal_credit;
+                            $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_debit ?: $coaDetail->saldo_awal_credit;
                         }
 
                         if($coaDetail->saldo_normal == 'credit' && $coaDetail->saldo_awal_debit != 0){
-                            $data[0][$child->nama_akun][$subChild->nama_akun] = $coaDetail->saldo_awal_credit ?: $coaDetail->saldo_awal_debit;
+                            $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_credit ?: $coaDetail->saldo_awal_debit;
                         }
                     }
                     
-                    if (!isset($data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun]) || $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] == 0) {
+                    if (!isset($data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun]) || $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] == 0) {
                         $saldo = 0;
                         $saldoAwal = 0;
                         if(in_array($coaDetail->saldo_normal, ['debit', 'd', 'db'])) {
@@ -646,12 +666,12 @@ class ReportController extends Controller
                             $saldo = $coasTotals->saldo_awal_credit - $coasTotals->saldo_awal_debit;
                             $saldoAwal = $coasTotals->saldo_awal_credit;
                         }
-                        $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldo;
-                        $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldoAwal;
+                        $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldo;
+                        $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldoAwal;
                     }
                     if(@$parent['golongan'] == 'Liabilitas' || @$parent['golongan'] == 'Ekuitas'){
-                        $data[date('Y')]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nama_akun] = $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] ?: $saldo;
-                        $data[date('Y') - 1]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nama_akun] = $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] ?: $saldo;
+                        $data[date('Y')]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] ?: $saldo;
+                        $data[date('Y') - 1]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] ?: $saldo;
                     }
 
                     if($subChild->nomor_akun == '311'){
@@ -669,6 +689,29 @@ class ReportController extends Controller
                 }
             }
         }
+
+
+
+        // da($data);
+        foreach($data as $key => $value){
+            foreach($value as $key2 => $value2){
+                foreach($value2 as $key3 => $value3){
+                    if (is_array($value3)) {
+                        ksort($value3);
+                        $data[$key][$key2][$key3] = $value3;
+                        foreach($value3 as $key4 => $value4){
+                            $coa = Coa::where('nomor_akun', $key4)->where('created_by', auth()->user()->id)->first();
+                            if($coa){
+                                $data[$key][$key2][$key3][@$coa->nama_akun] = $value4;
+                                unset($data[$key][$key2][$key3][$key4]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // da($data);
 
         return $data;
     }

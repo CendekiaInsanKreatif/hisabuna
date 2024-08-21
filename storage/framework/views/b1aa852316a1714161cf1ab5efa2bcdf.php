@@ -74,6 +74,11 @@
     <?php $__env->startPush('script'); ?>
         <script type="module">
             $(function() {
+                // $('#popup').click(function() {
+                //     window.open('', 'newwindow', 'width=800,height=600');
+                // });
+
+                
                 flatpickr('#start_date', {
                     dateFormat: 'd-m-Y',
                     allowInput: true,

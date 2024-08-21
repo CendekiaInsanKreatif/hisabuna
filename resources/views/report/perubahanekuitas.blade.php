@@ -66,9 +66,17 @@
             </tr>
         </thead>
         <tbody style="border: 1px solid black;">
+            @php
+                $totalEkuitasTahunIni = 0;
+                $totalEkuitasTahunLalu = 0;
+            @endphp
             @foreach ($data as $year => $values)
                 @if ($year == date('Y'))
                     @foreach ($values as $key => $value)
+                        @php
+                            $totalEkuitasTahunIni += $value;
+                            $totalEkuitasTahunLalu += $data[date('Y') - 1][$key] ?? 0;
+                        @endphp
                         <tr style="border-bottom: 1px solid black;">
                             <td>{{ $key }}</td>
                             <td style="text-align: right;">{{ number_format($value) }}</td>
@@ -78,6 +86,12 @@
                     @endforeach
                 @endif
             @endforeach
+            <tr class="total">
+                <td>Total Ekuitas</td>
+                <td style="text-align: right;">{{ number_format($totalEkuitasTahunIni) }}</td>
+                <td style="text-align: right;">{{ number_format($totalEkuitasTahunIni - $totalEkuitasTahunLalu) }}</td>
+                <td style="text-align: right;">{{ number_format($totalEkuitasTahunLalu) }}</td>
+            </tr>
         </tbody>
     </table>
 </body>

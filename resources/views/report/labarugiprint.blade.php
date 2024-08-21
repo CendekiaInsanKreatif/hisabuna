@@ -56,7 +56,7 @@
     </style>
 </head>
 <body>
-    <button id="pdf" style="background-color: red;"><p style="color: #ddd">Download PDF</p></button>
+    <button type="submit" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4">Submit</button>
     <div class="report-container">
         <header style="border-bottom: 2px solid #ddd; padding: 10px 20px;">
             <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
@@ -107,31 +107,5 @@
             </tr>
         </table>
     </div>
-    <script src="https://code.jquery.com/jquery-3.7.1.slim.js" integrity="sha256-UgvvN8vBkgO0luPSUl2s8TIlOSYRoGFAX4jlCIm9Adc=" crossorigin="anonymous"></script>
-    <script>
-        $(document).ready(function() {
-            $.ajaxSetup({
-                headers: {
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
-                },
-            });
-
-            $('#pdf').click(function() {
-                var start = "{{ $start }}";
-                var end = "{{ $end }}";
-                $.ajax({
-                    url     :'{{ route("labarugidownloadpdf") }}',
-                    type    :'GET',
-                    data:{
-                        start:start,
-                        end:end
-                    },
-                    success : function(res) {
-
-                    }
-                })
-            })
-        })
-    </script>
 </body>
 </html>

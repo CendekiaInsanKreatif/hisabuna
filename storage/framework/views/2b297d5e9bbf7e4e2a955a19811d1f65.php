@@ -56,6 +56,7 @@
     </style>
 </head>
 <body>
+    <button id="pdf" style="background-color: red;"><p style="color: #ddd">Download PDF</p></button>
     <div class="report-container">
         <header style="border-bottom: 2px solid #ddd; padding: 10px 20px;">
             <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
@@ -106,5 +107,31 @@
             </tr>
         </table>
     </div>
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.js" integrity="sha256-UgvvN8vBkgO0luPSUl2s8TIlOSYRoGFAX4jlCIm9Adc=" crossorigin="anonymous"></script>
+    <script>
+        $(document).ready(function() {
+            $.ajaxSetup({
+                headers: {
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                },
+            });
+
+            $('#pdf').click(function() {
+                var start = "<?php echo e($start); ?>";
+                var end = "<?php echo e($end); ?>";
+                $.ajax({
+                    url     :'<?php echo e(route("labarugidownloadpdf")); ?>',
+                    type    :'GET',
+                    data:{
+                        start:start,
+                        end:end
+                    },
+                    success : function(res) {
+
+                    }
+                })
+            })
+        })
+    </script>
 </body>
 </html><?php /**PATH /var/www/hisabuna/resources/views/report/labarugi.blade.php ENDPATH**/ ?>

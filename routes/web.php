@@ -121,6 +121,7 @@ Route::middleware('auth')->group(function () {
 
         // Report View
         Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.views.labarugi');
+        Route::get('labarugidownloadpdf', [ReportController::class, 'labaRugiDownloadPDF'])->name('labarugidownloadpdf');
         Route::get('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.views.perubahanekuitas');
         Route::get('neraca', [ReportController::class, 'neraca'])->name('report.views.neraca');
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.views.neracasaldo');

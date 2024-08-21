@@ -66,9 +66,17 @@
             </tr>
         </thead>
         <tbody style="border: 1px solid black;">
+            <?php
+                $totalEkuitasTahunIni = 0;
+                $totalEkuitasTahunLalu = 0;
+            ?>
             <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $year => $values): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <?php if($year == date('Y')): ?>
                     <?php $__currentLoopData = $values; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php
+                            $totalEkuitasTahunIni += $value;
+                            $totalEkuitasTahunLalu += $data[date('Y') - 1][$key] ?? 0;
+                        ?>
                         <tr style="border-bottom: 1px solid black;">
                             <td><?php echo e($key); ?></td>
                             <td style="text-align: right;"><?php echo e(number_format($value)); ?></td>
@@ -78,6 +86,12 @@
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 <?php endif; ?>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            <tr class="total">
+                <td>Total Ekuitas</td>
+                <td style="text-align: right;"><?php echo e(number_format($totalEkuitasTahunIni)); ?></td>
+                <td style="text-align: right;"><?php echo e(number_format($totalEkuitasTahunIni - $totalEkuitasTahunLalu)); ?></td>
+                <td style="text-align: right;"><?php echo e(number_format($totalEkuitasTahunLalu)); ?></td>
+            </tr>
         </tbody>
     </table>
 </body>

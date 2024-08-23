@@ -117,7 +117,7 @@ Route::middleware('auth')->group(function () {
         Route::get('daftarjurnal', [ReportController::class, 'daftarJurnal'])->name('report.daftarjurnal');
         Route::get('transaksi/{id}', [ReportController::class, 'transaksi'])->name('report.transaksi');
         Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
-        Route::get('bukubesar/download', [ReportController::class, 'downloadBukuBesar'])->name('report.bukubesar.download');
+        Route::post('bukubesar/download', [ReportController::class, 'downloadBukuBesar'])->name('report.bukubesar.download');
 
         // Report View
         Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.views.labarugi');

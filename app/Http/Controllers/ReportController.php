@@ -83,10 +83,13 @@ class ReportController extends Controller
                 }
             }
         }
-    
+        
+
+        return view('report.transaksi', ['jurnal' => $jurnal]);
+
         // da($jurnal);
-        $pdf = PDF::loadView('report.transaksi', ['jurnal' => $jurnal]);
-        return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
+        // $pdf = PDF::loadView('report.transaksi', ['jurnal' => $jurnal]);
+        // return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
     
 
@@ -149,8 +152,9 @@ class ReportController extends Controller
             $jurnalx[$coaAkun] = $transactions;
         }
 
-        $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
-        return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
+        return view('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
+        // $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
+        // return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
     }
 
     public function bukuBesar(Request $request)
@@ -211,9 +215,11 @@ class ReportController extends Controller
             $ledgers[$coaAkun] = $transactions;
         }
 
+
         if ($request->has('download')) {
-            $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $ledgers, 'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
-            return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
+            return view('report.bukubesar_download', ['ledgers' => $ledgers,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
+            // $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $ledgers, 'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
+            // return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
         }
 
         return view('report.bukubesar', compact('ledgers', 'tanggalMulai', 'tanggalSelesai', 'akun'));

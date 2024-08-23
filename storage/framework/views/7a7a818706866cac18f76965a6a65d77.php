@@ -7,16 +7,37 @@
     <title>Jurnal Transaksi</title>
     <style>
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Arial', sans-serif;
-            font-size: 12px;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            max-width: 800px;
+            margin: 0 auto;
+            /* onload="window.print()" */
         }
 
-        .header {
+        .new-header {
+            position: relative;
+        }
+
+        .company-logo {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
+        }
+
+        h2 {
+            margin: 0;
+            padding: 0;
+        }
+
+
+        h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* .header {
             text-align: center;
             padding: 20px;
         }
@@ -37,9 +58,9 @@
 
         .header h4 {
             font-size: 1em;
-        }
+        } */
 
-        @media print {
+        /* @media print {
             body {
                 display: block;
             }
@@ -67,9 +88,9 @@
             .header h4 {
                 font-size: 1em;
             }
-        }
+        } */
 
-        .footer {
+        /* .footer {
             width: 100%;
             text-align: center;
             position: fixed;
@@ -86,11 +107,10 @@
 
         .footer .left {
             float: right;
-        }
+        } */
 
         table {
             width: 100%;
-            border-collapse: collapse;
         }
 
         th,
@@ -102,50 +122,48 @@
 </head>
 
 <body>
-    <header class="header">
-        <h1><?php echo e(auth()->user()->company_name); ?></h1>
-        <br>
-        <br>
-        <h2><u><?php echo e($jurnal['jenis'] == 'RV' ? 'JURNAL KAS MASUK' : ($jurnal['jenis'] == 'PV' ? 'JURNAL KAS KELUAR' : ($jurnal['jenis'] == 'JV' ? 'JURNAL UMUM' : ''))); ?></u>
-        </h2>
-        <h4><?php echo e($jurnal['jenis'] == 'RV' ? 'RECEIVE VOUCHER' : ($jurnal['jenis'] == 'PV' ? 'PAYMENT VOUCHER' : ($jurnal['jenis'] == 'JV' ? 'JOURNAL VOUCHER' : ''))); ?>
+    <header class="new-header">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1><?php echo e(auth()->user()->company_name); ?></h1>
+            <h2><u><?php echo e($jurnal['jenis'] == 'RV' ? 'JURNAL KAS MASUK' : ($jurnal['jenis'] == 'PV' ? 'JURNAL KAS KELUAR' : ($jurnal['jenis'] == 'JV' ? 'JURNAL UMUM' : ''))); ?></u>
+            </h2>
+            <h3><?php echo e($jurnal['jenis'] == 'RV' ? 'RECEIVE VOUCHER' : ($jurnal['jenis'] == 'PV' ? 'PAYMENT VOUCHER' : ($jurnal['jenis'] == 'JV' ? 'JOURNAL VOUCHER' : ''))); ?>
 
-        </h4>
+            </h3>
+        </div>
     </header>
-    <br>
+    <hr style="border: 2px solid black; width: 100%;">
     <table>
         <tbody>
             <tr>
                 <td style="border: 1px solid black; text-align: center; width: 60%;">Informasi Tambahan</td>
-                <td style="width: 40%;">
-                    &nbsp;&nbsp;Tanggal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:
-                    <?php echo e(\Carbon\Carbon::parse($jurnal['jurnal_tgl'])->format('d/m/Y')); ?></td>
+                <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top;">Nomor Transaksi</td>
+                <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top;">Jenis Jurnal</td>
             </tr>
             <tr>
-                <td rowspan="2"
-                    style="text-align: center; vertical-align: top; width: 60%; height: 5px; border: 1px solid black;">
-                    <b><em><?php echo e($jurnal['keterangan']); ?></em></b>
+                <td style="border: 1px solid black; text-align: center; width: 60%; vertical-align: center;"><b><em><?php echo e($jurnal['keterangan']); ?></em></b></td>
+                <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top; font-size: 35px; font-weight: bold;">
+                    <?php echo e($jurnal['no_urut_transaksi']); ?>
+
                 </td>
-                <td style="width: 40%; height: 5px;">&nbsp;&nbsp;Jenis
-                    Jurnal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo e($jurnal['jenis']); ?>
+                <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top; font-size: 35px; font-weight: bold;">
+                    <?php echo e($jurnal['jenis']); ?>
 
                 </td>
             </tr>
-            <tr>
-                <td style="width: 40%; height: 5px">&nbsp;&nbsp;Nomor Transaksi&nbsp;&nbsp;&nbsp;:
-                    <?php echo e($jurnal['no_urut_transaksi']); ?></td>
-            </tr>
+            
+            
         </tbody>
     </table>
-    <br>
     <table>
-        <thead style="border: 1px solid black;">
-            <tr>
-                <th style="height: 25px; text-align:center">Nomor Akun</th>
-                <th style="height: 25px; text-align:center">Nama Akun</th>
-                <th style="height: 25px; text-align:center">Subtotal</th>
-                <th style="height: 25px; text-align:center">Debit</th>
-                <th style="height: 25px; text-align:center">Kredit</th>
+        <thead>
+            <tr style="border: 1px solid black;">
+                <th style="height: 25px; text-align:center;">Nomor Akun</th>
+                <th style="height: 25px; text-align:center;">Nama Akun</th>
+                <th style="height: 25px; text-align:center;">Subtotal</th>
+                <th style="height: 25px; text-align:center;">Debit</th>
+                <th style="height: 25px; text-align:center;">Kredit</th>
             </tr>
         </thead>
         <tbody>
@@ -225,11 +243,7 @@
             </tr>
         </tbody>
     </table>
-    <div class="footer">
-        <hr style="border: 2px solid black; width: 100%;">
-        <div class="left"><?php echo e(auth()->user()->company_name); ?></div>
-        <div class="right"></div>
-    </div>
+    
 </body>
 
 </html>

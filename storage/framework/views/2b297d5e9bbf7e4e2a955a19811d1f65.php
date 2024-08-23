@@ -8,8 +8,9 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 3px;
+            font-size: 11px;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
         .report-container {
@@ -40,7 +41,7 @@
         }
 
         table.main-data tr td {
-            padding: 4px 4px 4px 22px;
+            padding: 2px 2px 2px 22px;
         }
 
         table.main-data tr:nth-last-child(2) td.data-num {
@@ -55,25 +56,48 @@
             text-align: right;
         }
 
+        h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            margin: 0;
+            padding: 0;
+        }
+
 
         .total {
             font-size: 14px;
             font-weight: bold;
         }
 
+        .new-header {
+            position: relative;
+        }
+
+        .company-logo {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
+        }
     </style>
 </head>
-<body>
+<body onload="window.print()">
+    <header class="new-header">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1><?php echo e(auth()->user()->company_name); ?></h1>
+            <h2>Laporan Laba Rugi</h2>
+            <h3>Periode : <?php echo e($start); ?> - <?php echo e($end); ?></h3>
+        </div>
+    </header>
+    <hr style="border: 2px solid black; width: 100%;">
     
     <div class="report-container">
-        <header style="border-bottom: 2px solid #ddd; padding: 3px">
-            <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
-            <div style="overflow: hidden;">
-                <h1 style="text-align:center; font-size: 20px;"><?php echo e(auth()->user()->company_name); ?></h1>
-                <p style="text-align:center;">Laporan Laba Rugi</p>
-                <p style="text-align:center;">Periode <?php echo e($start); ?> - <?php echo e($end); ?></p>
-            </div>
-        </header>
+        
         <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <table class="main-data">
             <h3 style="font-size: 20px;"><?php echo e($category); ?></h3>

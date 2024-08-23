@@ -56,7 +56,7 @@
     </style>
 </head>
 
-<body>
+<body onload="window.print()">
     <header class="new-header">
         <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">

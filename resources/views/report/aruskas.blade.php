@@ -5,8 +5,9 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            font-size: 12px;
+            font-size: 11px;
+            max-width: 800px;
+            margin: 0 auto;
         }
         table {
             width: 100%;
@@ -16,6 +17,15 @@
         th, td {
             padding: 2px;
             text-align: left;
+        }
+        h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            margin: 0;
+            padding: 0;
         }
         th {
             background-color: #f2f2f2;
@@ -28,16 +38,16 @@
             font-weight: bold;
         }
 
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
+        .new-header {
+            position: relative;
         }
 
         .company-logo {
-            width: 5rem;
-            height: 5rem;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
         }
 
         .company-info {
@@ -63,18 +73,15 @@
     </style>
 </head>
 <body onload="window.print()">
-    <div class="header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
-        <div class="company-info">
-            <div class="company-name">{{ auth()->user()->company_name }}</div>
+    <header class="new-header">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Arus Kas</h2>
+            <h3>Periode: {{ $start_date }} s/d {{ $end_date }}</h3>
         </div>
-    </div>
-    <div class="report-title">
-        <h2><u>Arus Kas</u></h2>
-    </div>
-    <div class="report-period">
-        <p>Periode: {{ $start_date }} - {{ $end_date }}</p>
-    </div>
+    </header>
+    <hr style="border: 2px solid black; width: 100%;">
 
     @php
         $totalKas = 0;

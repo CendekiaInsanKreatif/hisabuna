@@ -7,7 +7,9 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 11px;
+            max-width: 800px;
+            margin: 0 auto;
         }
         table {
             width: 100%;
@@ -16,9 +18,9 @@
             text-align: center;
             padding: 2px;
         }
-        h2, h1 {
-            text-align: center;
-            margin-top: 20px;
+        h2, h3 {
+            margin: 0;
+            padding: 0;
         }
 
         .footer.content {
@@ -26,29 +28,31 @@
             align-items: center;
         }
 
-        .company-logo {
-            width: 5rem;
-            height: 5rem;
-            margin-right: 8rem;
+        .new-header {
+            position: relative;
         }
 
-        .company-name {
-            font-size: 1.25rem; /* Ukuran font yang sesuai */
-            position: relative;
-            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        .company-logo {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
         }
     </style>
 </head>
 
-<body>
-    <div class="footer content">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
-    </div>
-    <h1>{{ auth()->user()->company_name }}</h1>
-    <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
+<body onload="window.print()">
+    <header class="new-header">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Perubahan Ekuitas</h2>
+            <h3>Periode: {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</h3>
+        </div>
+    </header>
+    <hr style="border: 2px solid black; width: 100%;">
     <table>
-        <caption style="text-align: center; font-size: 14px;">Periode : {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</caption>
-        <br>
         <thead>
             <tr>
                 <th style="text-align: center;">Keterangan</th>

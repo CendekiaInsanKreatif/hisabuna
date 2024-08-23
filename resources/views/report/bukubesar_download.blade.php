@@ -7,10 +7,10 @@
     <title>Buku Besar (Ledger)</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 5px;
-            background-color: #f9f9f9;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
         .report-container {
@@ -21,7 +21,12 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        .header {
+        h2, h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* .header {
             text-align: center;
             margin-bottom: 20px;
         }
@@ -46,32 +51,32 @@
 
         .header p {
             margin: 0;
-        }
+        } */
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         th, td {
-            padding: 8px;
+            padding: 3px;
             text-align: left;
             font-size: 0.875rem;
-            color: #718096;
+            /* color: #718096; */
         }
 
         th {
-            background-color: #f7fafc;
+            /* background-color: #f7fafc; */
             text-transform: uppercase;
         }
 
         tbody tr:nth-child(odd) {
-            background-color: #f9f9f9;
+            /* background-color: #f9f9f9; */
         }
 
         tbody tr:nth-child(even) {
-            background-color: #ffffff;
+            /* background-color: #ffffff; */
         }
 
         .text-right {
@@ -85,19 +90,34 @@
         .coa-title {
             font-size: 1.25em;
             font-weight: 600;
-            color: #4a5568;
-            margin-top: 20px;
+            /* color: #4a5568; */
+            margin-top: 7px;
+        }
+
+        .new-header {
+            position: relative;
+        }
+
+        .company-logo {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
         }
     </style>
 </head>
 <body>
-    <div class="report-container">
-        <div class="header">
-            <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo">
+    <header class="new-header">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
             <h1>{{ auth()->user()->company_name }}</h1>
-            <h3><u>BUKU BESAR (LEDGER)</u></h3>
-            <p>Periode {{ \Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y') }}</p>
+            <h2>Laporan Buku Besar</h2>
+            <h3>Periode: {{ $tanggalMulai }} s/d {{ $tanggalSelesai }}</h3>
         </div>
+    </header>
+    <hr style="border: 2px solid black; width: 100%;">
+    <div class="report-container">
         @foreach ($ledgers as $coaAkun => $transactions)
             <h2 class="coa-title">{{ formatNomorAkun($coaAkun) }}</h2>
             <table>

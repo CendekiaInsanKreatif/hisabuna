@@ -6,18 +6,20 @@
     <title>Laporan Neraca Saldo</title>
     <style>
         body { 
-            font-family: Arial, sans-serif; 
-            font-size: 12px; 
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            max-width: 800px;
+            margin: 0 auto;
         }
         table { 
             width: 100%;
-            margin-top: 20px; 
+            /* margin-top: 20px;  */
         }
         th, td {
             padding: 2px; 
             text-align: left; 
         }
-        @media print {
+        /* @media print {
             body {
                 display: block;
             }
@@ -38,12 +40,18 @@
             .header h4 {
                 font-size: 1em;
             }
-        }
+        } */
         th { 
             background-color: #f2f2f2; 
         }
-        h2, h1, h4 { 
-            text-align: center; 
+        h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            margin: 0;
+            padding: 0;
         }
         .indent { 
             padding-left: 20px; 
@@ -62,15 +70,27 @@
         .footer .left {
             float: right;
         }
+
+        .new-header {
+            position: relative;
+        }
+
+        .company-logo {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
+        }
     </style>
 </head>
-<body>
-    <header>
-        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
-        <div class="header">
+<body onload="window.print()">
+    <header class="new-header">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
             <h1><?php echo e(auth()->user()->company_name); ?></h1>
             <h2>Laporan Neraca Saldo</h2>
-            <h4>Periode: <?php echo e($tanggal_mulai); ?> s/d <?php echo e($tanggal_selesai); ?></h4>
+            <h3>Periode: <?php echo e($tanggal_mulai); ?> s/d <?php echo e($tanggal_selesai); ?></h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
@@ -118,10 +138,7 @@
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
     </table>
-    <div class="footer">
-        <div class="left"><?php echo e(auth()->user()->company_name); ?></div>
-        <div class="right"></div>
-    </div>
+    
 </body>
 </html>
 <?php /**PATH /var/www/hisabuna/resources/views/report/neraca_saldo.blade.php ENDPATH**/ ?>

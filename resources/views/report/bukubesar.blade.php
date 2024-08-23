@@ -4,11 +4,11 @@
         <div class="flex space-x-2 items-end mb-4">
             <div class="flex flex-col">
                 <label for="tanggal_mulai" class="block text-sm font-medium text-gray-700">Tanggal Mulai:</label>
-                <input type="text" id="tanggal_mulai" name="tanggal_mulai" value="" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <input type="text" id="tanggal_mulai" name="tanggal_mulai" value="{{ $tanggalMulai }}" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
             <div class="flex flex-col">
                 <label for="tanggal_selesai" class="block text-sm font-medium text-gray-700">Tanggal Selesai:</label>
-                <input type="text" id="tanggal_selesai" name="tanggal_selesai" value="" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <input type="text" id="tanggal_selesai" name="tanggal_selesai" value="{{ $tanggalSelesai }}" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
             <div class="flex flex-col">
                 <label for="akun" class="block text-sm font-medium text-gray-700">Search Akun:</label>
@@ -16,7 +16,7 @@
             </div>
             <div class="flex items-end">
                 <x-primary-button class="h-10">Tampilkan</x-primary-button>
-                <a href="#" id="download" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Download</a>
+                <a href="#" id="download" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">View</a>
             </div>
         </div>
     </form>
@@ -91,24 +91,28 @@
                 }
             });
 
-            document.getElementById('download').addEventListener('click', function(event) {
-                // event.preventDefault();
-                var tanggalMulai = document.getElementById('tanggal_mulai').value;
-                var tanggalSelesai = document.getElementById('tanggal_selesai').value;
-                var akun = document.getElementById('akun').value;
-                var url = "{{ route('report.bukubesar.download') }}" + "?";
-
-                if (tanggalMulai) {
-                    url += "tanggal_mulai=" + tanggalMulai + "&";
-                }
-                if (tanggalSelesai) {
-                    url += "tanggal_selesai=" + tanggalSelesai + "&";
-                }
-                if (akun) {
-                    url += "akun=" + akun;
-                }
-
-                window.location.href = url;
+            $('#download').click(function() {
+                $('<form>', {
+                    'method': 'POST',
+                    'action': '{{ route('report.bukubesar.download') }}',
+                    'target': '_blank'
+                }).append($('<input>', {
+                    'name': '_token',
+                    'value': '{{ csrf_token() }}',
+                    'type': 'hidden'
+                })).append($('<input>', {
+                    'name': 'tanggal_mulai',
+                    'value': $('#tanggal_mulai').val(),
+                    'type': 'hidden'
+                })).append($('<input>', {
+                    'name': 'tanggal_selesai',
+                    'value': $('#tanggal_selesai').val(),
+                    'type': 'hidden'
+                })).append($('<input>', {
+                    'name': 'akun',
+                    'value': $('#akun').val(),
+                    'type': 'hidden'
+                })).appendTo('body').submit();
             });
         });
         

@@ -10,13 +10,11 @@
             font-size: 12px; 
         }
         table { 
-            width: 100%; 
-            border-collapse: collapse; 
+            width: 100%;
             margin-top: 20px; 
         }
-        th, td { 
-            border-bottom: 1px solid #000; 
-            padding: 8px; 
+        th, td {
+            padding: 2px; 
             text-align: left; 
         }
         @media print {
@@ -75,6 +73,7 @@
             <h4>Periode: <?php echo e($tanggal_mulai); ?> s/d <?php echo e($tanggal_selesai); ?></h4>
         </div>
     </header>
+    <hr style="border: 2px solid black; width: 100%;">
     <table>
         <thead>
             <tr>
@@ -98,7 +97,7 @@
                         <?php $__currentLoopData = $accounts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $xCoa => $balances): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <?php if($xCoa !== 'Total'): ?>
                                 <tr>
-                                    <td class="indent indent"><span>&nbsp;&nbsp;&nbsp;&nbsp;<?php echo e($xCoa); ?></span></td>
+                                    <td class="indent indent"><span>&nbsp;&nbsp;&nbsp;&nbsp;<?php echo e(formatNomorAkun($xCoa)); ?></span></td>
                                     <td style="text-align: right;"><?php echo e(number_format($balances['debit'], 0, ',', '.')); ?></td>
                                     <td style="text-align: right;"><?php echo e(number_format($balances['kredit'], 0, ',', '.')); ?></td>
                                 </tr>
@@ -106,15 +105,15 @@
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         <tr>
                             <td class="indent"><strong>Total <?php echo e(substr($akun2, 4)); ?></strong></td>
-                            <td style="text-align: right;"><strong><?php echo e(number_format($accounts['Total']['debit'], 0, ',', '.')); ?></strong></td>
-                            <td style="text-align: right;"><strong><?php echo e(number_format($accounts['Total']['kredit'], 0, ',', '.')); ?></strong></td>
+                            <td style="text-align: right; border-bottom: 1px solid black;"><strong><?php echo e(number_format($accounts['Total']['debit'], 0, ',', '.')); ?></strong></td>
+                            <td style="text-align: right; border-bottom: 1px solid black;"><strong><?php echo e(number_format($accounts['Total']['kredit'], 0, ',', '.')); ?></strong></td>
                         </tr>
                     <?php endif; ?>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 <tr>
                     <td><strong>Total <?php echo e($akun1); ?></strong></td>
-                    <td style="text-align: right;"><strong><?php echo e(number_format($subcategories['Total']['debit'], 0, ',', '.')); ?></strong></td>
-                    <td style="text-align: right;"><strong><?php echo e(number_format($subcategories['Total']['kredit'], 0, ',', '.')); ?></strong></td>
+                    <td style="text-align: right; border-bottom: 2px solid black;"><strong><?php echo e(number_format($subcategories['Total']['debit'], 0, ',', '.')); ?></strong></td>
+                    <td style="text-align: right; border-bottom: 2px solid black;"><strong><?php echo e(number_format($subcategories['Total']['kredit'], 0, ',', '.')); ?></strong></td>
                 </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>

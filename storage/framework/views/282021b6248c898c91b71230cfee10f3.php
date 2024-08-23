@@ -28,31 +28,53 @@
             font-weight: bold;
         }
 
-        .footer.content {
+        .header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
         }
 
         .company-logo {
             width: 5rem;
             height: 5rem;
-            margin-right: 8rem;
+        }
+
+        .company-info {
+            text-align: right;
         }
 
         .company-name {
-            font-size: 1.25rem; /* Ukuran font yang sesuai */
-            position: relative;
-            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .report-title {
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .report-period {
+            text-align: center;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="footer content">
+    <div class="header">
         <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Company Logo" class="company-logo">
-        <span class="company-name"><?php echo e(auth()->user()->company_name); ?></span>
+        <div class="company-info">
+            <div class="company-name"><?php echo e(auth()->user()->company_name); ?></div>
+        </div>
     </div>
-    <h2><u>Arus Kas</u></h2>
-    <p>Periode: <?php echo e($start_date); ?> - <?php echo e($end_date); ?></p>
+    <div class="report-title">
+        <h2><u>Arus Kas</u></h2>
+    </div>
+    <div class="report-period">
+        <p>Periode: <?php echo e($start_date); ?> - <?php echo e($end_date); ?></p>
+    </div>
 
     <?php
         $totalKas = 0;

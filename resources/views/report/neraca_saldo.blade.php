@@ -10,13 +10,11 @@
             font-size: 12px; 
         }
         table { 
-            width: 100%; 
-            border-collapse: collapse; 
+            width: 100%;
             margin-top: 20px; 
         }
-        th, td { 
-            border-bottom: 1px solid #000; 
-            padding: 8px; 
+        th, td {
+            padding: 2px; 
             text-align: left; 
         }
         @media print {
@@ -75,6 +73,7 @@
             <h4>Periode: {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</h4>
         </div>
     </header>
+    <hr style="border: 2px solid black; width: 100%;">
     <table>
         <thead>
             <tr>
@@ -98,7 +97,7 @@
                         @foreach($accounts as $xCoa => $balances)
                             @if($xCoa !== 'Total')
                                 <tr>
-                                    <td class="indent indent"><span>&nbsp;&nbsp;&nbsp;&nbsp;{{ $xCoa }}</span></td>
+                                    <td class="indent indent"><span>&nbsp;&nbsp;&nbsp;&nbsp;{{ formatNomorAkun($xCoa) }}</span></td>
                                     <td style="text-align: right;">{{ number_format($balances['debit'], 0, ',', '.') }}</td>
                                     <td style="text-align: right;">{{ number_format($balances['kredit'], 0, ',', '.') }}</td>
                                 </tr>
@@ -106,15 +105,15 @@
                         @endforeach
                         <tr>
                             <td class="indent"><strong>Total {{ substr($akun2, 4) }}</strong></td>
-                            <td style="text-align: right;"><strong>{{ number_format($accounts['Total']['debit'], 0, ',', '.') }}</strong></td>
-                            <td style="text-align: right;"><strong>{{ number_format($accounts['Total']['kredit'], 0, ',', '.') }}</strong></td>
+                            <td style="text-align: right; border-bottom: 1px solid black;"><strong>{{ number_format($accounts['Total']['debit'], 0, ',', '.') }}</strong></td>
+                            <td style="text-align: right; border-bottom: 1px solid black;"><strong>{{ number_format($accounts['Total']['kredit'], 0, ',', '.') }}</strong></td>
                         </tr>
                     @endif
                 @endforeach
                 <tr>
                     <td><strong>Total {{ $akun1 }}</strong></td>
-                    <td style="text-align: right;"><strong>{{ number_format($subcategories['Total']['debit'], 0, ',', '.') }}</strong></td>
-                    <td style="text-align: right;"><strong>{{ number_format($subcategories['Total']['kredit'], 0, ',', '.') }}</strong></td>
+                    <td style="text-align: right; border-bottom: 2px solid black;"><strong>{{ number_format($subcategories['Total']['debit'], 0, ',', '.') }}</strong></td>
+                    <td style="text-align: right; border-bottom: 2px solid black;"><strong>{{ number_format($subcategories['Total']['kredit'], 0, ',', '.') }}</strong></td>
                 </tr>
             @endforeach
         </tbody>

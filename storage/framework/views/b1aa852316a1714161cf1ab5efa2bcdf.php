@@ -64,7 +64,8 @@
                     </div>
                 <?php endif; ?>
                 <div class="flex justify-center md:justify-start gap-1">
-                    <button type="submit" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4">Submit</button>
+                    
+                    <button type="button" id="popup" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4">View</button>
                     
                 </div>
             </form>
@@ -74,9 +75,25 @@
     <?php $__env->startPush('script'); ?>
         <script type="module">
             $(function() {
-                // $('#popup').click(function() {
-                //     window.open('', 'newwindow', 'width=800,height=600');
-                // });
+                $('#popup').click(function() {
+                    $('<form>', {
+                        'method': 'POST',
+                        'action': '<?php echo e(route('report.'.$route[2])); ?>',
+                        'target': '_blank'
+                    }).append($('<input>', {
+                        'name': '_token',
+                        'value': '<?php echo e(csrf_token()); ?>',
+                        'type': 'hidden'
+                    })).append($('<input>', {
+                        'name': 'start_date',
+                        'value': $('#start_date').val(),
+                        'type': 'hidden'
+                    })).append($('<input>', {
+                        'name': 'end_date',
+                        'value': $('#end_date').val(),
+                        'type': 'hidden'
+                    })).appendTo('body').submit();
+                });
 
                 
                 flatpickr('#start_date', {
@@ -99,6 +116,10 @@
                         }
                     }
                 });
+
+                $('#view').click(function() {
+                    alert('Lukman');
+                })
             });
         </script>
     <?php $__env->stopPush(); ?>

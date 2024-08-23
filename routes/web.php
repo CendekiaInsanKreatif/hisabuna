@@ -121,15 +121,16 @@ Route::middleware('auth')->group(function () {
 
         // Report View
         Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.views.labarugi');
-        Route::get('labarugidownloadpdf', [ReportController::class, 'labaRugiDownloadPDF'])->name('labarugidownloadpdf');
+        Route::get('labaRugiView', [ReportController::class, 'labaRugiView'])->name('labaRugiView');
         Route::get('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.views.perubahanekuitas');
         Route::get('neraca', [ReportController::class, 'neraca'])->name('report.views.neraca');
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.views.neracasaldo');
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.views.neracaperbandingan');
         Route::get('aruskas', [ReportController::class, 'arusKas'])->name('report.views.aruskas');
-
+        
         // Report PDF
         Route::post('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
+        Route::post('labarugidownloadpdf', [ReportController::class, 'labaRugiDownloadPDF'])->name('report.labarugiprint');
         Route::post('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.perubahanekuitas');
         Route::post('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
         Route::post('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');

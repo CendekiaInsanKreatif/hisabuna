@@ -33,28 +33,62 @@ class ReportController extends Controller
         return $pdf->download('daftar_jurnal_'.Carbon::now()->format('YmdHis').'.pdf');
     }
 
-    public function transaksi($id){
-        $jurnal = Jurnal::with('details')->where(['id' => $id, 'created_by' => auth()->user()->id])->first();
-        if($jurnal){
+    public function transaksi($id) {
+        $jurnal = Jurnal::with(['details' => function($query) {
+            $query->orderBy('coa_akun')->limit(100);
+        }])->where(['id' => $id, 'created_by' => auth()->user()->id])->first();
+        
+        if ($jurnal) {
+            $coaList = Coa::where(['created_by' => auth()->user()->id])->get()->keyBy('nomor_akun');
+    
+            $jurnalDetails = JurnalDetail::where('jurnal_id', $id)
+                ->where('created_by', auth()->user()->id)
+                ->get()
+                ->groupBy(function($detail) {
+                    return substr($detail->coa_akun, 0, 5);
+                });
+    
             foreach ($jurnal['details'] as $key => $detail) {
-                $dt = Coa::where(['created_by' => auth()->user()->id])->first();
-                $child = $dt->where('nomor_akun', $detail['coa_akun'])->first();
-                if($child){
+                $coaAkun = $detail['coa_akun'];
+                $child = $coaList->get($coaAkun);
+                
+                if ($child) {
                     $jurnal['details'][$key]['nama_akun'] = $child['nama_akun'];
                 }
-                $parent = substr($detail['coa_akun'], 0, 3);
-                $coa = $dt->where('nomor_akun', $parent)->first();
+                
+                $parent = substr($coaAkun, 0, 5);
+                $coa = $coaList->get($parent);
+                
                 if ($coa) {
-                    $detail['parent'] = [
-                        'nomor_akun' => $coa['nomor_akun'],
-                        'nama_akun' => $coa['nama_akun']
+                    $noKun = formatNomorAkun($coa['nomor_akun']);
+                    $get = explode('-', $noKun);
+                    $deNo = $parent;
+                    
+                    $total = 0;
+                    if ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') {
+                        $total = $jurnalDetails->get($deNo)->sum(function($detail) {
+                            return $detail->debit - $detail->credit;
+                        });
+                    } else {
+                        $total = $jurnalDetails->get($deNo)->sum(function($detail) {
+                            return $detail->credit - $detail->debit;
+                        });
+                    }
+    
+                    $jurnal['details'][$key]['parent'] = [
+                        'nomor_akun' => $get[0] . '-' . $get[1],
+                        'nama_akun' => $coa['nama_akun'],
+                        'total' => $total ?: 0,
                     ];
                 }
             }
         }
+    
+        // da($jurnal);
         $pdf = PDF::loadView('report.transaksi', ['jurnal' => $jurnal]);
         return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
+    
 
     public function downloadBukuBesar(Request $request){
         $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('tanggal_mulai', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->min('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
@@ -188,6 +222,7 @@ class ReportController extends Controller
     public function arusKas(Request $request)
     {
         if ($request->isMethod('post')) {
+            // da($request);
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
             $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
 
@@ -256,18 +291,125 @@ class ReportController extends Controller
             //     }
             // }
 
-            // da($data);
+            // da($request);
 
-            $pdf = PDF::loadView('report.aruskas', [
+            return view('report.aruskas', [
                 'data' => $data,
-                'start_date' => $start_date,
-                'end_date' => $end_date,
+                'start_date' => Carbon::parse($start_date)->format('d/m/Y'),
+                'end_date' => Carbon::parse($end_date)->format('d/m/Y'),
             ]);
+            
+            // $pdf = PDF::loadView('report.aruskas', [
+            //     'data' => $data,
+            //     'start_date' => $start_date,
+            //     'end_date' => $end_date,
+            // ]);
 
-            return $pdf->download('aruskas_' . Carbon::now()->format('YmdHis') . '.pdf');
+            // return $pdf->download('aruskas_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
+    }
+
+    public function labaRugiView(Request $request , $n = 0)
+    {
+        if($_SERVER['REQUEST_METHOD'] != 'GET'){
+              return view('report.views.template');
+        }
+        $start_date = Carbon::parse($request->input('start'))->format('Y-m-d H:i:s');
+        $start      = $request->input('start');
+        $end_date = Carbon::parse($request->input('end'))->format('Y-m-d H:i:s');
+        $end      = $request->input('end_date');
+        $ttd1 = $request->input('text_input1');
+        $ttd2 = $request->input('text_input2');
+
+        $tahunSebelumnya = date('Y');
+        if($n == 1){
+            $jurnal = Jurnal::whereNull('is_deleted')
+                    ->with(['details' => function($query) use ($end_date) {
+                        $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                        ->where('tanggal_bukti', '<=' , $end_date);
+                    }])
+                    ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                    ->where('created_by', auth()->user()->id)
+                    ->get();
+        }else{
+            $jurnal = Jurnal::whereNull('is_deleted')
+                    ->with(['details' => function($query) use ($start_date, $end_date) {
+                        $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                        ->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+                    }])
+                    ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                    ->where('created_by', auth()->user()->id)
+                    ->get();
+        }
+
+        if($jurnal->isEmpty()){
+            return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+        }
+
+        $kategori = Coa::where('created_by', auth()->user()->id)->where('level', '=', '1')->get()->keyBy('nomor_akun')->toArray();
+        $data = [];
+
+        foreach ($jurnal as $entry) {
+            foreach ($entry->details as $detail) {
+                $kategoriAkun = substr($detail->coa_akun, 0, 1);
+                $lv3 = substr($detail->coa_akun, 0, 3);
+                if (isset($kategori[$kategoriAkun])) {
+                    $parent = $kategori[$kategoriAkun];
+                    $child = Coa::where(['nomor_akun' => $detail->coa_akun, 'created_by' => auth()->user()->id])->first();
+                    $lv3 = Coa::where(['nomor_akun' => $lv3, 'created_by' => auth()->user()->id])->first();
+                    if ($parent['saldo_normal'] == 'db' || $parent['saldo_normal'] == 'debit') {
+                        $nilai = $child['saldo_awal_debit'] + $detail->debit - $detail->credit;
+                    } else {
+                        $nilai = $child['saldo_awal_credit'] + $detail->credit - $detail->debit;
+                    }
+
+                    $data[$parent['nama_akun']]['Jumlah'] = ($data[$parent['nama_akun']]['Jumlah'] ?? 0) + $nilai;
+                    if (isset($child['nama_akun'])) {
+                        $data[$parent['nama_akun']]['Detail'][$lv3['nama_akun']] = ($data[$parent['nama_akun']]['Detail'][$lv3['nama_akun']] ?? 0) + $nilai;
+                    }
+                }
+            }
+        }
+
+        uksort($data, function($a, $b) use ($kategori) {
+            $order = array_flip(array_map(function($item) {
+                return $item['nama_akun'];
+            }, $kategori));
+            return ($order[$a] ?? PHP_INT_MAX) <=> ($order[$b] ?? PHP_INT_MAX);
+        });
+
+        $totalPendapatan = 0;
+        $totalBiaya = 0;
+
+        foreach ($data as $category => $details) {
+            if ($category == 'Pendapatan') {
+                $totalPendapatan += $details['Jumlah'];
+            } else {
+                $totalBiaya += $details['Jumlah'];
+            }
+        }
+
+
+        $labaRugiBersih = $totalPendapatan - $totalBiaya;
+        // da($labaRugiBersih);
+        if($n == 1){
+            return $labaRugiBersih;
+        }
+
+        // da($data);
+        return view('report.labarugi', [
+                'data' => $data,
+                'tahunSebelumnya' => $tahunSebelumnya,
+                'kategori' => $kategori,
+                'labaRugiBersih' => $labaRugiBersih,
+                'ttd1' => $ttd1,
+                'ttd2' => $ttd2,
+                'start' => $start,
+                'end'   => $end,
+            ]);
+        
     }
 
 
@@ -357,15 +499,8 @@ class ReportController extends Controller
             }
 
             // da($data);
-            // return view('report.labarugi', [
-            //     'data' => $data,
-            //     'tahunSebelumnya' => $tahunSebelumnya,
-            //     'kategori' => $kategori,
-            //     'labaRugiBersih' => $labaRugiBersih,
-            //     'ttd1' => $ttd1,
-            //     'ttd2' => $ttd2,
-            // ]);
-            $pdf = PDF::loadView('report.labarugi', [
+
+            return view('report.labarugi', [
                 'data' => $data,
                 'tahunSebelumnya' => $tahunSebelumnya,
                 'kategori' => $kategori,
@@ -375,7 +510,17 @@ class ReportController extends Controller
                 'start' => $start,
                 'end'   => $end,
             ]);
-            return $pdf->download('labarugi_' . Carbon::now()->format('YmdHis') . '.pdf');
+            // $pdf = PDF::loadView('report.labarugi', [
+            //     'data' => $data,
+            //     'tahunSebelumnya' => $tahunSebelumnya,
+            //     'kategori' => $kategori,
+            //     'labaRugiBersih' => $labaRugiBersih,
+            //     'ttd1' => $ttd1,
+            //     'ttd2' => $ttd2,
+            //     'start' => $start,
+            //     'end'   => $end,
+            // ]);
+            // return $pdf->download('labarugi_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
@@ -434,12 +579,18 @@ class ReportController extends Controller
             // da($result);
             // da($data[$tahunSekarang][$totalsSekarang['namaAkun']]);
             // da($data);
-            $pdf = PDF::loadView('report.perubahanekuitas', [
+            return view('report.perubahanekuitas', [
                 'data' => $result,
                 'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
                 'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y'),
             ]);
-            return $pdf->download('perubahanekuitas_' . Carbon::now()->format('YmdHis') . '.pdf');
+
+            // $pdf = PDF::loadView('report.perubahanekuitas', [
+            //     'data' => $result,
+            //     'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+            //     'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y'),
+            // ]);
+            // return $pdf->download('perubahanekuitas_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
@@ -728,13 +879,20 @@ class ReportController extends Controller
                 unset($data[0]);
             }
 
-            $pdf = PDF::loadView('report.neraca', [
+
+            return view('report.neraca', [
                 'data' => $data,
                 'periode' => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
                 'ttd1' => $ttd1,
                 'ttd2' => $ttd2,
             ]);
-            return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
+            // $pdf = PDF::loadView('report.neraca', [
+            //     'data' => $data,
+            //     'periode' => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
+            //     'ttd1' => $ttd1,
+            //     'ttd2' => $ttd2,
+            // ]);
+            // return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
@@ -851,15 +1009,20 @@ class ReportController extends Controller
             }
     
             
-
-            $pdf = PDF::loadView('report.neraca_saldo', [
+            return view('report.neraca_saldo', [
                 'data' => $newData,
                 'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
                 'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y')
             ]);
-            $pdf->setOption('isHtml5ParserEnabled', true);
-            $pdf->setOption('isRemoteEnabled', true);
-            return $pdf->download('neraca_saldo_' . Carbon::now()->format('YmdHis') . '.pdf');
+
+            // $pdf = PDF::loadView('report.neraca_saldo', [
+            //     'data' => $newData,
+            //     'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+            //     'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y')
+            // ]);
+            // $pdf->setOption('isHtml5ParserEnabled', true);
+            // $pdf->setOption('isRemoteEnabled', true);
+            // return $pdf->download('neraca_saldo_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');

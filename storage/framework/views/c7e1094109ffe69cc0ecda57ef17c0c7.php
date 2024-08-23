@@ -58,40 +58,40 @@
 <body>
     <div class="report-container">
         <header style="border-bottom: 2px solid #ddd; padding: 10px 20px;">
-            <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
+            <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
             <div style="overflow: hidden;">
-                <h1 style="text-align:center; font-size: 20px;">{{ auth()->user()->company_name }}</h1>
+                <h1 style="text-align:center; font-size: 20px;"><?php echo e(auth()->user()->company_name); ?></h1>
                 <p style="text-align:center;">Laporan Laba Rugi</p>
-                <p style="text-align:center;">Periode {{$start}} - {{$end}}</p>
+                <p style="text-align:center;">Periode <?php echo e($start); ?> - <?php echo e($end); ?></p>
             </div>
         </header>
-        @foreach ($data as $category => $details)
+        <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <table class="main-data">
-            <h3 style="font-size: 20px; padding-bottom: 16px;">{{ $category }}</h3>
-            @foreach ($details['Detail'] as $item => $amount)
+            <h3 style="font-size: 20px; padding-bottom: 16px;"><?php echo e($category); ?></h3>
+            <?php $__currentLoopData = $details['Detail']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item => $amount): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr>
-                    <td class="data-desc">{{ $item }}</td>
-                    <td class="data-num">{{ number_format($amount, 0, ',', '.') }}</td>
+                    <td class="data-desc"><?php echo e($item); ?></td>
+                    <td class="data-num"><?php echo e(number_format($amount, 0, ',', '.')); ?></td>
                 </tr>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             <tr class="total" style="border-bottom: 2px solid black;             background-color: #f4f4f5;">
-                <td style="padding: 8px 4px 8px 12px;">Total {{ $category }}</td>
-                <td style="text-align: right;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
+                <td style="padding: 8px 4px 8px 12px;">Total <?php echo e($category); ?></td>
+                <td style="text-align: right;"><?php echo e(number_format($details['Jumlah'], 0, ',', '.')); ?></td>
             </tr>
         </table>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         <div style="padding: 24px 0 24px 0;border-bottom: 2px solid black">
             <table>
                 <tr class="total" style=" font-size: 20px; ">
                     <td>Saldo Laba (Rugi) Tahun Berjalan</td>
-                    <td style="text-align: right;">{{ number_format($labaRugiBersih, 0, ',', '.') }}</td>
+                    <td style="text-align: right;"><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></td>
                 </tr>
             </table>
         </div>
         <table style="width: 100%; margin-top: 70px;">
             <tr>
                 <td style="text-align: center; width: 35%;">
-                    <div>Dibuat oleh, {{ $ttd1 }}</div>
+                    <div>Dibuat oleh, <?php echo e($ttd1); ?></div>
                     <div style="height: 80px;"></div>
                     <div><strong>Staff Keuangan</strong></div>
                 </td>
@@ -99,7 +99,7 @@
                 <td style="width: 10%;"></td>
                 <td style="width: 10%;"></td>
                 <td style="text-align: center; width: 35%;">
-                    <div>Disetujui oleh, {{ $ttd2 }}</div>
+                    <div>Disetujui oleh, <?php echo e($ttd2); ?></div>
                     <div style="height: 80px;"></div>
                     <div><strong>Manager Keuangan</strong></div>
                 </td>
@@ -107,4 +107,4 @@
         </table>
     </div>
 </body>
-</html>
+</html><?php /**PATH /var/www/hisabuna/resources/views/report/labarugiprint.blade.php ENDPATH**/ ?>

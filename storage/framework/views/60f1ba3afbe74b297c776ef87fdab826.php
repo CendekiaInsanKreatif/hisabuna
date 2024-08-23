@@ -11,18 +11,10 @@
         }
         table {
             width: 100%;
-            border-collapse: collapse;
         }
         th, td {
             text-align: center;
-            padding: 8px;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .total {
-            font-weight: bold;
-            background-color: #e8e8e8;
+            padding: 2px;
         }
         h2, h1 {
             text-align: center;
@@ -57,15 +49,15 @@
     <table>
         <caption style="text-align: center; font-size: 14px;">Periode : <?php echo e($tanggal_mulai); ?> s/d <?php echo e($tanggal_selesai); ?></caption>
         <br>
-        <thead style="border: 1px solid black;">
+        <thead>
             <tr>
                 <th style="text-align: center;">Keterangan</th>
-                <th style="text-align: right;"><?php echo e(date('Y')); ?></th>
-                <th style="text-align: center;">Penambahan / (Pengurangan)</th>
-                <th style="text-align: right;"><?php echo e(date('Y') - 1); ?></th>
+                <th style="text-align: right; border-bottom: 1px solid #000;"><?php echo e(date('Y')); ?></th>
+                <th style="text-align: right; border-bottom: 1px solid #000;">Penambahan / <br> (Pengurangan)</th>
+                <th style="text-align: right; border-bottom: 1px solid #000;"><?php echo e(date('Y') - 1); ?></th>
             </tr>
         </thead>
-        <tbody style="border: 1px solid black;">
+        <tbody>
             <?php
                 $totalEkuitasTahunIni = 0;
                 $totalEkuitasTahunLalu = 0;
@@ -77,8 +69,8 @@
                             $totalEkuitasTahunIni += $value;
                             $totalEkuitasTahunLalu += $data[date('Y') - 1][$key] ?? 0;
                         ?>
-                        <tr style="border-bottom: 1px solid black;">
-                            <td><?php echo e($key); ?></td>
+                        <tr>
+                            <td style="text-align: left;"><?php echo e($key); ?></td>
                             <td style="text-align: right;"><?php echo e(number_format($value)); ?></td>
                             <td style="text-align: right;"><?php echo e(number_format($value - ($data[date('Y') - 1][$key] ?? 0))); ?></td>
                             <td style="text-align: right;"><?php echo e(number_format($data[date('Y') - 1][$key] ?? 0)); ?></td>
@@ -87,10 +79,10 @@
                 <?php endif; ?>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             <tr class="total">
-                <td>Total Ekuitas</td>
-                <td style="text-align: right;"><?php echo e(number_format($totalEkuitasTahunIni)); ?></td>
-                <td style="text-align: right;"><?php echo e(number_format($totalEkuitasTahunIni - $totalEkuitasTahunLalu)); ?></td>
-                <td style="text-align: right;"><?php echo e(number_format($totalEkuitasTahunLalu)); ?></td>
+                <td style="text-align: left; font-weight: bold;">Total Ekuitas</td>
+                <td style="text-align: right; font-weight: bold; border-top: 1px solid #000;"><?php echo e(number_format($totalEkuitasTahunIni)); ?></td>
+                <td style="text-align: right; font-weight: bold; border-top: 1px solid #000;"><?php echo e(number_format($totalEkuitasTahunIni - $totalEkuitasTahunLalu)); ?></td>
+                <td style="text-align: right; font-weight: bold; border-top: 1px solid #000;"><?php echo e(number_format($totalEkuitasTahunLalu)); ?></td>
             </tr>
         </tbody>
     </table>

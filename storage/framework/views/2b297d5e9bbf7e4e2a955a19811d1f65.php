@@ -9,30 +9,38 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #f9f9f9;
+            padding: 3px;
         }
 
         .report-container {
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 3px;
+            /* background-color: #fff; */
         }
 
 
         table.main-data tr:nth-child(odd) {
-            background-color: #f4f4f5;
+            /* background-color: #f4f4f5;? */
         }
+
+        @media print {
+            body {
+                display: block;
+            }
+            footer {
+                page-break-after: always;
+            }
+        }
+        
 
         table {
             width: 100%;
-            border-collapse: collapse;
+            /* border-collapse: collapse; */
         }
 
         table.main-data tr td {
-            padding: 4px 4px 4px 32px;
+            padding: 4px 4px 4px 22px;
         }
 
         table.main-data tr:nth-last-child(2) td.data-num {
@@ -56,9 +64,9 @@
     </style>
 </head>
 <body>
-    <button id="pdf" style="background-color: red;"><p style="color: #ddd">Download PDF</p></button>
+    
     <div class="report-container">
-        <header style="border-bottom: 2px solid #ddd; padding: 10px 20px;">
+        <header style="border-bottom: 2px solid #ddd; padding: 3px">
             <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
             <div style="overflow: hidden;">
                 <h1 style="text-align:center; font-size: 20px;"><?php echo e(auth()->user()->company_name); ?></h1>
@@ -68,28 +76,29 @@
         </header>
         <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <table class="main-data">
-            <h3 style="font-size: 20px; padding-bottom: 16px;"><?php echo e($category); ?></h3>
+            <h3 style="font-size: 20px;"><?php echo e($category); ?></h3>
             <?php $__currentLoopData = $details['Detail']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item => $amount): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr>
                     <td class="data-desc"><?php echo e($item); ?></td>
                     <td class="data-num"><?php echo e(number_format($amount, 0, ',', '.')); ?></td>
                 </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            <tr class="total" style="border-bottom: 2px solid black;             background-color: #f4f4f5;">
-                <td style="padding: 8px 4px 8px 12px;">Total <?php echo e($category); ?></td>
+            <tr class="total">
+                <td style="padding: 2px">Total <?php echo e($category); ?></td>
                 <td style="text-align: right;"><?php echo e(number_format($details['Jumlah'], 0, ',', '.')); ?></td>
             </tr>
         </table>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-        <div style="padding: 24px 0 24px 0;border-bottom: 2px solid black">
+        <div style="padding: 2px;">
             <table>
                 <tr class="total" style=" font-size: 20px; ">
                     <td>Saldo Laba (Rugi) Tahun Berjalan</td>
-                    <td style="text-align: right;"><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></td>
+                    <td style="text-align: right; border-top: 4px solid black; border-bottom: 4px solid black; width: 20%;"><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></td>
                 </tr>
             </table>
         </div>
-        <table style="width: 100%; margin-top: 70px;">
+        <footer>
+            <table style="width: 100%; margin-top: 70px;">
             <tr>
                 <td style="text-align: center; width: 35%;">
                     <div>Dibuat oleh, <?php echo e($ttd1); ?></div>
@@ -106,8 +115,9 @@
                 </td>
             </tr>
         </table>
+        </footer>
     </div>
-    <script src="https://code.jquery.com/jquery-3.7.1.slim.js" integrity="sha256-UgvvN8vBkgO0luPSUl2s8TIlOSYRoGFAX4jlCIm9Adc=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
             $.ajaxSetup({
@@ -115,13 +125,12 @@
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
                 },
             });
-
             $('#pdf').click(function() {
                 var start = "<?php echo e($start); ?>";
                 var end = "<?php echo e($end); ?>";
                 $.ajax({
-                    url     :'<?php echo e(route("labarugidownloadpdf")); ?>',
-                    type    :'GET',
+                    url     :'<?php echo e(route("report.labarugiprint")); ?>',
+                    type    :'post',
                     data:{
                         start:start,
                         end:end

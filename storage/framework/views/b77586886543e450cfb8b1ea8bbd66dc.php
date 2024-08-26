@@ -109,33 +109,33 @@
 </head>
 <body onload="window.print()">
     <header class="new-header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
-            <h1>{{ auth()->user()->company_name }}</h1>
+            <h1><?php echo e(auth()->user()->company_name); ?></h1>
             <h2>Laporan Buku Besar</h2>
-            <h3>Periode: {{ $tanggalMulai }} s/d {{ $tanggalSelesai }}</h3>
+            <h3>Periode: <?php echo e($tanggalMulai); ?> s/d <?php echo e($tanggalSelesai); ?></h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
     <div class="report-container">
-        @foreach ($ledgers as $coaAkun => $transactions)
-            <h2 class="coa-title">{{ formatNomorAkun($coaAkun) }}</h2>
+        <?php $__currentLoopData = $ledgers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coaAkun => $transactions): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <h2 class="coa-title"><?php echo e(formatNomorAkun($coaAkun)); ?></h2>
             <table>
                 <thead>
                     <tr>
                         <th scope="col">Tanggal</th>
                         <th scope="col">Keterangan</th>
-                        <th scope="col" class="text-right">Debit<div style="color: #e53e3e; font-size: 0.75em;">{{ $transactions->first()->coa->saldo_normal == 'debit' ? 'Bertambah' : 'Berkurang' }}</div></th>
-                        <th scope="col" class="text-right">Kredit<div style="color: #e53e3e; font-size: 0.75em;">{{ $transactions->first()->coa->saldo_normal == 'credit' ? 'Bertambah' : 'Berkurang' }}</div></th>
+                        <th scope="col" class="text-right">Debit<div style="color: #e53e3e; font-size: 0.75em;"><?php echo e($transactions->first()->coa->saldo_normal == 'debit' ? 'Bertambah' : 'Berkurang'); ?></div></th>
+                        <th scope="col" class="text-right">Kredit<div style="color: #e53e3e; font-size: 0.75em;"><?php echo e($transactions->first()->coa->saldo_normal == 'credit' ? 'Bertambah' : 'Berkurang'); ?></div></th>
                         <th scope="col" class="text-right">Saldo</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($transactions as $transaction)
+                    <?php $__currentLoopData = $transactions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $transaction): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <tr>
-                            <td>{{ \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/Y') }}</td>
+                            <td><?php echo e(\Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/Y')); ?></td>
                             <td>
-                                @php
+                                <?php
                                     $keterangan = $transaction->keterangan;
                                     $max_length = 50;
                                     $output = '';
@@ -145,16 +145,17 @@
                                     }
                                     $output .= $keterangan;
                                     echo $output;
-                                @endphp
+                                ?>
                             </td>
-                            <td class="text-right">{{ number_format($transaction->debit, 0, ',', '.') }}</td>
-                            <td class="text-right">{{ number_format($transaction->credit, 0, ',', '.') }}</td>
-                            <td class="text-right">{{ number_format($transaction->saldo, 0, ',', '.') }}</td>
+                            <td class="text-right"><?php echo e(number_format($transaction->debit, 0, ',', '.')); ?></td>
+                            <td class="text-right"><?php echo e(number_format($transaction->credit, 0, ',', '.')); ?></td>
+                            <td class="text-right"><?php echo e(number_format($transaction->saldo, 0, ',', '.')); ?></td>
                         </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 </body>
 </html>
+<?php /**PATH C:\laragon\www\hisabuna\resources\views/report/bukubesar_download.blade.php ENDPATH**/ ?>

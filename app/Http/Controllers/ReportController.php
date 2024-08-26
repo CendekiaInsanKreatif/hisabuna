@@ -37,33 +37,33 @@ class ReportController extends Controller
         $jurnal = Jurnal::with(['details' => function($query) {
             $query->orderBy('coa_akun')->limit(100);
         }])->where(['id' => $id, 'created_by' => auth()->user()->id])->first();
-        
+
         if ($jurnal) {
             $coaList = Coa::where(['created_by' => auth()->user()->id])->get()->keyBy('nomor_akun');
-    
+
             $jurnalDetails = JurnalDetail::where('jurnal_id', $id)
                 ->where('created_by', auth()->user()->id)
                 ->get()
                 ->groupBy(function($detail) {
                     return substr($detail->coa_akun, 0, 5);
                 });
-    
+
             foreach ($jurnal['details'] as $key => $detail) {
                 $coaAkun = $detail['coa_akun'];
                 $child = $coaList->get($coaAkun);
-                
+
                 if ($child) {
                     $jurnal['details'][$key]['nama_akun'] = $child['nama_akun'];
                 }
-                
+
                 $parent = substr($coaAkun, 0, 5);
                 $coa = $coaList->get($parent);
-                
+
                 if ($coa) {
                     $noKun = formatNomorAkun($coa['nomor_akun']);
                     $get = explode('-', $noKun);
                     $deNo = $parent;
-                    
+
                     $total = 0;
                     if ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') {
                         $total = $jurnalDetails->get($deNo)->sum(function($detail) {
@@ -74,7 +74,7 @@ class ReportController extends Controller
                             return $detail->credit - $detail->debit;
                         });
                     }
-    
+
                     $jurnal['details'][$key]['parent'] = [
                         'nomor_akun' => $get[0] . '-' . $get[1],
                         'nama_akun' => $coa['nama_akun'],
@@ -83,7 +83,7 @@ class ReportController extends Controller
                 }
             }
         }
-        
+
 
         return view('report.transaksi', ['jurnal' => $jurnal]);
 
@@ -91,13 +91,13 @@ class ReportController extends Controller
         // $pdf = PDF::loadView('report.transaksi', ['jurnal' => $jurnal]);
         // return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
-    
+
 
     public function downloadBukuBesar(Request $request){
         $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('tanggal_mulai', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->min('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
         $tanggalSelesai = Carbon::createFromFormat('d-m-Y', trim($request->input('tanggal_selesai', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->max('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
         $akun = $request->input('akun', '');
-        
+
 
         $query = JurnalDetail::query()->with('coa')
             ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
@@ -251,7 +251,7 @@ class ReportController extends Controller
                         ->orderBy('nomor_akun')
                         ->get()
                         ->keyBy('nomor_akun');
-            
+
             $data = [];
             $totalKas = 0;
             foreach ($jurnal as $entry) {
@@ -304,7 +304,7 @@ class ReportController extends Controller
                 'start_date' => Carbon::parse($start_date)->format('d/m/Y'),
                 'end_date' => Carbon::parse($end_date)->format('d/m/Y'),
             ]);
-            
+
             // $pdf = PDF::loadView('report.aruskas', [
             //     'data' => $data,
             //     'start_date' => $start_date,
@@ -415,7 +415,7 @@ class ReportController extends Controller
                 'start' => $start,
                 'end'   => $end,
             ]);
-        
+
     }
 
 
@@ -538,7 +538,7 @@ class ReportController extends Controller
             $tahunSekarang = date('Y');
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
             $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
-    
+
             $jurnalDulu = Jurnal::whereNull('is_deleted')
                             ->with(['details' => function($query) use ($start_date, $end_date) {
                                 $query->whereBetween('tanggal_bukti', [$start_date, $end_date]);
@@ -559,14 +559,14 @@ class ReportController extends Controller
             //         ->where('created_by', auth()->user()->id)
             //         ->get();
             // da($coa);
-    
+
             if($jurnalDulu->isEmpty() && $jurnalSekarang->isEmpty()){
                 return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
             }
-    
+
             $labaRugi = $this->labarugi($request, 1);
             $neraca = $this->neracaFunc($end_date, $labaRugi);
-            
+
             $result = [];
             // da($neraca);
             foreach ($neraca as $year => $values) {
@@ -663,7 +663,7 @@ class ReportController extends Controller
                                     if($lv5['saldo_awal_debit'] != '0' && $lv5['saldo_normal'] != 'debit'){
                                         $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_debit'] - $lv5['saldo_awal_credit'];
                                     }
-                                    
+
                                     $lv4Sum += $balance;
                                     $sumSisa += @$sisa[$lv5['nomor_akun']];
                                 }else{
@@ -750,14 +750,13 @@ class ReportController extends Controller
                 $detail = $coa->get(substr($nomorAkun, 0, 8));
 
                 $jurnalTotals = DB::table('jurnal_details')
-                    ->select(
-                        DB::raw('SUM(debit) AS debit'),
-                        DB::raw('SUM(credit) AS credit')
-                    )
-                    ->where('created_by', auth()->user()->id)
-                    ->where('coa_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                    ->orderBy('coa_akun', 'asc')
-                    ->first();
+                ->select(DB::raw('SUM(debit) as debit, SUM(credit) as credit'))
+                ->where('created_by', auth()->user()->id)
+                ->where('coa_akun', 'like', substr($nomorAkun, 0, 4).'%')
+                ->limit(1)
+                ->first();
+
+                // da($jurnalTotals);
 
                 $coasTotals = DB::table('coas')
                     ->select(
@@ -766,7 +765,6 @@ class ReportController extends Controller
                     )
                     ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
                     ->where('created_by', auth()->user()->id)
-                    ->orderBy('nomor_akun', 'asc')
                     ->first();
 
 
@@ -800,9 +798,8 @@ class ReportController extends Controller
                         )
                         ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
                         ->where('created_by', auth()->user()->id)
-                        ->orderBy('nomor_akun', 'asc')
                         ->first();
-                    
+
                     if($coaDetail->saldo_awal_debit != 0 || $coaDetail->saldo_awal_credit != 0){
                         if($coaDetail->saldo_normal == 'debit' && $coaDetail->saldo_awal_credit != 0){
                             $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_debit ?: $coaDetail->saldo_awal_credit;
@@ -812,7 +809,7 @@ class ReportController extends Controller
                             $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_credit ?: $coaDetail->saldo_awal_debit;
                         }
                     }
-                    
+
                     if (!isset($data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun]) || $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] == 0) {
                         $saldo = 0;
                         $saldoAwal = 0;
@@ -904,6 +901,25 @@ class ReportController extends Controller
         return view('report.views.template');
     }
 
+    function sortArrayByKey($array) {
+        foreach ($array as &$subArray) {
+            if (is_array($subArray)) {
+                // Check if it's an associative array that needs sorting
+                if (array_keys($subArray) !== range(0, count($subArray) - 1)) {
+                    uksort($subArray, function($a, $b) {
+                        $aNum = intval(explode(' - ', $a)[0]);
+                        $bNum = intval(explode(' - ', $b)[0]);
+                        return $aNum <=> $bNum;
+                    });
+                }
+                // Recursively sort the subarray
+                $subArray = $this->sortArrayByKey($subArray);
+            }
+        }
+        return $array;
+    }
+
+
     public function neracaSaldo(Request $request){
 
         if($request->isMethod('post')){
@@ -918,11 +934,11 @@ class ReportController extends Controller
                             ->where('created_by', auth()->user()->id)
                             ->get();
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted')->orderBy('nomor_akun', 'asc')->get()->keyBy('nomor_akun');
-    
+
             if($jurnal->isEmpty()){
                 return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
             }
-    
+
             $data = [];
             foreach ($jurnal as $item) {
                 foreach ($item->details as $detail) {
@@ -940,7 +956,7 @@ class ReportController extends Controller
                     }else{
                         $saldoAwal = $xCoa->saldo_awal_credit ?: $xCoa->saldo_awal_debit;
                     }
-                    
+
                     if (!isset($data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['debit']) || !isset($data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['kredit'])) {
                         if($xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit'){
                             $data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['debit'] = $saldoAwal;
@@ -951,7 +967,7 @@ class ReportController extends Controller
                         }
                         $data[$akun3->nama_akun]['Total'] = 0;
                     }
-    
+
                     if($akun1->saldo_normal == 'db' || $akun1->saldo_normal == 'debit'){
                         $data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['debit'] += $detail->debit - $detail->credit;
                     }else{
@@ -978,7 +994,8 @@ class ReportController extends Controller
                     }
                 }
             }
-    
+
+            $data = $this->sortArrayByKey($data);
             $parentNo = 1;
             $newData = [];
             foreach ($data as $akun1 => &$subcategories) {
@@ -1013,8 +1030,10 @@ class ReportController extends Controller
                 ];
                 $parentNo++;
             }
-    
-            
+
+            // da($newData);
+
+
             return view('report.neraca_saldo', [
                 'data' => $newData,
                 'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
@@ -1052,7 +1071,7 @@ class ReportController extends Controller
         if($request->isMethod('post')){
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
             $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
-    
+
             $tahunSebelumnya = date('Y') - 1;
             $tahunSekarang = date('Y');
             $jurnalTahunSebelumnya = Jurnal::whereNull('is_deleted')
@@ -1078,20 +1097,20 @@ class ReportController extends Controller
                                          ->whereYear('jurnal_tgl', $tahunSekarang)
                                          ->get();
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
-    
+
             if($jurnalTahunSekarang->isEmpty()){
                 return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
             }
-    
+
             $dataTahunSebelumnya = $this->neracaFunction($jurnalTahunSebelumnya, $coa);
             $dataTahunSekarang = $this->neracaFunction($jurnalTahunSekarang, $coa);
-    
+
             $dataDahulu = [];
-    
+
             $data = [
                 $tahunSekarang => $dataTahunSekarang
             ];
-    
+
             if($jurnalTahunSebelumnya->isEmpty()){
                 $dataDahulu = array_map(function($section) {
                     return array_map(function($subSection) {
@@ -1100,14 +1119,14 @@ class ReportController extends Controller
                         }, $subSection);
                     }, $section);
                 }, $dataTahunSekarang);
-    
+
                 $data[$tahunSebelumnya] = $dataDahulu;
             }else{
                 $data[$tahunSebelumnya] = $dataTahunSebelumnya;
             }
-    
+
             $data = $this->totalNeraca($data);
-    
+
             $pdf = PDF::loadView('report.neraca_perbandingan', [
                 'data' => $data,
                 'tahunSebelumnya' => $tahunSebelumnya,
@@ -1181,7 +1200,7 @@ class ReportController extends Controller
                 $pAkun = substr($detail->coa_akun, 0, 1);
                 $cAkun = substr($detail->coa_akun, 0, 2);
                 $scAkun = substr($detail->coa_akun, 0, 3);
-                
+
                 $parent = Coa::where('nomor_akun', $pAkun)->first();
                 $child = Coa::where('nomor_akun', $cAkun)->first();
                 $subChild = Coa::where('nomor_akun', $scAkun)->first();

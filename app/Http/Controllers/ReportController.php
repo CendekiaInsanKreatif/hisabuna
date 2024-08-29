@@ -35,7 +35,7 @@ class ReportController extends Controller
 
     public function transaksi($id) {
         $jurnal = Jurnal::with(['details' => function($query) {
-            $query->orderBy('coa_akun')->limit(100);
+            $query->orderBy('coa_akun');
         }])->where(['id' => $id, 'created_by' => auth()->user()->id])->first();
 
         if ($jurnal) {
@@ -84,7 +84,7 @@ class ReportController extends Controller
             }
         }
 
-
+        // da($jur)
         return view('report.transaksi', ['jurnal' => $jurnal]);
 
         // da($jurnal);
@@ -93,136 +93,105 @@ class ReportController extends Controller
     }
 
 
-    public function downloadBukuBesar(Request $request){
-        $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('tanggal_mulai', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->min('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
-        $tanggalSelesai = Carbon::createFromFormat('d-m-Y', trim($request->input('tanggal_selesai', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->max('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
-        $akun = $request->input('akun', '');
-
-
-        $query = JurnalDetail::query()->with('coa')
-            ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
-            ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan', 'jurnal_details.tanggal_bukti')
-            ->where('jurnal_headers.created_by', auth()->user()->id);
-
-        if (!empty($akun)) {
-            $akun = str_replace('-', '', $akun);
-            $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
-        }
-
-        if ($request->has('tanggal_mulai') || $request->has('tanggal_selesai')) {
-            try {
-                $startDate = Carbon::parse($tanggalMulai)->startOfDay();
-            } catch (\Exception $e) {
-                $startDate = Carbon::now()->startOfDay();
-            }
-
-            try {
-                $endDate = Carbon::parse($tanggalSelesai)->endOfDay();
-            } catch (\Exception $e) {
-                $endDate = Carbon::now()->endOfDay();
-            }
-
-            $query->whereBetween('jurnal_details.tanggal_bukti', [$startDate, $endDate]);
-        }
-
-        $en = $query->orderBy('jurnal_details.tanggal_bukti')
-            ->get()
-            ->groupBy('coa_akun');
-
-        $jurnalx = [];
-        foreach ($en as $coaAkun => $transactions) {
-            $coa = Coa::where('nomor_akun', $coaAkun)->where('created_by', auth()->user()->id)->first();
-            if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                $saldoAwal = $coa->saldo_awal_debit;
-            }else{
-                $saldoAwal = $coa->saldo_awal_credit;
-            }
-            $saldoKumulatif = $saldoAwal;
-
-            foreach ($transactions as $transaction) {
-                if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                    $saldoKumulatif += $transaction->debit - $transaction->credit;
-                }else{
-                    $saldoKumulatif += $transaction->credit - $transaction->debit;
-                }
-                $transaction->saldo = $saldoKumulatif;
-                $transaction->tanggal_bukti = Carbon::parse($transaction->tanggal_bukti)->format('Y-m-d H:i:s');
-            }
-
-            $jurnalx[$coaAkun] = $transactions;
-        }
-
-        return view('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
-        // $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
-        // return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
-    }
+    // public function downloadBukuBesar(Request $request){
+        
+    // }
 
     public function bukuBesar(Request $request)
     {
-        $akun = $request->input('akun', '');
-        $tanggalMulai = $request->input('tanggal_mulai', '');
-        $tanggalSelesai = $request->input('tanggal_selesai', '');
+        if($request->isMethod('post')){
+            $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('start_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->min('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
+            $tanggalSelesai = Carbon::createFromFormat('d-m-Y', trim($request->input('end_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->max('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
+            $akun = $request->input('akun', '');
 
-        $query = JurnalDetail::query()->with('coa')
-            ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
-            ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan', 'jurnal_details.tanggal_bukti')
-            ->where('jurnal_headers.created_by', auth()->user()->id);
+            // da($request->all());
 
-        if (!empty($akun)) {
-            $akun = str_replace('-', '', $akun);
-            $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
-        }
 
-        if (!empty($tanggalMulai) || !empty($tanggalSelesai)) {
-            try {
-                $startDate = Carbon::createFromFormat('d-m-Y', trim($tanggalMulai))->startOfDay();
-            } catch (\Exception $e) {
-                $startDate = Carbon::now()->startOfDay();
+            $query = JurnalDetail::query()->with('coa')
+                ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
+                ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan', 'jurnal_details.tanggal_bukti')
+                ->where('jurnal_headers.created_by', auth()->user()->id);
+
+            if (!empty($akun)) {
+                $akun = str_replace('-', '', $akun);
+                $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
             }
 
-            try {
-                $endDate = Carbon::createFromFormat('d-m-Y', trim($tanggalSelesai))->endOfDay();
-            } catch (\Exception $e) {
-                $endDate = Carbon::now()->endOfDay();
-            }
-
-            $query->whereBetween('jurnal_details.tanggal_bukti', [$startDate, $endDate]);
-        }
-
-        $en = $query->orderBy('jurnal_details.tanggal_bukti')
-            ->get()
-            ->groupBy('coa_akun');
-
-        $ledgers = [];
-        foreach ($en as $coaAkun => $transactions) {
-            $coa = Coa::where('nomor_akun', $coaAkun)->where('created_by', auth()->user()->id)->first();
-            if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                $saldoAwal = $coa->saldo_awal_debit;
-            }else{
-                $saldoAwal = $coa->saldo_awal_credit;
-            }
-            $saldoKumulatif = $saldoAwal;
-
-            foreach ($transactions as $transaction) {
-                if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                    $saldoKumulatif += $transaction->debit - $transaction->credit;
-                }else{
-                    $saldoKumulatif += $transaction->credit - $transaction->debit;
+            if ($request->has('start_date') || $request->has('end_date')) {
+                try {
+                    $startDate = Carbon::parse($tanggalMulai)->startOfDay();
+                } catch (\Exception $e) {
+                    $startDate = Carbon::now()->startOfDay();
                 }
-                $transaction->saldo = $saldoKumulatif;
+
+                try {
+                    $endDate = Carbon::parse($tanggalSelesai)->endOfDay();
+                } catch (\Exception $e) {
+                    $endDate = Carbon::now()->endOfDay();
+                }
+
+                $query->whereBetween('jurnal_details.tanggal_bukti', [$startDate, $endDate]);
             }
 
-            $ledgers[$coaAkun] = $transactions;
+            $en = $query->orderBy('jurnal_details.tanggal_bukti')
+                ->get()
+                ->groupBy('coa_akun');
+
+            $tanggalPertama = JurnalDetail::where('created_by', auth()->user()->id)
+                ->orderBy('tanggal_bukti', 'asc')
+                ->value('tanggal_bukti');
+            $xa = $tanggalPertama ?: Carbon::now()->format('Y-m-d');
+            $getPerSaldo = JurnalDetail::where('created_by', auth()->user()->id)
+                ->whereBetween('tanggal_bukti', [
+                    Carbon::parse($xa)->format('Y-m-d'),
+                    Carbon::parse($tanggalMulai)->subDay()->format('Y-m-d')
+                ])
+                ->selectRaw('coa_akun, SUM(debit) as debit, SUM(credit) as kredit')
+                ->groupBy('coa_akun')
+                ->orderBy('coa_akun', 'asc')
+                ->get()
+                ->keyBy('coa_akun');
+
+            $coas = Coa::where('created_by', auth()->user()->id)->get()->keyBy('nomor_akun');
+            $jurnalx = [];
+            foreach ($en as $coaAkun => $transactions) {
+                $coa = $coas->get($coaAkun);
+
+                if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
+                    $saldoAwal = $coa->saldo_awal_debit;
+                    $saldoPer = $coa->saldo_awal_debit + @$getPerSaldo[$coaAkun]['debit'] - @$getPerSaldo[$coaAkun]['kredit'];
+                }else{
+                    $saldoAwal = $coa->saldo_awal_credit;
+                    $saldoPer = $coa->saldo_awal_credit + @$getPerSaldo[$coaAkun]['kredit'] - @$getPerSaldo[$coaAkun]['debit'];
+                }
+
+                $saldoKumulatif = $saldoPer;
+                
+                foreach ($transactions as $transaction) {
+                    if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
+                        $saldoKumulatif += $transaction->debit - $transaction->credit;
+                        
+                    }else{
+                        $saldoKumulatif += $transaction->credit - $transaction->debit;
+                    }
+
+                    $transaction->saldo = $saldoKumulatif;
+                    $transaction->tanggal_bukti = Carbon::parse($transaction->tanggal_bukti)->format('Y-m-d H:i:s');
+                }
+
+                $jurnalx[$coaAkun] = $transactions;
+                $jurnalx[$coaAkun]->saldo_per_tanggal = $saldoPer;
+            }
+
+            $jurnalx = collect($jurnalx)->sortBy(function($transactions, $coaAkun) {
+                return $coaAkun;
+            });
+
+
+            return view('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
         }
 
-
-        if ($request->has('download')) {
-            return view('report.bukubesar_download', ['ledgers' => $ledgers,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
-            // $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $ledgers, 'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
-            // return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
-        }
-
-        return view('report.bukubesar', compact('ledgers', 'tanggalMulai', 'tanggalSelesai', 'akun'));
+        return view('report.views.template');
     }
 
     public function arusKas(Request $request)

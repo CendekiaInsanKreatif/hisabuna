@@ -116,9 +116,7 @@ Route::middleware('auth')->group(function () {
         // Report Controller
         Route::get('daftarjurnal', [ReportController::class, 'daftarJurnal'])->name('report.daftarjurnal');
         Route::get('transaksi/{id}', [ReportController::class, 'transaksi'])->name('report.transaksi');
-        Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
-        Route::post('bukubesar/download', [ReportController::class, 'downloadBukuBesar'])->name('report.bukubesar.download');
-
+        
         // Report View
         Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.views.labarugi');
         Route::get('labaRugiView', [ReportController::class, 'labaRugiView'])->name('labaRugiView');
@@ -127,6 +125,7 @@ Route::middleware('auth')->group(function () {
         Route::get('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.views.neracasaldo');
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.views.neracaperbandingan');
         Route::get('aruskas', [ReportController::class, 'arusKas'])->name('report.views.aruskas');
+        Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.views.bukubesar');
         
         // Report PDF
         Route::post('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
@@ -136,6 +135,7 @@ Route::middleware('auth')->group(function () {
         Route::post('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
         Route::post('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
         Route::post('aruskas', [ReportController::class, 'arusKas'])->name('report.aruskas');
+        Route::post('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
         
         Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
     });

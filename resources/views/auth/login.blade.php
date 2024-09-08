@@ -1,6 +1,6 @@
 <x-guest-layout>
     <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    {{-- <x-auth-session-status class="mb-4" :status="session('message')" /> --}}
 
     <main class="flex h-screen w-full flex-wrap">
         <div class="flex-1 bg-emerald-500 hidden md:flex items-center justify-center md:flex-1/2">
@@ -13,13 +13,13 @@
                 </div>
             </div>
             <div class="h-5 flex items-center w-full max-w-md">
-                @if (session('error'))
+                @if (session('message'))
                     <div
                         class="flex gap-2 border border-{{ session('color') }}-400 bg-{{ session('color') }}-100 p-2 rounded w-full">
                         <div
                             class="border border-{{ session('color') }}-400 rounded-full size-5 text-xs text-{{ session('color') }}-400 font-bold grid place-items-center">
                             !</div>
-                        <p class="text-sm text-{{ session('color') }}-400">{{ session('error') }}</p>
+                        <p class="text-sm text-{{ session('color') }}-400">{{ session('message') }}</p>
                     </div>
                 @endif
             </div>
@@ -57,7 +57,7 @@
 
                         <div class="flex items-center space-between space-x-4">
                             @if (Route::has('password.request'))
-                                <a class="underline text-sm text-emerald-600  hover:text-emerald-900  rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                                <a class="underline text-sm  rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
                                     href="{{ route('password.request') }}">
                                     {{ __('Forgot your password?') }}
                                 </a>

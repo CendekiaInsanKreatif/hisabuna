@@ -142,31 +142,37 @@ unset($__defined_vars); ?>
                                     <tr class="border-b cursor-pointer"
                                         x-show="Object.values(<?php echo e(json_encode($item2)); ?>).join(' ').toLowerCase().includes(search.toLowerCase())"
                                         x-on:click="
-                                            let obj = { isDetail: isDetail, data: <?php echo e(json_encode($item2)); ?> };
-                                            document.getElementById('searchBarAkun').value = '';
-                                            document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
-                                            let firstChar = obj.data.nomor_akun.charAt(0);
-                                            let teksDebit, teksKredit, styleDebit, styleKredit;
-                                            if (firstChar === '1') {
-                                                teksDebit = 'Bertambah';
-                                                teksKredit = 'Berkurang';
-                                                styleDebit = 'color: green;';
-                                                styleKredit = 'color: red;';
-                                            } else if (firstChar === '2' || firstChar === '3' || firstChar === '4') {
-                                                teksDebit = 'Berkurang';
-                                                teksKredit = 'Bertambah';
-                                                styleDebit = 'color: red;';
-                                                styleKredit = 'color: green;';
-                                            } else if (firstChar === '5' || firstChar === '6') {
-                                                teksDebit = 'Bertambah';
-                                                teksKredit = 'Berkurang';
-                                                styleDebit = 'color: green;';
-                                                styleKredit = 'color: red;';
-                                            }
+                                        if(isDetail){
+                                                let obj = { isDetail: isDetail, data: <?php echo e(json_encode($item2)); ?> };
+                                                document.getElementById('searchBarAkun').value = '';
+                                                document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
+                                                let firstChar = obj.data.nomor_akun.charAt(0);
+                                                let teksDebit, teksKredit, styleDebit, styleKredit;
+                                                if (firstChar === '1') {
+                                                    teksDebit = 'Bertambah';
+                                                    teksKredit = 'Berkurang';
+                                                    styleDebit = 'color: green;';
+                                                    styleKredit = 'color: red;';
+                                                } else if (firstChar === '2' || firstChar === '3' || firstChar === '4') {
+                                                    teksDebit = 'Berkurang';
+                                                    teksKredit = 'Bertambah';
+                                                    styleDebit = 'color: red;';
+                                                    styleKredit = 'color: green;';
+                                                } else if (firstChar === '5' || firstChar === '6') {
+                                                    teksDebit = 'Bertambah';
+                                                    teksKredit = 'Berkurang';
+                                                    styleDebit = 'color: green;';
+                                                    styleKredit = 'color: red;';
+                                                }
 
-                                            document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
-                                            document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
-                                            document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
+                                                document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
+                                                document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
+                                                document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
+                                            }else{
+                                                let obj = { isDetail: isDetail, data: <?php echo e(json_encode($item2)); ?> };
+                                                document.getElementsByName('akun')[0].value = formatNomorAkun(obj.data.nomor_akun);
+                                            }
+                                            
                                             $dispatch('close-modal');
                                         ">
                                         <?php $__currentLoopData = $field; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>

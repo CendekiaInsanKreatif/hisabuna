@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Alert;
 
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
@@ -66,7 +67,8 @@ class JurnalController extends Controller
             $sumKredit = array_sum($kredit);
 
             if($sumDebit != $sumKredit || $sumDebit - $sumKredit != 0){
-                return redirect()->route('jurnal.index')->with('message', 'Debit tidak sama dengan kredit.')->with('color', 'red');
+                Alert::error('Oops!', 'Debit tidak sama dengan kredit.');
+                return redirect()->back();
             }
 
             $jurnal = Jurnal::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get();
@@ -139,11 +141,13 @@ class JurnalController extends Controller
 
             DB::commit();
             Log::info('Jurnal berhasil dibuat.', ['jurnal_id' => $dataJurnal->id]);
-            return redirect()->route('jurnal.index')->with('message', 'Jurnal berhasil dibuat.')->with('color', 'green');
+            Alert::success('Sukses!', 'Jurnal berhasil dibuat.');
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Gagal membuat jurnal: ' . $e->getMessage());
-            return redirect()->route('jurnal.index')->with('message', 'Gagal membuat jurnal: ' . $e->getMessage())->with('color', 'red');
+            Alert::error('Oops!', 'Gagal membuat jurnal: ' . $e->getMessage());
+            return redirect()->back();
         }
     }
 
@@ -188,7 +192,8 @@ class JurnalController extends Controller
         $sumKredit = array_sum($kredit);
 
         if($sumDebit != $sumKredit || $sumDebit - $sumKredit != 0){
-            return redirect()->route('jurnal.index')->with('message', 'Debit tidak sama dengan kredit.')->with('color', 'red');
+            Alert::error('Oops!', 'Debit tidak sama dengan kredit.');
+            return redirect()->back();
         }
 
         // da($request->all());
@@ -269,10 +274,12 @@ class JurnalController extends Controller
 
             DB::commit();
 
-            return redirect()->route('jurnal.index')->with('message', 'Jurnal berhasil diperbarui.')->with('color', 'green');
+            Alert::success('Sukses!', 'Jurnal berhasil diperbarui.');
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->route('jurnal.edit', $jurnal)->with('message', 'Gagal memperbarui jurnal: ' . $e->getMessage())->with('color', 'red');
+            Alert::error('Oops!', 'Gagal memperbarui jurnal: ' . $e->getMessage());
+            return redirect()->back();
         }
     }
 
@@ -365,5 +372,38 @@ class JurnalController extends Controller
     public function sampleExport()
     {
         return Excel::download(new JurnalSampleExport(), 'jurnal_sample.xlsx');
+    }
+
+    public function cekTrial()
+    {
+        $users = DB::select("
+                SELECT 
+                    id, 
+                    created_at
+                FROM users
+                WHERE
+                profile = ? AND
+                is_active = ? AND 
+                created_at <= DATE_SUB(NOW(), INTERVAL 2 MONTH)
+            ", ['trial', 1]);
+        
+        foreach($users as $key => $value) {
+            $data = [
+                'is_active' => "0"
+            ];
+            $update = DB::table('users')->where('id', $value->id)->update($data);
+        }
+
+        if($update){
+            return response()->json([
+                'status'     => 200,
+                'message'    => 'Update data berhasil'
+            ]);
+        }
+        return response()->json([
+            'status'     => 400,
+            'message'    => 'Update data gagal'
+        ]);
+        
     }
 }

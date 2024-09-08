@@ -9,26 +9,7 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
     <!-- Session Status -->
-    <?php if (isset($component)) { $__componentOriginal7c1bf3a9346f208f66ee83b06b607fb5 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal7c1bf3a9346f208f66ee83b06b607fb5 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.auth-session-status','data' => ['class' => 'mb-4','status' => session('status')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('auth-session-status'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['class' => 'mb-4','status' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(session('status'))]); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal7c1bf3a9346f208f66ee83b06b607fb5)): ?>
-<?php $attributes = $__attributesOriginal7c1bf3a9346f208f66ee83b06b607fb5; ?>
-<?php unset($__attributesOriginal7c1bf3a9346f208f66ee83b06b607fb5); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal7c1bf3a9346f208f66ee83b06b607fb5)): ?>
-<?php $component = $__componentOriginal7c1bf3a9346f208f66ee83b06b607fb5; ?>
-<?php unset($__componentOriginal7c1bf3a9346f208f66ee83b06b607fb5); ?>
-<?php endif; ?>
+    
 
     <main class="flex h-screen w-full flex-wrap">
         <div class="flex-1 bg-emerald-500 hidden md:flex items-center justify-center md:flex-1/2">
@@ -41,13 +22,13 @@
                 </div>
             </div>
             <div class="h-5 flex items-center w-full max-w-md">
-                <?php if(session('error')): ?>
+                <?php if(session('message')): ?>
                     <div
                         class="flex gap-2 border border-<?php echo e(session('color')); ?>-400 bg-<?php echo e(session('color')); ?>-100 p-2 rounded w-full">
                         <div
                             class="border border-<?php echo e(session('color')); ?>-400 rounded-full size-5 text-xs text-<?php echo e(session('color')); ?>-400 font-bold grid place-items-center">
                             !</div>
-                        <p class="text-sm text-<?php echo e(session('color')); ?>-400"><?php echo e(session('error')); ?></p>
+                        <p class="text-sm text-<?php echo e(session('color')); ?>-400"><?php echo e(session('message')); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -197,7 +178,7 @@
 
                         <div class="flex items-center space-between space-x-4">
                             <?php if(Route::has('password.request')): ?>
-                                <a class="underline text-sm text-emerald-600  hover:text-emerald-900  rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                                <a class="underline text-sm  rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
                                     href="<?php echo e(route('password.request')); ?>">
                                     <?php echo e(__('Forgot your password?')); ?>
 

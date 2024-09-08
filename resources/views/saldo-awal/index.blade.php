@@ -5,11 +5,16 @@
                 <p class="text-2xl font-semibold text-emerald-500">Saldo Awal</p>
             </div>
             <div class="card bg-white shadow-lg rounded-xl border border-gray-200 p-2 w-full md:w-auto">
-                <form action="{{ route('saldo-awal.update') }}" method="post">
+                <form action="{{ route('saldo-awal.update') }}" method="post" @submit.prevent="validateAndSubmit">
                     @csrf
                     @method('put')
                 <div class="container mx-auto p-1">
                     <div class="flex flex-wrap gap-1 md:gap-3 items-center">
+                        <div class="mr-auto">
+                            <button type="button" @click="filterCategory('all')" class="btn-akun py-1 bg-gray-200 rounded px-3 hover:bg-emerald-500 transition duration-300">Semua</button>
+                            <button type="button" @click="filterCategory('neraca')" class="btn-akun py-1 bg-gray-200 rounded px-3 hover:bg-emerald-500 transition duration-300">Neraca</button>
+                            <button type="button" @click="filterCategory('labarugi')" class="btn-akun py-1 bg-gray-200 rounded px-3 hover:bg-emerald-500 transition duration-300">Laba Rugi</button>
+                        </div>
                         <div class="ml-auto">
                             <button @click="reset" type="button" class="btn-secondary bg-gray-500 text-white py-1 px-3 rounded">Reset</button>
                             <button type="submit" class="btn-primary bg-emerald-500 text-white py-1 px-3 rounded ml-2">Simpan</button>
@@ -73,7 +78,7 @@
                         </tr>
                     </thead>
                     <tbody id="coaTableBody">
-                        <template x-for="coa in allData" :key="coa.id">
+                        <template x-for="coa in filteredData" :key="coa.id">
                             <tr @mouseover="hover = true" @mouseout="hover = false">
                                 <input type="hidden" name="id[]" x-model="coa.id">
                                 <input type="hidden" name="nomor_akun[]" x-model="coa.nomor_akun">
@@ -81,7 +86,7 @@
                                 <td class="text-left px-4 py-1" x-text="formatNomorAkun(coa.nomor_akun)"></td>
                                 <td class="text-left px-4 py-1" x-text="coa.nama_akun"></td>
                                 <td class="text-right px-4 py-1">
-                                    <input type="text" name="saldo_awal_debit[]" class="w-full text-right focus:ring-emerald-500" x-model="coa.formatted_saldo_awal_debit" x-on:input="formatCurrencyInput($event, 'debit', coa)" :readonly="coa.saldo_normal == 'credit' || coa.saldo_normal == 'kredit'" :style="(coa.saldo_normal == 'credit' || coa.saldo_normal == 'kredit') ? 'background-color: #d1d5db; text-align: right; padding-right: 10px; border: 1px solid #ccc; border-radius: 4px;' : 'text-align: right; padding-right: 10px; border: 1px solid #ccc; border-radius: 4px;'">
+                                    <input type="text" name="saldo_awal_debit[]" class="w-full text-right focus:ring-emerald-500" x-model="coa.formatted_saldo_awal_debit" x-on:input="formatCurrencyInput($event, 'debit', coa)" :readonly="coa.saldo_normal == 'credit' || coa.saldo_normal == 'kredit'" :style="(coa.saldo_normal == 'credit' || coa.saldo_normal == 'kredit') ? 'background-color: #d1d5db; text-align:right; padding-right: 10px; border: 1px solid #ccc; border-radius: 4px;' : 'text-align: right; padding-right: 10px; border: 1px solid #ccc; border-radius: 4px;'">
                                 </td>
                                 <td class="text-right px-4 py-1">
                                     <input type="text" name="saldo_awal_credit[]" class="w-full text-right focus:ring-emerald-500" x-model="coa.formatted_saldo_awal_credit" x-on:input="formatCurrencyInput($event, 'credit', coa)" :readonly="coa.saldo_normal == 'debit' || coa.saldo_normal == 'db'" :style="(coa.saldo_normal == 'debit' || coa.saldo_normal == 'db') ? 'background-color: #d1d5db; text-align: right; padding-right: 10px; border: 1px solid #ccc; border-radius: 4px;' : 'text-align: right; padding-right: 10px; border: 1px solid #ccc; border-radius: 4px;'">
@@ -103,6 +108,48 @@
                 totalSaldoAwalDebit: 0,
                 totalSaldoAwalKredit: 0,
                 selisihSaldoAwal: 0,
+                filter: 'all',
+                filterCategory(category) {
+                    this.filter = category;
+                    this.updateTotals();
+                },
+                filteredData() {
+                    if (this.filter === 'all') {
+                        return this.allData;
+                    } else if (this.filter === 'neraca') {
+                        return this.allData.filter(coa => ['1', '2', '3'].includes(coa.nomor_akun.charAt(0)));
+                    } else if (this.filter === 'labarugi') {
+                        return this.allData.filter(coa => ['4', '5', '6'].includes(coa.nomor_akun.charAt(0)));
+                    }
+                },
+                updateTotals() {
+                    const filteredData = this.filteredData();
+                    const totalDebit = filteredData.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_debit || 0), 0);
+                    const totalKredit = filteredData.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_credit || 0), 0);
+                    this.totalSaldoAwalDebit = this.formatCurrency(totalDebit);
+                    this.totalSaldoAwalKredit = this.formatCurrency(totalKredit);
+                    this.selisihSaldoAwal = this.formatCurrency(totalDebit - totalKredit);
+                },
+                validateAndSubmit() {
+                    if (this.filter === 'neraca' && parseFloat(this.selisihSaldoAwal) !== 0) {
+                        alert('Selisih untuk kategori Neraca tidak boleh berbeda antara Debit dan Kredit.');
+                        return false;
+                    } else {
+                        if (this.filter === 'all') {
+                            const neracaAccounts = this.allData.filter(coa => ['1', '2', '3'].includes(coa.nomor_akun.charAt(0)));
+                            const totalDebit = neracaAccounts.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_debit || 0), 0);
+                            const totalKredit = neracaAccounts.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_credit || 0), 0);
+                            const selisihNeraca = totalDebit - totalKredit;
+
+                            if (selisihNeraca !== 0) {
+                                alert('Selisih untuk Akun Neraca tidak boleh berbeda antara Debit dan Kredit.');
+                                return false;
+                            }
+                        }
+
+                        this.$el.submit();
+                    }
+                },
                 async fetchCoaData() {
                     const overlay = document.getElementById('overlay');
                     overlay.style.display = 'flex';
@@ -126,13 +173,6 @@
                     } finally {
                         overlay.style.display = 'none';
                     }
-                },
-                updateTotals() {
-                    const totalDebit = this.allData.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_debit || 0), 0);
-                    const totalKredit = this.allData.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_credit || 0), 0);
-                    this.totalSaldoAwalDebit = this.formatCurrency(totalDebit);
-                    this.totalSaldoAwalKredit = this.formatCurrency(totalKredit);
-                    this.selisihSaldoAwal = this.formatCurrency(totalDebit - totalKredit);
                 },
                 async reset() {
                     await this.fetchCoaData();

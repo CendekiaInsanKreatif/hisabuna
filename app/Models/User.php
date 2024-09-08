@@ -22,10 +22,12 @@ class User extends Authenticatable
         'profile',
         'password',
         'company_name',
+        'periode',
         'company_logo',
         'no_hp',
         'no_telp',
         'roles',
+        'is_active',
     ];
 
     /**

@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
-
-
+use Illuminate\Validation\Rules;
+use Alert;
 
 use App\Models\Coa;
 use App\Models\Jurnal;
@@ -22,19 +22,101 @@ use App\Models\JurnalDetail;
 use App\Imports\JurnalDetailImport;
 use App\Imports\MultipleJurnal;
 use Illuminate\Http\Request;
-
+use App\Models\User;
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
+    if(auth()->user()->is_active == 0){
+        Auth::guard('web')->logout();
+        return redirect()->route('login')->with('message', 'Akun anda tidak aktif')->with('color', 'red');
+    }
+
     return view('jurnal.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+
     //  Main Route
     Route::resource('coas', CoaController::class);
     Route::resource('jurnal', JurnalController::class);
+    // Route::get('cekTrial')
+
+    // Users
+    Route::get('users', function(){
+        return view('users.index');
+    })->name('users.index');
+
+    Route::post('users/store', function(Request $request){
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'no_hp' => $request->no_hp,
+            'no_telp' => $request->no_telp,
+            'periode' => $request->periode,
+            'password' => Hash::make($request->password),
+            'roles' => 'user',
+            'is_active' => 1,
+            'company_name' => $request->company_name,
+        ]);
+
+        if ($request->hasFile('image')) {
+            $lampiranFile = $request->file('image');
+            $filePath = 'profiles/' . $user->company_name;
+            $fileName = $user->id . '.' . $lampiranFile->getClientOriginalExtension();
+            $tempPath = $lampiranFile->getPathName();
+        
+            try {
+                $imagick = new Imagick($tempPath);
+                $imagick->setImageCompressionQuality(30);
+                $compressedImagePath = storage_path('app/public/' . $filePath . '/' . $fileName);
+                $directoryPath = storage_path('app/public/' . $filePath);
+                if (!file_exists($directoryPath)) {
+                    mkdir($directoryPath, 0755, true);
+                }
+                $imagick->writeImage($compressedImagePath);
+                $imagick->clear();
+                $imagick->destroy();
+                $user->company_logo = $filePath . '/' . $fileName;
+                $user->save();
+            } catch (ImagickException $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        }
+
+        Alert::success('Sukses!', 'Berhasil Tambah User');
+        return redirect()->route('users.index');
+    })->name('users.store');
+
+    Route::get('users/{id}', function($id){
+        $users = User::where('id', $id)->get();
+        return view('users.show', compact('users'));
+    })->name('users.show');
+
+    Route::put('users/{id}', function(Request $request, $id) {
+        $user = User::findOrFail($id);
+        $user->update($request->except(['password', 'password_confirmation']));
+
+        return redirect()->route('users.index')->with('message', 'Berhasil Update Pengguna')->with('color', 'green');
+    })->name('users.update');
+
+    Route::delete('users/{id}', function($id) {
+        $user = User::findOrFail($id);
+        $user->is_active = 0; // Mengubah status is_active menjadi 0
+        $user->save(); // Menyimpan perubahan ke database
+
+        return redirect()->route('users.index')->with('message', 'Berhasil Nonaktifkan Pengguna')->with('color', 'green');
+    })->name('users.destroy');
+
+    Route::match(['put', 'patch'], 'users', function(Request $request) {
+        $user = User::findOrFail($id);
+        $user->update([
+            'status' => $request->input('status'),
+        ]);
+
+        return response()->json(['message' => 'Berhasil Update Status Pengguna'], 200);
+    })->name('users.update');
 
     // Arus Kas
     Route::get('arus-kas', function(){
@@ -65,14 +147,14 @@ Route::middleware('auth')->group(function () {
         }, $creditValues));
     
         DB::beginTransaction();
-    
+        // da($request->all());
         try {
-            if ($sumDebit !== $sumCredit) {
-                DB::rollBack();
-                return redirect()->route('saldo-awal.index')
-                    ->with('message', 'Gagal Update Saldo Awal: Debit dan Kredit tidak sama')
-                                       ->with('color', 'red');
-            }
+            // if ($sumDebit !== $sumCredit) {
+            //     DB::rollBack();
+            //     return redirect()->route('saldo-awal.index')
+            //         ->with('message', 'Gagal Update Saldo Awal: Debit dan Kredit tidak sama')
+            //                            ->with('color', 'red');
+            // }
 
             foreach ($ids as $index => $id) {
                 $debit = (int) str_replace('.', '', $debitValues[$index]);
@@ -85,14 +167,12 @@ Route::middleware('auth')->group(function () {
             }
     
             DB::commit();
-            return redirect()->route('saldo-awal.index')
-                ->with('message', 'Berhasil Update Saldo Awal')
-                ->with('color', 'green');
+            Alert::success('Sukses!', 'Berhasil Update Saldo Awal');
+            return redirect()->route('saldo-awal.index');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('saldo-awal.index')
-                ->with('message', 'Gagal Update Saldo Awal: Terjadi kesalahan')
-                ->with('color', 'red');
+            Alert::error('Oops!', 'Gagal Update Saldo Awal: Terjadi kesalahan');
+            return redirect()->route('saldo-awal.index');
         }
     })->name('saldo-awal.update');
 
@@ -106,6 +186,7 @@ Route::middleware('auth')->group(function () {
     Route::get('jurnal/lampiran', function() {
         return "fafa";
     })->name('jurnal.lampiran');
+    Route::get('/cekTrial',[JurnalController::class, 'cekTrial'])->name('cekTrial');
 
     // Profile User
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -138,10 +219,23 @@ Route::middleware('auth')->group(function () {
         Route::post('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
         
         Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
+        Route::get('preview-coa', [CoaController::class, 'previewCoa'])->name('report.preview-coa');
     });
 
     // API Rouye
     Route::prefix('api')->group(function () {
+        Route::get('users', function(){
+            if(auth()->user()->roles == 'superadmin'){
+                $user = User::where('id', '!=', auth()->user()->id)->orderBy('name', 'asc')->get();
+                return response()->json($user);
+            }else{
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses'
+                ], 403);
+            }
+        });
+
         Route::get('labarugi', [Report_Controller::class, 'labaRugi'])->name('api.labarugi');
         Route::get('perubahanekuitas', [Report_Controller::class, 'perubahanEkuitas'])->name('api.perubahanekuitas');
         Route::get('neraca', [Report_Controller::class, 'neraca'])->name('api.neraca');
@@ -178,7 +272,8 @@ Route::middleware('auth')->group(function () {
                 ]);
             }
 
-            return view('saldo-awal.index')->with('message', 'Berhasil Update Saldo Awal')->with('color', 'green');
+            Alert::success('Sukses!', 'Berhasil Update Saldo Awal');
+            return redirect()->route('saldo-awal.index');
         });
 
         Route::get('/uploadsample', function(Request $request){
@@ -342,209 +437,6 @@ Route::middleware('auth')->group(function () {
             return view('report.transaksi');
         });
     });
-
-    Route::get('test', function(){
-        $coa = array(
-            1 => array(
-                11 => array(
-                    111 => 3275700553,
-                    112 => 1563906500
-                ),
-                12 => array(
-                    121 => 175895462
-                )
-            ),
-            2 => array(
-                21 => array(
-                    211 => 97408680,
-                    219 => 1563906500
-                )
-            ),
-            3 => array(
-                31 => array(
-                    311 => 3443796333
-                )
-            )
-        );
-
-        $data = array(
-            1 => array(
-                11 => array(
-                    115 => -19,
-                    116 => 20482279,
-                    111 => 3208721950
-                )
-            ),
-            2 => array(
-                21 => array(
-                    211 => 158895109
-                )
-            )
-        );
-
-        $result = [];
-        $total = 0;
-        foreach ($coa as $key1 => $value1) {
-            $result[2024][$key1] = [];
-            foreach ($value1 as $key2 => $value2) {
-                $sum = 0;
-                $result[2024][$key1][$key2] = [];
-                foreach ($value2 as $key3 => $value3) {
-                    if (isset($data[$key1][$key2][$key3])) {
-                        $result[2024][$key1][$key2][$key3] = $data[$key1][$key2][$key3];
-                    } else {
-                        $result[2024][$key1][$key2][$key3] = $value3;
-                    }
-                    $sum += $result[2024][$key1][$key2][$key3];
-                }
-                if (isset($data[$key1][$key2])) {
-                    foreach ($data[$key1][$key2] as $key3 => $value3) {
-                        if (!isset($result[2024][$key1][$key2][$key3])) {
-                            $result[2024][$key1][$key2][$key3] = $value3;
-                            $sum += $value3;
-                        }
-                    }
-                }
-                $result[2024][$key1]["Jumlah $key2"] = $sum;
-                $total += $sum;
-            }
-            $result[2024]["Jumlah $key1"] = $total;
-        }
-        $total = 0;
-        foreach ($coa as $key1 => $value1) {
-            $result[2023][$key1] = [];
-            foreach ($value1 as $key2 => $value2) {
-                $sum = 0;
-                $result[2023][$key1][$key2] = [];
-                foreach ($value2 as $key3 => $value3) {
-                    $result[2023][$key1][$key2][$key3] = $value3;
-                    $sum += $value3;
-                }
-                if (isset($data[$key1][$key2])) {
-                    foreach ($data[$key1][$key2] as $key3 => $value3) {
-                        if (!isset($result[2023][$key1][$key2][$key3])) {
-                            $result[2023][$key1][$key2][$key3] = 0;
-                        }
-                    }
-                }
-                $result[2023][$key1]["Jumlah $key2"] = $sum;
-                $total += $sum;
-            }
-            $result[2023]["Jumlah $key1"] = $total;
-        }
-        return $result;
-    });
-
-    Route::get('hitung-neraca', function(){
-        $jurnal = JurnalDetail::where('created_by', auth()->user()->id)
-            ->where(function($query) {
-                $query->where('coa_akun', 'like', '1%')
-                    ->orWhere('coa_akun', 'like', '2%')
-                    ->orWhere('coa_akun', 'like', '3%');
-            })->get();
-
-        $coa = Coa::whereNull('is_deleted')
-            ->where(function($query) {
-                $query->where('nomor_akun', 'like', '1%')
-                    ->orWhere('nomor_akun', 'like', '2%')
-                    ->orWhere('nomor_akun', 'like', '3%');
-            })
-            ->where('created_by', auth()->user()->id)
-            ->get()
-            ->keyBy('nomor_akun');
-
-        if(!$jurnal->isEmpty() && !$coa->isEmpty()) {
-            $data = [];
-            foreach($jurnal as $row) {
-                $nomorAkun = $row->coa_akun;
-                $parent = $coa->get(substr($nomorAkun, 0, 1));
-                $child = $coa->get(substr($nomorAkun, 0, 2));
-                $subChild = $coa->get(substr($nomorAkun, 0, 3));
-                $grandChild = $coa->get(substr($nomorAkun, 0, 5));
-                $detail = $coa->get(substr($nomorAkun, 0, 8));
-
-                $jurnalTotals = DB::table('jurnal_details')
-                    ->select(
-                        DB::raw('SUM(debit) AS debit'),
-                        DB::raw('SUM(credit) AS credit')
-                    )
-                    ->where('created_by', auth()->user()->id)
-                    ->where('coa_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                    ->first();
-
-                $coasTotals = DB::table('coas')
-                    ->select(
-                        DB::raw('SUM(saldo_awal_debit) AS saldo_awal_debit'),
-                        DB::raw('SUM(saldo_awal_credit) AS saldo_awal_credit')
-                    )
-                    ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                    ->where('created_by', auth()->user()->id)
-                    ->first();
-
-                if($nomorAkun === $detail->nomor_akun) {
-                    $saldo = 0;
-                    $saldoAwal = 0;
-                    if(in_array($detail->saldo_normal, ['debit', 'd', 'db'])) {
-                        $saldo = $coasTotals->saldo_awal_debit + $jurnalTotals->debit - $jurnalTotals->credit;
-                        $saldoAwal = $coasTotals->saldo_awal_debit;
-                    } else {
-                        $saldo = $coasTotals->saldo_awal_credit + $jurnalTotals->credit - $jurnalTotals->debit;
-                        $saldoAwal = $coasTotals->saldo_awal_credit;
-                    }
-                    $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldo;
-                    $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldoAwal;
-                }
-            }
-
-            foreach($coa as $nomorAkun => $coaDetail) {
-                if ($coaDetail->saldo_awal_debit > 0 || $coaDetail->saldo_awal_credit > 0) {
-                    $parent = $coa->get(substr($nomorAkun, 0, 1));
-                    $child = $coa->get(substr($nomorAkun, 0, 2));
-                    $subChild = $coa->get(substr($nomorAkun, 0, 3));
-
-                    $coasTotals = DB::table('coas')
-                        ->select(
-                            DB::raw('SUM(saldo_awal_debit) AS saldo_awal_debit'),
-                            DB::raw('SUM(saldo_awal_credit) AS saldo_awal_credit')
-                        )
-                        ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                        ->where('created_by', auth()->user()->id)
-                        ->first();
-                    
-                    if (!isset($data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun]) || $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] == 0) {
-                        $saldo = 0;
-                        $saldoAwal = 0;
-                        if(in_array($coaDetail->saldo_normal, ['debit', 'd', 'db'])) {
-                            $saldo = $coasTotals->saldo_awal_debit;
-                            $saldoAwal = $coasTotals->saldo_awal_debit;
-                        } else {
-                            $saldo = $coasTotals->saldo_awal_credit;
-                            $saldoAwal = $coasTotals->saldo_awal_credit;
-                        }
-                        $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldo;
-                        $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] = $saldoAwal;
-                    }
-                    if(@$parent['golongan'] == 'Liabilitas' || @$parent['golongan'] == 'Ekuitas'){
-                        $data[date('Y')]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nama_akun] = $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] ?: $saldo;
-                        $data[date('Y') - 1]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nama_akun] = $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nama_akun] ?: $saldo;
-                    }
-                }
-            }
-
-
-            foreach($data as $tahun => $rows) {
-                foreach($rows as $rowKey => $row) {
-                    if($rowKey == '2' || $rowKey == '3' || $rowKey == 2 || $rowKey == 3){
-                        unset($data[$tahun][$rowKey]);
-                    }
-                }
-            }
-        }
-        
-        da($data);
-        return $data;
-    });
-
 });
 
 require __DIR__.'/auth.php';

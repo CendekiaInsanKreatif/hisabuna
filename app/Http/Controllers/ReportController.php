@@ -9,7 +9,9 @@ use Maatwebsite\Excel\Facades\Excel;
 use PDF;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
-
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Redirect;
+use Alert;
 use App\Models\Coa;
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
@@ -25,7 +27,8 @@ class ReportController extends Controller
         $tgl_akhir = $jurnal->max('jurnal_tgl');
 
         if($jurnal->isEmpty()){
-            return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+            Alert::error('Oops!', 'Data tidak ditemukan');
+            return redirect()->back();
         }
 
         $view = view('report.daftarjurnal', ['jurnal' => $jurnal, 'tgl_awal' => $tgl_awal, 'tgl_akhir' => $tgl_akhir])->render();
@@ -99,13 +102,17 @@ class ReportController extends Controller
 
     public function bukuBesar(Request $request)
     {
+        $coa = Coa::whereNull('is_deleted')
+                    ->where('level', 5)
+                    ->where('created_by', auth()->user()->id)
+                    ->get()
+                    ->toArray();
+
+
         if($request->isMethod('post')){
             $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('start_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->min('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
             $tanggalSelesai = Carbon::createFromFormat('d-m-Y', trim($request->input('end_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->max('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
             $akun = $request->input('akun', '');
-
-            // da($request->all());
-
 
             $query = JurnalDetail::query()->with('coa')
                 ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
@@ -137,6 +144,11 @@ class ReportController extends Controller
                 ->get()
                 ->groupBy('coa_akun');
 
+            if($en->isEmpty()){
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
+            }
+
             $tanggalPertama = JurnalDetail::where('created_by', auth()->user()->id)
                 ->orderBy('tanggal_bukti', 'asc')
                 ->value('tanggal_bukti');
@@ -144,7 +156,7 @@ class ReportController extends Controller
             $getPerSaldo = JurnalDetail::where('created_by', auth()->user()->id)
                 ->whereBetween('tanggal_bukti', [
                     Carbon::parse($xa)->format('Y-m-d'),
-                    Carbon::parse($tanggalMulai)->subDay()->format('Y-m-d')
+                    Carbon::parse($tanggalMulai)->format('Y-m-d')
                 ])
                 ->selectRaw('coa_akun, SUM(debit) as debit, SUM(credit) as kredit')
                 ->groupBy('coa_akun')
@@ -152,29 +164,18 @@ class ReportController extends Controller
                 ->get()
                 ->keyBy('coa_akun');
 
+            // da($getPerSaldo);
+
             $coas = Coa::where('created_by', auth()->user()->id)->get()->keyBy('nomor_akun');
             $jurnalx = [];
             foreach ($en as $coaAkun => $transactions) {
                 $coa = $coas->get($coaAkun);
-
-                if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                    $saldoAwal = $coa->saldo_awal_debit;
-                    $saldoPer = $coa->saldo_awal_debit + @$getPerSaldo[$coaAkun]['debit'] - @$getPerSaldo[$coaAkun]['kredit'];
-                }else{
-                    $saldoAwal = $coa->saldo_awal_credit;
-                    $saldoPer = $coa->saldo_awal_credit + @$getPerSaldo[$coaAkun]['kredit'] - @$getPerSaldo[$coaAkun]['debit'];
-                }
+                $saldoAwal = ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') ? $coa->saldo_awal_debit : $coa->saldo_awal_credit;
+                $saldoPer = $saldoAwal + @$getPerSaldo[$coaAkun]['debit'] - @$getPerSaldo[$coaAkun]['kredit'];
 
                 $saldoKumulatif = $saldoPer;
-                
                 foreach ($transactions as $transaction) {
-                    if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                        $saldoKumulatif += $transaction->debit - $transaction->credit;
-                        
-                    }else{
-                        $saldoKumulatif += $transaction->credit - $transaction->debit;
-                    }
-
+                    $saldoKumulatif += ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') ? ($transaction->debit - $transaction->credit) : ($transaction->credit - $transaction->debit);
                     $transaction->saldo = $saldoKumulatif;
                     $transaction->tanggal_bukti = Carbon::parse($transaction->tanggal_bukti)->format('Y-m-d H:i:s');
                 }
@@ -191,13 +192,12 @@ class ReportController extends Controller
             return view('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
         }
 
-        return view('report.views.template');
+        return view('report.views.template', compact('coa'));
     }
 
     public function arusKas(Request $request)
     {
         if ($request->isMethod('post')) {
-            // da($request);
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
             $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
 
@@ -212,7 +212,8 @@ class ReportController extends Controller
                         ->get();
 
             if ($jurnal->isEmpty()) {
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
 
             $coas = Coa::where('created_by', auth()->user()->id)
@@ -320,7 +321,8 @@ class ReportController extends Controller
         }
 
         if($jurnal->isEmpty()){
-            return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+            Alert::error('Oops!', 'Data tidak ditemukan');
+            return redirect()->back();
         }
 
         $kategori = Coa::where('created_by', auth()->user()->id)->where('level', '=', '1')->get()->keyBy('nomor_akun')->toArray();
@@ -420,7 +422,8 @@ class ReportController extends Controller
             }
 
             if($jurnal->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
 
             $kategori = Coa::where('created_by', auth()->user()->id)->where('level', '=', '1')->get()->keyBy('nomor_akun')->toArray();
@@ -530,7 +533,8 @@ class ReportController extends Controller
             // da($coa);
 
             if($jurnalDulu->isEmpty() && $jurnalSekarang->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
 
             $labaRugi = $this->labarugi($request, 1);
@@ -689,13 +693,17 @@ class ReportController extends Controller
         return $result;
     }
 
-    private function neracaFunc($tanggal, $labaRugi = null){
+    public function neracaFunc($tanggal, $labaRugi = null){
         $jurnal = JurnalDetail::where('created_by', auth()->user()->id)
             ->where(function($query) {
                 $query->where('coa_akun', 'like', '1%')
                     ->orWhere('coa_akun', 'like', '2%')
                     ->orWhere('coa_akun', 'like', '3%');
             })->where('tanggal_bukti', '<=', $tanggal)->orderBy('coa_akun', 'asc')->get()->keyBy('coa_akun');
+
+        if($jurnal->isEmpty()){
+            return $data = [];
+        }
 
         $coa = Coa::whereNull('is_deleted')
             ->where(function($query) {
@@ -847,7 +855,11 @@ class ReportController extends Controller
             $ttd2 = $request->input('text_input2');
             $labaRugi = $this->labaRugi($request, 1);
             $data = $this->neracaFunc($end_date, $labaRugi);
-            if($data[0]){
+            if(!$data){
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
+            }
+            if(isset($data[0])){
                 unset($data[0]);
             }
 
@@ -905,7 +917,8 @@ class ReportController extends Controller
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted')->orderBy('nomor_akun', 'asc')->get()->keyBy('nomor_akun');
 
             if($jurnal->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
 
             $data = [];
@@ -1068,7 +1081,8 @@ class ReportController extends Controller
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
 
             if($jurnalTahunSekarang->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
 
             $dataTahunSebelumnya = $this->neracaFunction($jurnalTahunSebelumnya, $coa);

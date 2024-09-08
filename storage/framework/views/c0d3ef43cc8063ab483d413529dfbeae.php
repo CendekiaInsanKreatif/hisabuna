@@ -316,6 +316,7 @@
 <script type="text/javascript">
     function jurnalApp() {
         let jurnal = <?php echo json_encode($jurnal->details ?? [], 15, 512) ?>;
+        let periode = <?php echo \Illuminate\Support\Js::from(auth()->user()->periode)->toHtml() ?>;
 
         jurnal.forEach(row => {
             if(row.credit !== undefined){
@@ -351,6 +352,8 @@
                     flatpickr(el, {
                         dateFormat: 'd-m-Y',
                         allowInput: true,
+                        minDate: '01-01-' + periode,
+                        maxDate: '31-12-' + periode,
                         onClose: function(selectedDates, dateStr, instance) {
                             instance.setDate(dateStr, true);
                             el.dispatchEvent(new Event('input'));
@@ -361,6 +364,8 @@
                         flatpickr(el, {
                             dateFormat: 'd-m-Y',
                             allowInput: true,
+                            minDate: '01-01-' + periode,
+                            maxDate: '31-12-' + periode,
                             onClose: function(selectedDates, dateStr, instance) {
                                 instance.setDate(dateStr, true);
                                 el.dispatchEvent(new Event('input'));
@@ -383,6 +388,8 @@
                                     dateFormat: 'd-m-Y',
                                     defaultDate: this.convertDateFormat(row.tanggal_bukti, 'Y-m-d', 'd-m-Y'),
                                     allowInput: true,
+                                    minDate: '01-01-' + periode,
+                                    maxDate: '31-12-' + periode,
                                     onClose: function(selectedDates, dateStr, instance) {
                                         instance.setDate(dateStr, true);
                                         datepicker.dispatchEvent(new Event('input'));
@@ -630,12 +637,15 @@
                         let tanggal_bukti = document.getElementsByName('tanggal_bukti[' + i + ']')[0].value;
                     }
 
-                    // console.log(tbody)
-
                 }else{
                     if (this.rows.length === 0) {
                         this.isValid = false;
                         this.errorMessage += 'Detail jurnal tidak boleh kosong.<br>';
+                    }
+
+                    if(this.rows.length === 1){
+                        this.isValid = false;
+                        this.errorMessage += 'Masukan Detail Pembanding.<br>';
                     }
 
                     let totalDebit = 0;

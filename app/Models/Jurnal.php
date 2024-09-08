@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class Jurnal extends Model
 {
@@ -14,6 +16,15 @@ class Jurnal extends Model
 
     public function details()
     {
-        return $this->hasMany(JurnalDetail::class);
+        return $this->hasMany(JurnalDetail::class, 'jurnal_id', 'id')->whereYear('created_at', '=', auth()->user()->periode);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::addGlobalScope('periode', function (Builder $builder) {
+            $builder->whereYear('created_at', '=', auth()->user()->periode);
+        });
     }
 }

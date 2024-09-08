@@ -9,11 +9,8 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
     <?php
-        // dd(Route::currentRouteName());
         $route = Route::currentRouteName();
-        // da($route);
         $route = explode('.', $route);
-        // da($route);
         $title = ucfirst($route[0]).' '.ucwords($route[2]);
 
         switch($route[2]) {
@@ -37,10 +34,43 @@
                 break;
         }
 
-        // da($title);
+        $fieldSelect = [
+                [
+                    'name' => 'nomor_akun',
+                    'type' => 'text',
+                    'label' => 'Nomor Akun',
+                    'required' => true,
+                ],
+                [
+                    'name' => 'nama_akun',
+                    'type' => 'text',
+                    'label' => 'Nama Akun',
+                    'required' => true,
+                ],
+            ];
     ?>
     <?php $__env->startSection('content'); ?>
-        <div class="container mx-auto p-4 max-w-2xl">
+    <?php if (isset($component)) { $__componentOriginal9f64f32e90b9102968f2bc548315018c = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal9f64f32e90b9102968f2bc548315018c = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.modal','data' => ['field' => $fieldSelect,'data' => @$coa,'maxWidth' => '2xl','focusable' => true]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('modal'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['field' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($fieldSelect),'data' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(@$coa),'maxWidth' => '2xl','focusable' => true]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal9f64f32e90b9102968f2bc548315018c)): ?>
+<?php $attributes = $__attributesOriginal9f64f32e90b9102968f2bc548315018c; ?>
+<?php unset($__attributesOriginal9f64f32e90b9102968f2bc548315018c); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal9f64f32e90b9102968f2bc548315018c)): ?>
+<?php $component = $__componentOriginal9f64f32e90b9102968f2bc548315018c; ?>
+<?php unset($__componentOriginal9f64f32e90b9102968f2bc548315018c); ?>
+<?php endif; ?>
+        <div class="container mx-auto p-4 max-w-2xl" x-data="">
             <h1 class="text-2xl font-bold mb-4"><?php echo e('Report '.$title); ?></h1>
             <form action="<?php echo e(route($route[0].'.'.$route[2])); ?>" method="POST" class="space-y-4">
                 <?php echo csrf_field(); ?>
@@ -73,6 +103,9 @@
                     <div class="form-group flex flex-col md:flex-row md:items-center md:space-x-4">
                         <label for="akun" class="block text-sm font-medium text-gray-700 md:w-1/4">Akun:</label>
                         <input type="text" id="akun" name="akun" class="mt-1 block w-full md:w-3/4 border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+                        <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('coas.index')); ?>', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: false })">
+                            Pilih
+                        </button>
                     </div>
                 <?php endif; ?>
                 <div class="flex justify-center md:justify-start gap-1">
@@ -84,7 +117,9 @@
 
     <?php $__env->startPush('script'); ?>
         <script type="module">
+            
             let route = <?php echo \Illuminate\Support\Js::from($route[2])->toHtml() ?>;
+            let periode = <?php echo \Illuminate\Support\Js::from(auth()->user()->periode)->toHtml() ?>;
 
             $(function() {
                 $('#popup').click(function() {
@@ -133,6 +168,8 @@
                 flatpickr('#start_date', {
                     dateFormat: 'd-m-Y',
                     allowInput: true,
+                    minDate: '01-01-' + periode,
+                    maxDate: '31-12-' + periode,
                     onClose: function(selectedDates, dateStr, instance) {
                         instance.setDate(dateStr, true);
                     }
@@ -141,6 +178,8 @@
                 flatpickr('#end_date', {
                     dateFormat: 'd-m-Y',
                     allowInput: true,
+                    minDate: '01-01-' + periode,
+                    maxDate: '31-12-' + periode,
                     onClose: function(selectedDates, dateStr, instance) {
                         instance.setDate(dateStr, true);
                         var startDate = $('#start_date').val();

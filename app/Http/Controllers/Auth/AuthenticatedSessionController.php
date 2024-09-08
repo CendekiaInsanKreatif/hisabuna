@@ -26,7 +26,10 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        // Menghapus dd untuk menampilkan pengguna yang terautentikasi
         $request->session()->regenerate();
+
+        // dd(auth()->user());
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

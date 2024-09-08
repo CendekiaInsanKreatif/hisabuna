@@ -106,12 +106,11 @@
             </tr>
         </tbody>
     </table>
-    <table id="table-transaksi">
+    <table id="table-transaksi" style="table-layout: fixed;">
         <thead>
             <tr style="border: 1px solid black;">
-                <th style="height: 25px; text-align:left; width: 10%;">Nomor Akun</th>
-                <th style="height: 25px; text-align:left; width: 30%;">Nama Akun</th>
-                <th style="height: 25px; text-align:right; width: 10%;">Subtotal</th>
+                <th style="height: 25px; text-align:left; width: 8%;">Nomor Akun</th>
+                <th colspan="2" style="height: 25px; text-align:left; width: 33%;">Nama Akun</th>
                 <th style="height: 25px; text-align:right; width: 10%;">Debit</th>
                 <th style="height: 25px; text-align:right; width: 10%;">Kredit</th>
             </tr>
@@ -129,15 +128,11 @@
                 ): ?>
                     <tr style="border-top: 1px solid black">
                         <td style="font-weight: bold;"><?php echo e($detail['parent']['nomor_akun']); ?></td>
-                        <td style="font-weight: bold;"><?php echo e($detail['parent']['nama_akun']); ?></td>
-                        <td style="text-align: right; font-weight: bold;">
-                            <?php echo e($detail['parent']['total'] ? number_format($detail['parent']['total'], 0, ',', '.') : 0); ?>
-
-                        </td>
+                        <td colspan="2" style="font-weight: bold;"><?php echo e($detail['parent']['nama_akun']); ?></td>
                         <td style="text-align: right;">
-                            <?php echo e($jurnal['debit'] ? number_format($jurnal['debit'], 0, ',', '.') : 0); ?></td>
+                            <?php echo e($jurnal['debit'] ? number_format($jurnal['debit'], 0, ',', '.') : "-"); ?></td>
                         <td style="text-align: right;">
-                            <?php echo e($jurnal['credit'] ? number_format($jurnal['credit'], 0, ',', '.') : 0); ?></td>
+                            <?php echo e($jurnal['credit'] ? number_format($jurnal['credit'], 0, ',', '.') : "-"); ?></td>
                     </tr>
                 <?php endif; ?>
                 <tr style="border-bottom: 1px solid black;">
@@ -161,15 +156,11 @@
                         &nbsp;&nbsp;&nbsp;<?php echo e($formattedNomorAkun); ?>
 
                     </td>
-                    <td>&nbsp;&nbsp;&nbsp;<?php echo e($detail['nama_akun']); ?></td>
+                    <td colspan="2">&nbsp;&nbsp;&nbsp;<?php echo e($detail['nama_akun']); ?></td>
                     <td style="text-align: right;">
-                        <?php echo e($detail['debit'] ? number_format($detail['debit'] + $detail['credit'], 0, ',', '.') : number_format($detail['debit'] + $detail['credit'], 0, ',', '.')); ?>
-
-                    </td>
+                        <?php echo e($detail['debit'] ? number_format($detail['debit'], 0, ',', '.') : "-"); ?></td>
                     <td style="text-align: right;">
-                        <?php echo e($detail['debit'] ? number_format($detail['debit'], 0, ',', '.') : 0); ?></td>
-                    <td style="text-align: right;">
-                        <?php echo e($detail['credit'] ? number_format($detail['credit'], 0, ',', '.') : 0); ?></td>
+                        <?php echo e($detail['credit'] ? number_format($detail['credit'], 0, ',', '.') : "-"); ?></td>
                 </tr>
                 <?php
                     $totalBilang += $detail['debit'] ? $detail['debit'] + $detail['credit'] : $detail['debit'] + $detail['credit'];
@@ -202,14 +193,12 @@
                 </tr>
             <?php endfor; ?>
             <tr>
-                <td style="text-align: center; border-bottom: 2px solid black; padding: 2px; width: 33%">
-                    Akunting
-                </td>
-                <td style="text-align: center; border-bottom: 2px solid black; padding: 2px; width: 33%">
-                    Manajer
-                </td>
-                <td colspan="3" style="text-align: center; border-bottom: 2px solid black; padding: 2px; width: 33%">
-                    Ditektur
+                <td colspan="5" style="text-align: center; border-bottom: 2px solid black; padding: 2px; width: 100%">
+                    <div class="ttd" style="display: flex; justify-content: space-between;">
+                        <div style="margin-left: 100px">Akuntan</div>
+                        <div>Manajer</div>
+                        <div style="margin-right: 100px">Direktur</div>
+                    </div>
                 </td>
             </tr>
             <tr>
@@ -225,7 +214,7 @@
                 <td style="text-align: center;">
                     &nbsp;
                 </td>
-                <td colspan="3" style="text-align: right;">
+                <td colspan="3" style="text-align:right;">
                     <div class="perPage"></div>
                 </td>
             </tr>

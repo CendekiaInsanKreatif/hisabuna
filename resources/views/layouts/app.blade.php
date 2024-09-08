@@ -153,7 +153,7 @@
 
 <body class="flex flex-col min-h-screen">
     <main class="flex-grow">
-        @if (session('message'))
+        {{-- @if (session('message'))
             @php
                 $color = session('color') == 'green' ? 'emerald' : 'red';
             @endphp
@@ -163,7 +163,7 @@
                     {{ session('message') }}
                 </div>
             </div>
-        @endif
+        @endif --}}
         <div class="header bg-gray-100 text-gray-800 p-4 sticky top-0 flex items-center justify-between z-10">
             <div class="flex justify-between w-full">
                 <div class="flex items-center space-x-4 sm:space-x-6">
@@ -198,6 +198,7 @@
         </div>
         <div class="overlay fixed inset-0 bg-black bg-opacity-0" id="overlay"
             style="display: none; justify-content: center; align-items: center;">
+            @include('sweetalert::alert')
             <img src="{{ asset('images/loading-spinner.gif') }}" height="150" width="150" alt="Loading Spinner">
         </div>
     </main>

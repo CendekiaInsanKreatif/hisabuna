@@ -153,18 +153,7 @@
 
 <body class="flex flex-col min-h-screen">
     <main class="flex-grow">
-        <?php if(session('message')): ?>
-            <?php
-                $color = session('color') == 'green' ? 'emerald' : 'red';
-            ?>
-            <div class="alert-container">
-                <div id="s_alert"
-                    class="alert bg-<?php echo e($color); ?>-500 text-white text-center p-4 rounded-lg shadow-md w-full max-w-2xl transition-opacity duration-500 ease-out">
-                    <?php echo e(session('message')); ?>
-
-                </div>
-            </div>
-        <?php endif; ?>
+        
         <div class="header bg-gray-100 text-gray-800 p-4 sticky top-0 flex items-center justify-between z-10">
             <div class="flex justify-between w-full">
                 <div class="flex items-center space-x-4 sm:space-x-6">
@@ -199,6 +188,7 @@
         </div>
         <div class="overlay fixed inset-0 bg-black bg-opacity-0" id="overlay"
             style="display: none; justify-content: center; align-items: center;">
+            <?php echo $__env->make('sweetalert::alert', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
             <img src="<?php echo e(asset('images/loading-spinner.gif')); ?>" height="150" width="150" alt="Loading Spinner">
         </div>
     </main>

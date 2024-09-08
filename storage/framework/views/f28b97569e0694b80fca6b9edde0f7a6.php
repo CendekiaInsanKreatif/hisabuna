@@ -45,15 +45,15 @@
 </head>
 <body>
     <div id="btnDownload" style="position: absolute; top: 10px; right: 10px; padding: 5px; background-color: #f8f9fa; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        @if ($bType == 'preview')
-            <a href="{{ route('report.print-coa') }}" class="btn" style="background-color: #3498db; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease;">
+        <?php if($bType == 'preview'): ?>
+            <a href="<?php echo e(route('report.print-coa')); ?>" class="btn" style="background-color: #3498db; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease;">
                 Download
             </a>
-        @endif
+        <?php endif; ?>
     </div>
     <div style="text-align: center; margin-bottom: 20px;">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 100px; display: block; margin: 0 auto;">
-        <h1 style="margin: 10px 0;">{{ auth()->user()->company_name }}</h1>
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" style="width: 100px; display: block; margin: 0 auto;">
+        <h1 style="margin: 10px 0;"><?php echo e(auth()->user()->company_name); ?></h1>
         <h4 style="margin: 0;">Chart of Account</h4>
     </div>
 
@@ -68,8 +68,8 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($data as $item)
-                @php
+            <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
                     $formattedNomorAkun = preg_replace('/\D/', '', $item->nomor_akun);
                     if (strlen($formattedNomorAkun) > 6) {
                         $formattedNomorAkun = substr($formattedNomorAkun, 0, 3) . '-' . substr($formattedNomorAkun, 3, 2) . '-' . substr($formattedNomorAkun, 5);
@@ -78,17 +78,18 @@
                     } else {
                         $formattedNomorAkun = substr($formattedNomorAkun, 0, 3);
                     }
-                @endphp
+                ?>
 
                 <tr>
-                    <td>{{ $formattedNomorAkun }}</td>
-                    <td style="padding-left: {{ $item->level * 15 }}px;">{{ $item->nama_akun }}</td>
-                    <td style="text-align: center">{{ $item->level }}</td>
-                    <td>{{ $item->golongan }}</td>
-                    <td style="text-align: center">{{ $item->saldo_normal }}</td>
+                    <td><?php echo e($formattedNomorAkun); ?></td>
+                    <td style="padding-left: <?php echo e($item->level * 15); ?>px;"><?php echo e($item->nama_akun); ?></td>
+                    <td style="text-align: center"><?php echo e($item->level); ?></td>
+                    <td><?php echo e($item->golongan); ?></td>
+                    <td style="text-align: center"><?php echo e($item->saldo_normal); ?></td>
                 </tr>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
     </table>
 </body>
 </html>
+<?php /**PATH /var/www/hisabuna/resources/views/report/printcoa.blade.php ENDPATH**/ ?>

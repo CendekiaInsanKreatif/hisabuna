@@ -136,7 +136,7 @@
                 <td style="text-align: center; width: 35%;">
                     <div>Disetujui oleh, <?php echo e($ttd2); ?></div>
                     <div style="height: 80px;"></div>
-                    <div><strong>Manager Keuangan</strong></div>
+                    <div><strong>Manajer Keuangan</strong></div>
                 </td>
             </tr>
         </table>

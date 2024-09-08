@@ -79,3 +79,8 @@
 ::-webkit-scrollbar-thumb:hover {
     background: #10b981;
 }
+
+.flatpickr-prev-month,
+.flatpickr-next-month {
+   top: 8px !important;
+}

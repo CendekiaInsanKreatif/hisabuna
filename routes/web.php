@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
             'no_hp' => $request->no_hp,
             'no_telp' => $request->no_telp,
             'periode' => $request->periode,
+            'profile' => $request->profile,
             'password' => Hash::make($request->password),
             'roles' => 'user',
             'is_active' => 1,
@@ -207,6 +208,7 @@ Route::middleware('auth')->group(function () {
         Route::get('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.views.neracaperbandingan');
         Route::get('aruskas', [ReportController::class, 'arusKas'])->name('report.views.aruskas');
         Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.views.bukubesar');
+        Route::get('mutasi-saldo', [ReportController::class, 'mutasiSaldo'])->name('report.views.mutasisaldo');
         
         // Report PDF
         Route::post('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
@@ -217,6 +219,7 @@ Route::middleware('auth')->group(function () {
         Route::post('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
         Route::post('aruskas', [ReportController::class, 'arusKas'])->name('report.aruskas');
         Route::post('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
+        Route::post('mutasi-saldo', [ReportController::class, 'mutasiSaldo'])->name('report.mutasisaldo');
         
         Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
         Route::get('preview-coa', [CoaController::class, 'previewCoa'])->name('report.preview-coa');

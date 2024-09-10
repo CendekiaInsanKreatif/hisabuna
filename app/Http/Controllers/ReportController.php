@@ -1219,4 +1219,77 @@ class ReportController extends Controller
 
         return $data;
     }
+
+    public function mutasiSaldo(Request $request){
+        if($request->isMethod('post')){
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
+
+            $jurnal = JurnalDetail::where('created_by', auth()->user()->id)
+                            ->whereBetween('tanggal_bukti', [$start_date, $end_date])
+                            ->get();
+
+            $coa = Coa::where('created_by', auth()->user()->id)->where('level', 5)->whereNull('is_deleted')->orderBy('nomor_akun', 'asc')->get()->keyBy('nomor_akun');
+
+            if($jurnal->isEmpty()){
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
+            }
+
+            $data = [];
+
+            foreach ($coa as $akun => $coaData) {
+                $saldoNormal = strtolower($coaData->saldo_normal);
+                // da($coaData);
+                $saldoAwalDebit = $coaData->saldo_awal_debit ?? 0;
+                $saldoAwalKredit = $coaData->saldo_awal_credit ?? 0;
+
+                $mutasiDebit = 0;
+                $mutasiKredit = 0;
+
+                // da($coaData);
+                $jurnalAkun = $jurnal->where('coa_akun', $akun);
+                // da($jurnalAkun);
+                if($jurnalAkun->isNotEmpty()){
+                    $mutasiDebit = $jurnalAkun->sum('debit');
+                    $mutasiKredit = $jurnalAkun->sum('credit');
+                }
+
+                if ($saldoNormal == 'db' || $saldoNormal == 'debit') {
+                    $saldoAkhirDebit = $saldoAwalDebit + $mutasiDebit - $mutasiKredit;
+                    $saldoAkhirKredit = 0;
+                } else {
+                    $saldoAkhirKredit = $saldoAwalKredit + $mutasiKredit - $mutasiDebit;
+                    $saldoAkhirDebit = 0;
+                }
+
+                // da($coaData);
+                $data[$coaData->golongan][$akun] = [
+                    'nama_akun' => $coaData->nama_akun,
+                    'saldo_awal' => [
+                        'debit' => $saldoAwalDebit,
+                        'credit' => $saldoAwalKredit
+                    ],
+                    'mutasi' => [
+                        'debit' => $mutasiDebit,
+                        'credit' => $mutasiKredit
+                    ],
+                    'saldo_akhir' => [
+                        'debit' => $saldoAkhirDebit,
+                        'credit' => $saldoAkhirKredit
+                    ]
+                ];
+            }
+
+            // da($data);
+
+            return view('report.mutasi_saldo', [
+                'data' => $data,
+                'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y')
+            ]);
+        }
+
+        return view('report.views.template');
+    }
 }

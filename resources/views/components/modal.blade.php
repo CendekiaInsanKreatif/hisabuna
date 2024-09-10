@@ -113,7 +113,7 @@
                                     <tr class="border-b cursor-pointer"
                                         x-show="Object.values({{ json_encode($item2) }}).join(' ').toLowerCase().includes(search.toLowerCase())"
                                         x-on:click="
-                                        if(isDetail){
+                                        if(isDetail !== undefined){
                                                 let obj = { isDetail: isDetail, data: {{ json_encode($item2) }} };
                                                 document.getElementById('searchBarAkun').value = '';
                                                 document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;

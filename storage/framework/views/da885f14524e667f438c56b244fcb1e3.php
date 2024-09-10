@@ -59,6 +59,18 @@
                     'label' => 'Password',
                     'required' => true,
                 ],
+                [
+                    'name' => 'profile',
+                    'type' => 'select',
+                    'label' => 'Profile',
+                    'required' => true,
+                ],
+                [
+                    'name' => 'is_active',
+                    'type' => 'select',
+                    'label' => 'Status',
+                    'required' => true,
+                ],
             ];
         ?>
         <?php if (isset($component)) { $__componentOriginal9f64f32e90b9102968f2bc548315018c = $component; } ?>
@@ -81,6 +93,12 @@
 <?php $component = $__componentOriginal9f64f32e90b9102968f2bc548315018c; ?>
 <?php unset($__componentOriginal9f64f32e90b9102968f2bc548315018c); ?>
 <?php endif; ?>
+        <style>
+            table th, table td {
+                min-width: 150px; 
+                word-wrap: break-word; 
+            }
+        </style>
         <div class="container mx-auto px-4" x-data="userTable">
             <div class="mb-6">
                 <p class="text-2xl font-semibold text-emerald-500">Akun Pengguna</p>
@@ -154,6 +172,22 @@
                                         </span>
                                     </div>
                                 </th>
+                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                    <div class="flex items-center">
+                                        Profile
+                                        <span class="ml-2">
+                                            <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
+                                        </span>
+                                    </div>
+                                </th>
+                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                    <div class="flex items-center">
+                                        Status
+                                        <span class="ml-2">
+                                            <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
                                     <div class="flex items-center justify-center">
                                         Action
@@ -168,6 +202,8 @@
                                     <td class="text-left px-4 py-1" x-text="user.email"></td>
                                     <td class="text-left px-4 py-1" x-text="user.no_hp"></td>
                                     <td class="text-left px-4 py-1" x-text="user.company_name"></td>
+                                    <td class="text-left px-4 py-1" x-text="user.profile"></td>
+                                    <td class="text-left px-4 py-1" x-text="user.is_active == 1 ? 'Active' : 'Inactive'"></td>
                                     <td class="text-left px-4 py-1 items-center text-center mt-1">
                                         <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>

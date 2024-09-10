@@ -32,6 +32,9 @@
             case 'bukubesar':
                 $title = 'Buku Besar';
                 break;
+            case 'mutasisaldo':
+                $title = 'Mutasi Saldo';
+                break;
         }
 
         $fieldSelect = [

@@ -149,30 +149,5 @@
         </table>
         </footer>
     </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $.ajaxSetup({
-                headers: {
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
-                },
-            });
-            $('#pdf').click(function() {
-                var start = "{{ $start }}";
-                var end = "{{ $end }}";
-                $.ajax({
-                    url     :'{{ route("report.labarugiprint") }}',
-                    type    :'post',
-                    data:{
-                        start:start,
-                        end:end
-                    },
-                    success : function(res) {
-
-                    }
-                })
-            })
-        })
-    </script>
 </body>
 </html>

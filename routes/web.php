@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Validation\Rules;
-use Alert;
 
 use App\Models\Coa;
 use App\Models\Jurnal;
@@ -49,17 +48,29 @@ Route::middleware('auth')->group(function () {
     })->name('users.index');
 
     Route::post('users/store', function(Request $request){
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'no_hp' => 'required|string|max:15',
+            'no_telp' => 'nullable|string|max:15',
+            'periode' => 'required|date',
+            'profile' => 'required|string|in:trial,standard,pro,enterprise',
+            'password' => 'required|string|min:6',
+            'company_name' => 'required|string|max:255',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'no_hp' => $request->no_hp,
-            'no_telp' => $request->no_telp,
-            'periode' => $request->periode,
-            'profile' => $request->profile,
-            'password' => Hash::make($request->password),
+            'name' => $validatedData['name'],
+            'email' => $validatedData['email'],
+            'no_hp' => $validatedData['no_hp'],
+            'no_telp' => $validatedData['no_telp'],
+            'periode' => $validatedData['periode'],
+            'profile' => $validatedData['profile'],
+            'password' => Hash::make($validatedData['password']),
             'roles' => 'user',
             'is_active' => 1,
-            'company_name' => $request->company_name,
+            'company_name' => $validatedData['company_name'],
         ]);
 
         if ($request->hasFile('image')) {
@@ -95,12 +106,12 @@ Route::middleware('auth')->group(function () {
         return view('users.show', compact('users'));
     })->name('users.show');
 
-    Route::put('users/{id}', function(Request $request, $id) {
-        $user = User::findOrFail($id);
-        $user->update($request->except(['password', 'password_confirmation']));
+    // Route::put('users/{id}', function(Request $request, $id) {
+    //     $user = User::findOrFail($id);
+    //     $user->update($request->except(['password', 'password_confirmation']));
 
-        return redirect()->route('users.index')->with('message', 'Berhasil Update Pengguna')->with('color', 'green');
-    })->name('users.update');
+    //     return redirect()->route('users.index')->with('message', 'Berhasil Update Pengguna')->with('color', 'green');
+    // })->name('users.update');
 
     Route::delete('users/{id}', function($id) {
         $user = User::findOrFail($id);
@@ -212,14 +223,14 @@ Route::middleware('auth')->group(function () {
         
         // Report PDF
         Route::post('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
-        Route::post('labarugidownloadpdf', [ReportController::class, 'labaRugiDownloadPDF'])->name('report.labarugiprint');
         Route::post('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.perubahanekuitas');
         Route::post('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
         Route::post('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
-        Route::post('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
         Route::post('aruskas', [ReportController::class, 'arusKas'])->name('report.aruskas');
         Route::post('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
         Route::post('mutasi-saldo', [ReportController::class, 'mutasiSaldo'])->name('report.mutasisaldo');
+        // Route::post('labarugidownloadpdf', [ReportController::class, 'labaRugiDownloadPDF'])->name('report.labarugiprint');
+        Route::post('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
         
         Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
         Route::get('preview-coa', [CoaController::class, 'previewCoa'])->name('report.preview-coa');
@@ -230,6 +241,7 @@ Route::middleware('auth')->group(function () {
         Route::get('users', function(){
             if(auth()->user()->roles == 'superadmin'){
                 $user = User::where('id', '!=', auth()->user()->id)->orderBy('name', 'asc')->get();
+                // da($user);
                 return response()->json($user);
             }else{
                 return response()->json([
@@ -252,6 +264,8 @@ Route::middleware('auth')->group(function () {
                     ->orderBy('nomor_akun')
                       ->orderBy('level')
                       ->get();
+
+            // da($coa);
             return response()->json($coa);
         });
         
@@ -440,6 +454,15 @@ Route::middleware('auth')->group(function () {
             return view('report.transaksi');
         });
     });
+
+
+    Route::get('all-report', function(){
+
+        $coa = Coa::whereNull('is_deleted')->where('level', 5)->where('created_by', auth()->user()->id)->get();
+
+        return view('report.template', compact('coa'));
+    })->name('report.template');
+
 });
 
 require __DIR__.'/auth.php';

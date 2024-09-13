@@ -529,7 +529,7 @@ class CoaController extends Controller
         $flatArray = [];
         $this->flattenTree($coaTree, $flatArray);
 
-
+        // dd($flatArray);
         $pdf = PDF::loadView('report.printcoa', ['data' => $flatArray, 'bType' => 'download']);
         return $pdf->download('coa_'.auth()->user()->name.'.pdf');
     }
@@ -544,11 +544,13 @@ class CoaController extends Controller
                     ->get();
 
 
+
         $coaTree = $this->buildTree($data);
+        // da($coaTree);
         $flatArray = [];
         $this->flattenTree($coaTree, $flatArray);
 
-
+        // da($flatArray);
         return view('report.printcoa', ['data' => $flatArray, 'bType' => 'preview']);
     }
 
@@ -568,7 +570,7 @@ class CoaController extends Controller
         return $branch;
     }
 
-    private function flattenTree($tree, &$flatArray, $level = 0) {
+    private function flattenTree($tree, &$flatArray, $level = 1) {
         foreach ($tree as $node) {
             $node->level = $level;
             $flatArray[] = $node;

@@ -22,7 +22,6 @@
             top: 50%;
             transform: translateY(-50%);
             width: 100px;
-
         }
 
         h2 {

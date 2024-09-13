@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Neraca</title>
+    <title>Laporan {{$label}}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -60,8 +60,8 @@
         <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
             <h1>{{ auth()->user()->company_name }}</h1>
-            <h2>Laporan Neraca</h2>
-            <h3>Neraca Per: {{ $periode }}</h3>
+            <h2>{{ $label }}</h2>
+            <h3>{{$label}} Per: {{ $periode }}</h3>
         </div>
     </header>
     {{-- <header>

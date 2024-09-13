@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Neraca</title>
+    <title>Laporan <?php echo e($label); ?></title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -60,8 +60,8 @@
         <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
             <h1><?php echo e(auth()->user()->company_name); ?></h1>
-            <h2>Laporan Neraca</h2>
-            <h3>Neraca Per: <?php echo e($periode); ?></h3>
+            <h2><?php echo e($label); ?></h2>
+            <h3><?php echo e($label); ?> Per: <?php echo e($periode); ?></h3>
         </div>
     </header>
     

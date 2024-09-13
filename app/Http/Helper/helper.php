@@ -57,6 +57,7 @@ function terbilang($x) {
 }
 
 function formatNomorAkun($nomor_akun) {
+    // da($nomor_akun);
     $formatted = str_pad($nomor_akun, 8, '0', STR_PAD_RIGHT);
     if (strlen($formatted) >= 3) {
         $formatted = substr($formatted, 0, 3) . '-' . substr($formatted, 3);

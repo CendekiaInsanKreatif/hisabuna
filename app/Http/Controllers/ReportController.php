@@ -110,6 +110,7 @@ class ReportController extends Controller
 
 
         if($request->isMethod('post')){
+            // da($request->all());
             $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('start_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->min('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
             $tanggalSelesai = Carbon::createFromFormat('d-m-Y', trim($request->input('end_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->max('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
             $akun = $request->input('akun', '');
@@ -199,7 +200,7 @@ class ReportController extends Controller
     {
         if ($request->isMethod('post')) {
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
 
             $jurnal = Jurnal::whereNull('is_deleted')
                         ->with(['details' => function($query) use ($start_date, $end_date) {
@@ -395,7 +396,7 @@ class ReportController extends Controller
         if($request->isMethod('post')){
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
             $start      = $request->input('start_date');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
             $end      = $request->input('end_date');
             $ttd1 = $request->input('text_input1');
             $ttd2 = $request->input('text_input2');
@@ -509,7 +510,7 @@ class ReportController extends Controller
             $tahunSebelumnya = date('Y') - 1;
             $tahunSekarang = date('Y');
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
 
             $jurnalDulu = Jurnal::whereNull('is_deleted')
                             ->with(['details' => function($query) use ($start_date, $end_date) {
@@ -847,14 +848,19 @@ class ReportController extends Controller
         return $data;
     }
 
-    public function neraca(Request $request){
+    public function neraca(Request $request, $n = null){
         if($request->isMethod('post')){
+            // da($request->all());
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
             $ttd1 = $request->input('text_input1');
             $ttd2 = $request->input('text_input2');
             $labaRugi = $this->labaRugi($request, 1);
             $data = $this->neracaFunc($end_date, $labaRugi);
+            if($n == true){
+                unset($data[auth()->user()->periode - 1]);
+            }
+            // da($data);
             if(!$data){
                 Alert::error('Oops!', 'Data tidak ditemukan');
                 return redirect()->back();
@@ -866,6 +872,7 @@ class ReportController extends Controller
 
             return view('report.neraca', [
                 'data' => $data,
+                'label' => $n == true ? 'Neraca' : 'Neraca Perbandingan',
                 'periode' => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
                 'ttd1' => $ttd1,
                 'ttd2' => $ttd2,
@@ -905,7 +912,7 @@ class ReportController extends Controller
 
         if($request->isMethod('post')){
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
             $jurnal = Jurnal::whereNull('is_deleted')
                             ->with(['details' => function($query) use ($start_date, $end_date) {
                                 $query->whereBetween('tanggal_bukti', [$start_date, $end_date])
@@ -914,6 +921,8 @@ class ReportController extends Controller
                             ->whereYear('jurnal_tgl', date('Y'))
                             ->where('created_by', auth()->user()->id)
                             ->get();
+
+            // da($jurnal);
             $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted')->orderBy('nomor_akun', 'asc')->get()->keyBy('nomor_akun');
 
             if($jurnal->isEmpty()){
@@ -925,6 +934,7 @@ class ReportController extends Controller
             foreach ($jurnal as $item) {
                 foreach ($item->details as $detail) {
                     $nokun2 = substr($detail->coa_akun, 0, 5);
+                    // da($nokun2);
                     $nokun3 = substr($detail->coa_akun, 0, 3);
                     $nokun1 = substr($detail->coa_akun, 0, 1);
 
@@ -933,13 +943,24 @@ class ReportController extends Controller
                     $akun1 = $coa->get($nokun1);
                     $xCoa = $coa->get($detail->coa_akun);
 
+                    if($akun3 == null){
+                        Alert::error('Oops!', 'Data CoA Nomor Akun: '.$nokun3.' tidak ditemukan');
+                        return redirect()->back();
+                    }elseif($akun2 == null){
+                        Alert::error('Oops!', 'Data CoA Nomor Akun: '.$nokun2.' tidak ditemukan');
+                        return redirect()->back();
+                    }elseif($akun1 == null){
+                        Alert::error('Oops!', 'Data CoA Nomor Akun: '.$nokun1.' tidak ditemukan');
+                        return redirect()->back();
+                    }
+
                     if($xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit'){
                         $saldoAwal = $xCoa->saldo_awal_debit ?: $xCoa->saldo_awal_credit;
                     }else{
                         $saldoAwal = $xCoa->saldo_awal_credit ?: $xCoa->saldo_awal_debit;
                     }
 
-                    if (!isset($data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['debit']) || !isset($data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['kredit'])) {
+                    if (!@($data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['debit']) || !@($data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['kredit'])) {
                         if($xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit'){
                             $data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['debit'] = $saldoAwal;
                             $data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['kredit'] = 0;
@@ -951,6 +972,9 @@ class ReportController extends Controller
                     }
 
                     if($akun1->saldo_normal == 'db' || $akun1->saldo_normal == 'debit'){
+                        // if($xCoa->nama_akun == null){
+                        //     da($xCoa);
+                        // }
                         $data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['debit'] += $detail->debit - $detail->credit;
                     }else{
                         $data[$akun3->nama_akun][$akun2->nama_akun][$xCoa->nomor_akun.' - '.$xCoa->nama_akun]['kredit'] += $detail->credit - $detail->debit;
@@ -1050,75 +1074,7 @@ class ReportController extends Controller
     }
 
     public function neracaPerbandingan(Request $request){
-        if($request->isMethod('post')){
-            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
-
-            $tahunSebelumnya = date('Y') - 1;
-            $tahunSekarang = date('Y');
-            $jurnalTahunSebelumnya = Jurnal::whereNull('is_deleted')
-                                            ->with(['details' => function($query) use ($end_date) {
-                                                $query->where(function($query) {
-                                                    $query->where('coa_akun', 'like', '1%')
-                                                        ->orWhere('coa_akun', 'like', '2%')
-                                                        ->orWhere('coa_akun', 'like', '3%');
-                                                });
-                                            }])
-                                           ->where('created_by', auth()->user()->id)
-                                           ->whereYear('jurnal_tgl', $tahunSebelumnya)
-                                           ->get();
-            $jurnalTahunSekarang = Jurnal::whereNull('is_deleted')
-                                        ->with(['details' => function($query) use ($end_date) {
-                                            $query->where(function($query) {
-                                                $query->where('coa_akun', 'like', '1%')
-                                                    ->orWhere('coa_akun', 'like', '2%')
-                                                    ->orWhere('coa_akun', 'like', '3%');
-                                            });
-                                        }])
-                                         ->where('created_by', auth()->user()->id)
-                                         ->whereYear('jurnal_tgl', $tahunSekarang)
-                                         ->get();
-            $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
-
-            if($jurnalTahunSekarang->isEmpty()){
-                Alert::error('Oops!', 'Data tidak ditemukan');
-                return redirect()->back();
-            }
-
-            $dataTahunSebelumnya = $this->neracaFunction($jurnalTahunSebelumnya, $coa);
-            $dataTahunSekarang = $this->neracaFunction($jurnalTahunSekarang, $coa);
-
-            $dataDahulu = [];
-
-            $data = [
-                $tahunSekarang => $dataTahunSekarang
-            ];
-
-            if($jurnalTahunSebelumnya->isEmpty()){
-                $dataDahulu = array_map(function($section) {
-                    return array_map(function($subSection) {
-                        return array_map(function($item) {
-                            return 0;
-                        }, $subSection);
-                    }, $section);
-                }, $dataTahunSekarang);
-
-                $data[$tahunSebelumnya] = $dataDahulu;
-            }else{
-                $data[$tahunSebelumnya] = $dataTahunSebelumnya;
-            }
-
-            $data = $this->totalNeraca($data);
-
-            $pdf = PDF::loadView('report.neraca_perbandingan', [
-                'data' => $data,
-                'tahunSebelumnya' => $tahunSebelumnya,
-                'tahunSekarang' => $tahunSekarang
-            ]);
-            return $pdf->download('neraca_perbandingan_' . Carbon::now()->format('YmdHis') . '.pdf');
-        }
-
-        return view('report.views.template');
+        return $this->neraca($request, true);
     }
 
     private function totalNeraca($data) {

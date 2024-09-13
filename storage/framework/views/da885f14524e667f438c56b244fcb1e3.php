@@ -64,12 +64,22 @@
                     'type' => 'select',
                     'label' => 'Profile',
                     'required' => true,
+                    'options' => [
+                        'trial' => 'Trial',
+                        'standard' => 'Standard',
+                        'pro' => 'Pro',
+                        'enterprise' => 'Enterprise',
+                    ],
                 ],
                 [
                     'name' => 'is_active',
                     'type' => 'select',
                     'label' => 'Status',
                     'required' => true,
+                    'options' => [
+                        '1' => 'Aktif',
+                        '0' => 'Tidak Aktif',
+                    ],
                 ],
             ];
         ?>
@@ -99,7 +109,7 @@
                 word-wrap: break-word; 
             }
         </style>
-        <div class="container mx-auto px-4" x-data="userTable">
+        <div class="container mx-auto px-2" x-data="userTable">
             <div class="mb-6">
                 <p class="text-2xl font-semibold text-emerald-500">Akun Pengguna</p>
             </div>
@@ -118,13 +128,23 @@
                             </div>
                         </div>
                         <div class="flex items-center mt-4 md:mt-0">
-                            <button class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4" x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('users.store')); ?>', name: 'users.create', title: 'Tambah User', type: 'form' })">
+                            <button class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-2" x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('users.store')); ?>', name: 'users.create', title: 'Tambah User', type: 'form' })">
                                 Tambah User
                             </button>
                         </div>
                         <div class="flex items-center mt-4 md:mt-0">
+                            <label for="langganan" class="text-sm font-medium text-gray-900 dark:text-white">Langganan:</label>
+                            <select id="langganan" x-model="selectLangganan" @change="handleLanggananChange(selectLangganan)" class="ml-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-200">
+                                <option value="all">Semua</option>
+                                <option value="trial">Trial</option>
+                                <option value="standard">Standard</option>
+                                <option value="pro">Pro</option>
+                                <option value="enterprise">Enterprise</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center mt-4 md:mt-0">
                             <label for="status" class="text-sm font-medium text-gray-900 dark:text-white">Status:</label>
-                            <select id="status" x-model="selectedStatus" @change="handleStatusChange(selectedStatus)" class="ml-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-200">
+                            <select id="status" x-model="filter" @change="handleStatusChange(filter)" class="ml-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-200">
                                 <option value="all">Semua</option>
                                 <option value="1">Aktif</option>
                                 <option value="0">Tidak Aktif</option>
@@ -140,7 +160,7 @@
                     <table class="w-full min-w-full" id="userTable">
                         <thead>
                             <tr>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-2 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
                                         Nama
                                         <span class="ml-2">
@@ -148,7 +168,7 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-2 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
                                         Email
                                         <span class="ml-2">
@@ -156,7 +176,7 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                <th class="bg-gray-100 px-2 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                                     <div class="flex items-center">
                                         Nomor HP
                                         <span class="ml-2">
@@ -164,31 +184,24 @@
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                                    <div class="flex items-center">
-                                        Nama Perusahaan
+                                
+                                <th class="bg-gray-100 px-2 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
+                                    <div class="flex items-center justify-center">
+                                        Langganan
                                         <span class="ml-2">
                                             <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                                    <div class="flex items-center">
-                                        Profile
-                                        <span class="ml-2">
-                                            <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
-                                        </span>
-                                    </div>
-                                </th>
-                                <th class="bg-gray-100 px-4 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                                    <div class="flex items-center">
+                                <th class="bg-gray-100 px-2 py-2 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
+                                    <div class="flex items-center justify-center">
                                         Status
                                         <span class="ml-2">
                                             <img src="<?php echo e(asset('images/icons/ic-sort.svg')); ?>" class="w-4 h-4 sort-icon" data-sort="none">
                                         </span>
                                     </div>
                                 </th>
-                                <th class="bg-gray-100 px-4 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
+                                <th class="bg-gray-100 px-2 py-2 text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider cursor-pointer text-center">
                                     <div class="flex items-center justify-center">
                                         Action
                                     </div>
@@ -198,13 +211,28 @@
                         <tbody id="userTableBody">
                             <template x-for="user in paginatedData" :key="user.id">
                                 <tr @mouseover="hover = true" @mouseout="hover = false" class="cursor-pointer hover:bg-gray-100" x-on:click.prevent="$dispatch('open-modal', { route: `<?php echo e(route('users.show', '')); ?>/${user.id}`, name: 'users.show', title: 'Lihat User', data: user, type: 'form' })">
-                                    <td class="text-left px-4 py-1" x-text="user.name"></td>
-                                    <td class="text-left px-4 py-1" x-text="user.email"></td>
-                                    <td class="text-left px-4 py-1" x-text="user.no_hp"></td>
-                                    <td class="text-left px-4 py-1" x-text="user.company_name"></td>
-                                    <td class="text-left px-4 py-1" x-text="user.profile"></td>
-                                    <td class="text-left px-4 py-1" x-text="user.is_active == 1 ? 'Active' : 'Inactive'"></td>
-                                    <td class="text-left px-4 py-1 items-center text-center mt-1">
+                                    <td class="text-left px-2 py-1" x-text="user.name"></td>
+                                    <td class="text-left px-2 py-1" x-text="user.email"></td>
+                                    <td class="text-left px-2 py-1" x-text="user.no_hp"></td>
+                                    
+                                    <td class="text-left px-2 py-1 text-center">
+                                        <span x-text="user.profile" 
+                                              :class="{
+                                                'trial': 'inline-flex items-center rounded-lg bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800 shadow-sm ring-1 ring-inset ring-yellow-400',
+                                                'standard': 'inline-flex items-center rounded-lg bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800 shadow-sm ring-1 ring-inset ring-blue-400',
+                                                'pro': 'inline-flex items-center rounded-lg bg-purple-100 px-3 py-1 text-sm font-semibold text-purple-800 shadow-sm ring-1 ring-inset ring-purple-400',
+                                                'enterprise': 'inline-flex items-center rounded-lg bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800 shadow-sm ring-1 ring-inset ring-emerald-400'
+                                              }[user.profile || 'enterprise']">
+                                        </span>
+                                    </td>
+                                    <td class="text-left px-2 py-1 text-center">
+                                        <span x-text="user.is_active == 1 ? 'Aktif' : 'Tidak'"
+                                              :class="user.is_active == 1 
+                                                ? 'inline-flex items-center px-3 py-1 rounded-lg bg-emerald-500 text-sm font-semibold text-white shadow-sm' 
+                                                : 'inline-flex items-center px-3 py-1 rounded-lg bg-red-500 text-sm font-semibold text-white shadow-sm'">
+                                        </span>
+                                    </td>                                    
+                                    <td class="text-left px-2 py-1 items-center text-center mt-1">
                                         <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['class' => 'w-full md:w-auto lg:w-auto md:mt-0 mt-1','xOn:click.prevent.stop' => '$dispatch(\'open-modal\', { route: `'.e(route('users.update', '')).'/${user.id}`, name: \'users.update\', title: \'Edit User\', data: user, method: \'PUT\', type: \'form\' })']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -275,6 +303,7 @@
                 allData: [],
                 hover: false,
                 selectedStatus: 'all',
+                selectLangganan: 'all',
                 get paginatedData() {
                     const filteredData = this.filteredData();
                     const start = (this.currentPage - 1) * this.rowsPerPage;
@@ -337,12 +366,19 @@
                     return this.allData.filter(user => {
                         const matchesSearch = user.email.toLowerCase().includes(this.searchInput.toLowerCase()) || user.name.toLowerCase().includes(this.searchInput.toLowerCase()) || user.company_name.toLowerCase().includes(this.searchInput.toLowerCase());
                         const matchesStatus = this.filter === 'all' ? true : user.is_active === this.filter;
-                        return matchesSearch && matchesStatus;
+                        const matchesLangganan = this.selectLangganan === 'all' ? true : user.profile === this.selectLangganan;
+                        return matchesSearch && matchesStatus && matchesLangganan;
                     });
                 },
                 handleStatusChange(status) {
-                    this.filter = status; // Update filter based on selected status
-                    this.renderUserTable(); // Re-render the user table with the new filter
+                    console.log(status)
+                    this.filter = status;
+                    this.renderUserTable();
+                },
+                handleLanggananChange(langganan) {
+                    console.log(langganan)
+                    this.selectLangganan = langganan;
+                    this.renderUserTable();
                 },
                 init() {
                     this.fetchUserData();

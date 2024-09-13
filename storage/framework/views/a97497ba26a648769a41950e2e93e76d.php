@@ -97,8 +97,8 @@
                 <caption style="text-align: left; background-color: #f0f0f0; padding: 3px;"><h2><?php echo e(formatNomorAkun($coaAkun) . ' - ' . $transactions->first()->coa->nama_akun); ?></h2></caption>
                 <thead>
                     <tr>
-                        <th scope="col" style="width: 9%;">Tanggal</th>
-                        <th scope="col" style="width: 46%;">Keterangan</th>
+                        <th scope="col" style="width: 13%;">Tanggal</th>
+                        <th scope="col" style="width: 37%;">Keterangan</th>
                         <th scope="col" class="text-right" style="width: 15%;">Debit<div style="color: #e53e3e; font-size: 0.75em;"><?php echo e($transactions->first()->coa->saldo_normal == 'debit' ? 'Bertambah' : 'Berkurang'); ?></div></th>
                         <th scope="col" class="text-right" style="width: 15%;">Kredit<div style="color: #e53e3e; font-size: 0.75em;"><?php echo e($transactions->first()->coa->saldo_normal == 'credit' ? 'Bertambah' : 'Berkurang'); ?></div></th>
                         <th scope="col" class="text-right" style="width: 15%;">Saldo</th>

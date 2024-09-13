@@ -142,38 +142,36 @@ unset($__defined_vars); ?>
                                     <tr class="border-b cursor-pointer"
                                         x-show="Object.values(<?php echo e(json_encode($item2)); ?>).join(' ').toLowerCase().includes(search.toLowerCase())"
                                         x-on:click="
-                                        if(isDetail !== undefined){
-                                                let obj = { isDetail: isDetail, data: <?php echo e(json_encode($item2)); ?> };
-                                                document.getElementById('searchBarAkun').value = '';
-                                                document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
-                                                let firstChar = obj.data.nomor_akun.charAt(0);
-                                                let teksDebit, teksKredit, styleDebit, styleKredit;
-                                                if (firstChar === '1') {
-                                                    teksDebit = 'Bertambah';
-                                                    teksKredit = 'Berkurang';
-                                                    styleDebit = 'color: green;';
-                                                    styleKredit = 'color: red;';
-                                                } else if (firstChar === '2' || firstChar === '3' || firstChar === '4') {
-                                                    teksDebit = 'Berkurang';
-                                                    teksKredit = 'Bertambah';
-                                                    styleDebit = 'color: red;';
-                                                    styleKredit = 'color: green;';
-                                                } else if (firstChar === '5' || firstChar === '6') {
-                                                    teksDebit = 'Bertambah';
-                                                    teksKredit = 'Berkurang';
-                                                    styleDebit = 'color: green;';
-                                                    styleKredit = 'color: red;';
-                                                }
-
-                                                document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
-                                                document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
-                                                document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
-                                            }else{
-                                                let obj = { isDetail: isDetail, data: <?php echo e(json_encode($item2)); ?> };
-                                                document.getElementsByName('akun')[0].value = formatNomorAkun(obj.data.nomor_akun);
+                                        console.log(isDetail);
+                                        let obj = { isDetail: isDetail, data: <?php echo e(json_encode($item2)); ?> };
+                                        if (isDetail !== false) {
+                                            document.getElementById('searchBarAkun').value = '';
+                                            document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
+                                            let firstChar = obj.data.nomor_akun.charAt(0);
+                                            let teksDebit, teksKredit, styleDebit, styleKredit;
+                                            if (['1'].includes(firstChar)) {
+                                                teksDebit = 'Bertambah';
+                                                teksKredit = 'Berkurang';
+                                                styleDebit = 'color: green;';
+                                                styleKredit = 'color: red;';
+                                            } else if (['2', '3', '4'].includes(firstChar)) {
+                                                teksDebit = 'Berkurang';
+                                                teksKredit = 'Bertambah';
+                                                styleDebit = 'color: red;';
+                                                styleKredit = 'color: green;';
+                                            } else if (['5', '6'].includes(firstChar)) {
+                                                teksDebit = 'Bertambah';
+                                                teksKredit = 'Berkurang';
+                                                styleDebit = 'color: green;';
+                                                styleKredit = 'color: red;';
                                             }
-                                            
-                                            $dispatch('close-modal');
+                                            document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
+                                            document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
+                                            document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
+                                        } else {
+                                            document.getElementsByName('akun')[0].value = formatNomorAkun(obj.data.nomor_akun);
+                                        }
+                                        $dispatch('close-modal');
                                         ">
                                         <?php $__currentLoopData = $field; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                             <td class="py-2 px-4">
@@ -258,16 +256,27 @@ unset($__defined_vars); ?>
                                 <?php if($index % 2 == 0): ?>
                                     <div class="mt-4">
                                         <label for="<?php echo e($item['name']); ?>"><?php echo e(__($item['label'])); ?></label>
-                                        <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
+                                        <?php if($item['type'] == 'select'): ?>
+                                            <select id="<?php echo e($item['name']); ?>" name="<?php echo e($item['name']); ?>"
+                                                class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                                x-bind:readonly="name.includes('show')"
+                                                x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
+                                                x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'credit' : false)">
+                                                <?php $__currentLoopData = $item['options']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                    <option value="<?php echo e($key); ?>" :selected="data.<?php echo e($item['name']); ?> == '<?php echo e($key); ?>'"><?php echo e($value); ?></option>
+                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                            </select>
+                                        <?php else: ?>
+                                            <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'credit\' : false)','placeholder' => $item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label']),'xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'credit\' : false)','placeholder' => $item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label']),'xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'credit\' : false)','placeholder' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])),'x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
+<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'credit\' : false)','placeholder' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])),'x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal18c21970322f9e5c938bc954620c12bb)): ?>
@@ -278,6 +287,7 @@ unset($__defined_vars); ?>
 <?php $component = $__componentOriginal18c21970322f9e5c938bc954620c12bb; ?>
 <?php unset($__componentOriginal18c21970322f9e5c938bc954620c12bb); ?>
 <?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -287,16 +297,27 @@ unset($__defined_vars); ?>
                                 <?php if($index % 2 != 0): ?>
                                     <div class="mt-4">
                                         <label for="<?php echo e($item['name']); ?>"><?php echo e(__($item['label'])); ?></label>
+                                        <?php if($item['type'] == 'select'): ?>
+                                            <select id="<?php echo e($item['name']); ?>" name="<?php echo e($item['name']); ?>"
+                                                class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                                x-bind:readonly="name.includes('show')"
+                                                x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
+                                                x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'credit' : false)">
+                                                <?php $__currentLoopData = $item['options']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                    <option value="<?php echo e($key); ?>" :selected="data.<?php echo e($item['name']); ?> == '<?php echo e($key); ?>'"><?php echo e($value); ?></option>
+                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                            </select>
+                                        <?php else: ?>
                                         <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'debit\' : false)','placeholder' => ''.e(__($item['label'])).'','xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50','xBind:readonly' => 'name.includes(\'show\')','xOn:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','xBind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'debit\' : false)','placeholder' => ''.e(__($item['label'])).'','xBind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'debit\' : false)','placeholder' => ''.e(__($item['label'])).'','x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
+<?php $component->withAttributes(['id' => ''.e($item['name']).'','name' => ''.e($item['name']).'','type' => ''.e($item['type']).'','class' => 'mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50','x-bind:readonly' => 'name.includes(\'show\')','x-on:input' => 'name.includes(\'saldo-awal\') ? formatCurrency($event) : \'\'','x-bind:disabled' => 'name.includes(\'show\') ? true : (name.includes(\'saldo-awal\') ? data.saldo_normal == \'debit\' : false)','placeholder' => ''.e(__($item['label'])).'','x-bind:value' => 'name.includes(\'create\') ? \'\' : (name.includes(\'saldo-awal\') ? formatCurrencyValue(data.'.e($item['name']).') : data.'.e($item['name']).')']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal18c21970322f9e5c938bc954620c12bb)): ?>
@@ -307,6 +328,7 @@ unset($__defined_vars); ?>
 <?php $component = $__componentOriginal18c21970322f9e5c938bc954620c12bb; ?>
 <?php unset($__componentOriginal18c21970322f9e5c938bc954620c12bb); ?>
 <?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -352,27 +374,9 @@ unset($__defined_vars); ?>
                     </template>
                 <?php endif; ?>
                 <div class="mt-4 flex justify-end space-x-2">
-                    <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['type' => 'submit','xShow' => '!name.includes(\'show\')']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('primary-button'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['type' => 'submit','x-show' => '!name.includes(\'show\')']); ?>
+                    <button type="submit" x-show="!name.includes('show')" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4">
                         <span x-text="name.includes('destroy') ? 'Hapus' : 'Simpan'"></span>
-                     <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginald411d1792bd6cc877d687758b753742c)): ?>
-<?php $attributes = $__attributesOriginald411d1792bd6cc877d687758b753742c; ?>
-<?php unset($__attributesOriginald411d1792bd6cc877d687758b753742c); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginald411d1792bd6cc877d687758b753742c)): ?>
-<?php $component = $__componentOriginald411d1792bd6cc877d687758b753742c; ?>
-<?php unset($__componentOriginald411d1792bd6cc877d687758b753742c); ?>
-<?php endif; ?>
+                    </button>
                     
                     <?php if (isset($component)) { $__componentOriginal3b0e04e43cf890250cc4d85cff4d94af = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af = $attributes; } ?>

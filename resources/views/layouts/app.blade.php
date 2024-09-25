@@ -183,17 +183,31 @@
                         <p class="text-xs md:text-sm text-center">{{ Auth::user()->email }}</p>
                     </div>
                     <a href="{{ route('profile.edit') }}"
-                        class="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden hover:scale-110 transition-transform duration-300">
+                        class="overflow-hidden hover:scale-110 transition-transform duration-300">
                         <img src="{{ asset('storage/'. Auth::user()->company_logo) }}" alt="User"
-                            class="w-full h-full object-cover">
+                            class="w-15 h-10 rounded-md object-contain">
                     </a>
                 </div>
             </div>
         </div>
 
+        @php
+            $trial_ends_in_days = now()->diffInDays(auth()->user()->created_at->addDays(60));
+            $trial_ends_in_days = (int) $trial_ends_in_days;
+        @endphp
+
 
         @include('layouts.navigation')
         <div class="content shifted p-2 w-full md:w-auto" id="content">
+            {{-- @if(auth()->user()->profile == 'trial')
+                <div style="background-color: #fde047" class="trial-alert flex flex-col md:flex-row justify-center items-center p-1 rounded-sm shadow">
+                    <p class="text-center text-gray-800 font-medium">Sisa waktu trial Anda adalah {{ $trial_ends_in_days }} hari !&nbsp;</p>
+                    <a href="{{ route('upgrade.index') }}" class="p-1 px-2 bg-emerald-500 text-white rounded-md font-medium">
+                        Upgrade
+                    </a>
+                    <p class="text-center text-gray-800 font-medium">&nbsp;untuk menghindari gangguan layanan, segera lakukan upgrade.</p>
+                </div>
+            @endif --}}
             @yield('content')
         </div>
         <div class="overlay fixed inset-0 bg-black bg-opacity-0" id="overlay"

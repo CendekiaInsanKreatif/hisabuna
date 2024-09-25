@@ -34,7 +34,7 @@
                             <label for="profile_image" class="block text-sm font-medium text-gray-800">Logo Perusahaan</label>
                             <div class="flex items-center">
                                 <input type="file" name="company_logo" id="profile_image" accept=".jpg,.png,.jpeg" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <img id="profile_image_preview" src="{{ asset('storage/' . $user->company_logo) }}" alt="Preview Image" class="w-20 h-20 rounded-md object-cover ml-4">
+                                <img id="profile_image_preview" src="{{ asset('storage/' . $user->company_logo) }}" alt="Preview Image" class="w-15 h-10 rounded-md object-contain">
                             </div>
                         </div>
                         <div class="space-y-4">

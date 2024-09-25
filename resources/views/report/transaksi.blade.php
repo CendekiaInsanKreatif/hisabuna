@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -122,7 +122,7 @@
                     $index == 0 ||
                         $jurnal['details'][$index]['parent']['nomor_akun'] != $jurnal['details'][$index - 1]['parent']['nomor_akun']
                 )
-                    <tr style="border-top: 1px solid black">
+                    <tr style="border-top: 1px solid black;">
                         <td style="font-weight: bold;">{{ $detail['parent']['nomor_akun'] }}</td>
                         <td colspan="2" style="font-weight: bold;">{{ $detail['parent']['nama_akun'] }}</td>
                         <td style="text-align: right;">

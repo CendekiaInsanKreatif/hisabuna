@@ -7,7 +7,7 @@
     <style>
         body { 
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -19,28 +19,6 @@
             padding: 2px; 
             text-align: left; 
         }
-        /* @media print {
-            body {
-                display: block;
-            }
-            .header {
-                text-align: center;
-                padding: 0;
-            }
-            .header h1, .header h2, .header h4 {
-                margin: 0;
-                font-size: inherit;
-            }
-            .header h1 {
-                font-size: 2em;
-            }
-            .header h2 {
-                font-size: 1.5em;
-            }
-            .header h4 {
-                font-size: 1em;
-            }
-        } */
         th { 
             background-color: #f2f2f2; 
         }
@@ -89,8 +67,8 @@
         <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
             <h1>{{ auth()->user()->company_name }}</h1>
-            <h2>Laporan Neraca Saldo</h2>
-            <h3>Periode: {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</h3>
+            <h2>Neraca Saldo</h2>
+            <h3>Per {{ \Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->format('d F Y') }}</h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
@@ -103,6 +81,10 @@
             </tr>
         </thead>
         <tbody>
+            @php
+                $totalDebit = 0;
+                $totalKredit = 0;
+            @endphp
             @foreach($data as $akun1 => $subcategories)
                 <tr>
                     <td colspan="3"><strong>{{ $akun1 }}</strong></td>
@@ -121,26 +103,31 @@
                                     <td style="text-align: right;">{{ number_format($balances['debit'], 0, ',', '.') }}</td>
                                     <td style="text-align: right;">{{ number_format($balances['kredit'], 0, ',', '.') }}</td>
                                 </tr>
+                                @php
+                                    $totalDebit += $balances['debit'];
+                                    $totalKredit += $balances['kredit'];
+                                @endphp
                             @endif
                         @endforeach
                         <tr>
-                            <td class="indent"><strong>Total {{ substr($akun2, 4) }}</strong></td>
+                            <td class="indent"><strong>Total {{ pisah($akun2) }}</strong></td>
                             <td style="text-align: right; border-bottom: 1px solid black;"><strong>{{ number_format($accounts['Total']['debit'], 0, ',', '.') }}</strong></td>
                             <td style="text-align: right; border-bottom: 1px solid black;"><strong>{{ number_format($accounts['Total']['kredit'], 0, ',', '.') }}</strong></td>
                         </tr>
                     @endif
                 @endforeach
                 <tr>
-                    <td><strong>Total {{ $akun1 }}</strong></td>
+                    <td><strong>Total {{ pisah($akun1) }}</strong></td>
                     <td style="text-align: right; border-bottom: 2px solid black;"><strong>{{ number_format($subcategories['Total']['debit'], 0, ',', '.') }}</strong></td>
                     <td style="text-align: right; border-bottom: 2px solid black;"><strong>{{ number_format($subcategories['Total']['kredit'], 0, ',', '.') }}</strong></td>
                 </tr>
             @endforeach
+            <tr>
+                <td><strong>Total Keseluruhan</strong></td>
+                <td style="text-align: right; border-top: 2px solid black;"><strong>{{ number_format($totalDebit, 0, ',', '.') }}</strong></td>
+                <td style="text-align: right; border-top: 2px solid black;"><strong>{{ number_format($totalKredit, 0, ',', '.') }}</strong></td>
+            </tr>
         </tbody>
     </table>
-    {{-- <div class="footer">
-        <div class="left">{{ auth()->user()->company_name }}</div>
-        <div class="right"></div>
-    </div> --}}
 </body>
 </html>

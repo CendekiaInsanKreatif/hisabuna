@@ -56,6 +56,24 @@ function terbilang($x) {
   return ''; // To handle cases where the number is zero or negative
 }
 
+function pisah($x) {
+    // Taufiq
+    preg_match_all('/\d+|[a-zA-Z\s]+/', $x, $a);
+    
+    $angka = '';
+    $huruf = '';
+
+    foreach ($a[0] as $match) {
+        if (is_numeric($match)) {
+            $angka .= $match;
+        } else {
+            $huruf .= $match;
+        }
+    }
+
+    return $huruf;
+}
+
 function formatNomorAkun($nomor_akun) {
     // da($nomor_akun);
     $formatted = str_pad($nomor_akun, 8, '0', STR_PAD_RIGHT);

@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -20,7 +20,12 @@
             background-color: #fff;
         }
 
-        h2, h3 {
+        h2 {
+            margin: 0;
+            padding: 0;
+        }
+
+        h3 {
             margin: 0;
             padding: 0;
         }
@@ -35,7 +40,7 @@
         th, td {
             padding: 3px;
             text-align: left;
-            font-size: 0.875rem;
+            /* font-size: 0.875rem; */
             word-wrap: break-word;
         }
 
@@ -60,7 +65,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 10px;
             position: relative;
             text-align: center;
         }
@@ -79,22 +83,32 @@
             margin-left: auto;
             margin-right: auto;
         }
+
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
+        }
     </style>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
 </head>
 <body onload="window.print()">
     <header class="new-header">
         <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
         <div class="header-content">
             <h1>{{ auth()->user()->company_name }}</h1>
-            <h2>LAPORAN BUKU BESAR</h2>
-            <h3>Periode: {{ $tanggalMulai }} s/d {{ $tanggalSelesai }}</h3>
+            <h2>Buku Besar (Ledger)</h2>
+            <h3>Periode {{ \Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y') }}</h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
-    <div class="report-container">
+    {{-- <div class="report-container"> --}}
         @foreach ($ledgers as $coaAkun => $transactions)
             <table>
-                <caption style="text-align: left; background-color: #f0f0f0; padding: 3px;"><h2>{{ formatNomorAkun($coaAkun) . ' - ' . $transactions->first()->coa->nama_akun }}</h2></caption>
+                <caption style="text-align: left;"><h2>{{ formatNomorAkun($coaAkun) . ' - ' . $transactions->first()->coa->nama_akun }}</h2></caption>
                 <thead>
                     <tr>
                         <th scope="col" style="width: 13%;">Tanggal</th>
@@ -125,17 +139,18 @@
                                     @endphp
                                 @endif
                             </td>
-                            <td>
+                            <td style="text-wrap: wrap;">
                                 @php
-                                    $keterangan = $transaction->keterangan;
-                                    $max_length = 50;
-                                    $output = '';
-                                    while (strlen($keterangan) > $max_length) {
-                                        $output .= substr($keterangan, 0, $max_length) . '<br>';
-                                        $keterangan = substr($keterangan, $max_length);
-                                    }
-                                    $output .= $keterangan;
-                                    echo $output;
+                                    echo $transaction->keterangan;
+                                    // $keterangan = $transaction->keterangan;
+                                    // $max_length = 50;
+                                    // $output = '';
+                                    // while (strlen($keterangan) > $max_length) {
+                                    //     $output .= substr($keterangan, 0, $max_length) . '<br>';
+                                    //     $keterangan = substr($keterangan, $max_length);
+                                    // }
+                                    // $output .= $keterangan;
+                                    // echo $output;
                                 @endphp
                             </td>
                             <td class="text-right">{{ number_format($transaction->debit, 0, ',', '.') }}</td>
@@ -146,6 +161,6 @@
                 </tbody>
             </table>
         @endforeach
-    </div>
+    {{-- </div> --}}
 </body>
 </html>

@@ -28,12 +28,57 @@ class CoaController extends Controller
         return view('coas.index');
     }
 
+
+    public function filterCoa(Request $request)
+    {
+        $users      = auth()->user()->id;
+        $kepala     = $request->kepala;
+        $page       = $request->page ?? 1; // Halaman default ke 1
+        $perPage    = 7;
+
+        $offset     = ($page - 1) * $perPage;
+        $query = DB::select("
+        SELECT
+            id,
+            nama_akun,
+            level,
+            saldo_normal,
+            CASE 
+            WHEN level = 4 THEN 
+                CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+            WHEN level = 5 THEN 
+                 CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                   SUBSTRING(nomor_akun, 4, 2), '-', 
+                   SUBSTRING(nomor_akun, 6, 3))
+            ELSE 
+                nomor_akun 
+        END AS nomor_akun
+        FROM coas
+        WHERE
+            is_deleted IS NULL AND
+            nomor_akun LIKE ? AND
+            created_by = ?
+        LIMIT ?
+        OFFSET ?
+    ", [$kepala . '%', $users, $perPage, $offset]);
+            $total = DB::table('coas')
+                ->where('is_deleted', null)
+                ->where('nomor_akun', 'LIKE', $kepala . '%')
+                ->where('created_by', $users)
+                ->count();
+
+        return response()->json([
+            'data'          => $query,
+            'total'         => $total,
+            'current_page'  => (int) $page,
+            'last_page'     => ceil($total / $perPage), // Hitung total halaman
+        ]);
+    }
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-
         $input = $request->all();
         $validator = Validator::make($input, [
             'nomor_akun'    => 'required|regex:/^[0-9\-]+$/',
@@ -372,7 +417,6 @@ class CoaController extends Controller
             $level = 0;
 
             // da($value);
-            // Menentukan level berdasarkan jumlah digit nomor akun
             if ($jumlah_nomor_akun == 1) {
                 $level = 1;
             } elseif ($jumlah_nomor_akun == 2) {
@@ -384,6 +428,7 @@ class CoaController extends Controller
             } elseif ($jumlah_nomor_akun == 8) {
                 $level = 5;
             } else {
+                // da($value);
                 Alert::error('Oops!', 'Format nomor akun tidak valid');
                 return redirect()->back();
             }

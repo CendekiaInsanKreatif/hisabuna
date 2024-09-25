@@ -8,6 +8,7 @@
             <input type="text" name="nama_akun[{{ $index }}]" readonly required class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" value="{{ $row['nama_akun'] }}">
         </td>
         <td class="py-2 px-4">
+                                                    x-text="{{ $item['name'] == 'nomor_akun' ? 'formatNomorAkun(' . json_encode($item2[$item['name']]) . ')' : json_encode($item2[$item['name']]) }}"></span>
             <input type="text" name="debit[{{ $index }}]" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" value="{{ $row['debit'] }}">
         </td>
         <td class="py-2 px-4">

@@ -43,8 +43,19 @@
         }
         return formatted;
     },
+    formatInputAkun(event) {
+        let input = event.target;
+        let value = input.value.replace(/[^0-9]/g, ''); // Menghapus semua karakter non-numeric
+        if (value.length > 6) {
+            value = value.slice(0, 3) + '-' + value.slice(3, 5) + '-' + value.slice(5);
+        } else if (value.length > 4) {
+            value = value.slice(0, 3) + '-' + value.slice(3);
+        }
+        input.value = value;
+    },
     formatCurrency(event) {
             let input = event.target;
+            {{-- console.log(event); --}}
             let value = input.value.replace(/[^0-9]/g, ''); // Menghapus semua karakter non-numeric
             let parsedValue = parseFloat(value);
             if (isNaN(parsedValue)) {
@@ -206,7 +217,9 @@
                                             <x-text-input id="{{ $item['name'] }}" name="{{ $item['name'] }}"
                                                 type="{{ $item['type'] }}" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                                 x-bind:readonly="name.includes('show')"
-                                                x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
+                                                {{-- x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''" --}}
+                                                x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : formatInputAkun($event)"
+                                                maxlength="10"
                                                 x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'credit' : false)" :placeholder="$item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])"
                                                 x-bind:value="name.includes('create') ? '' : (name.includes('saldo-awal') ? formatCurrencyValue(data.{{ $item['name'] }}) : data.{{ $item['name'] }})" />
                                         @endif
@@ -261,7 +274,7 @@
                                         <template x-for="(detail, index) in data.details" :key="index">
                                             <tr class="bg-white divide-y divide-gray-200">
                                                 <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                                    x-text="detail.coa_akun"></td>
+                                                    x-text="formatNomorAkun(detail.coa_akun)"></td>
                                                 <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                                                     x-text="detail.coa.nama_akun"></td>
                                                 <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"

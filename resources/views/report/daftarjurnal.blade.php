@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            font-size: 12px;
+            font-size: 10px;
             margin: 0;
             padding: 0;
             color: #333;
@@ -50,22 +50,44 @@
             margin-top: 5px;
             font-style: italic;
         }
+
+        .new-header {
+            position: relative;
+        }
+
+        .company-logo {
+            position: absolute;
+            top: 3%;
+            transform: translateY(-50%);
+            width: 100px;
+
+        }
     </style>
 </head>
 <body>
     <div class="container" style="overflow-x: auto; overflow-y: hidden; display: flex; justify-content: center;">
-        <div class="header-content" style="text-align: center; width: 100%;">
+    <header class="new-header">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Laba Rugi</h2>
+            <h3>Periode {{ $tgl_awal }} s/d {{ $tgl_akhir }}</h3>
+        </div>
+    </header>
+        <!-- <div class="header-content" style="text-align: center; width: 100%;">
             <div id="titleHeader" class="header-text" style="display: flex; align-items: center; justify-content: center; flex-direction: row;">
-                <div>
-                    <h2 style="padding: 0; margin: 0; margin-top: 20px;">{{ auth()->user()->company_name }}</h2>
+                <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo" style="width: 6rem; margin-right: 15px;">
+                <div style="display: flex; align-items: center;">
+                    <h2 style="padding: 0; margin: 0;">{{ auth()->user()->company_name }}</h2>
                 </div>
             </div>
             <br>
             <div class="title">
                 <h2>DAFTAR JURNAL</h2>
-                <p class="period">Periode {{ \Carbon\Carbon::parse($tgl_awal)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($tgl_akhir)->format('d/m/Y') }}</p>
+                <p class="period">Periode {{ $tgl_awal }} s/d {{ $tgl_akhir }}</p>
             </div>
-        </div>
+        </div> -->
+
         <table>
             <thead style="border-bottom: 1px solid #333;">
                 <tr>
@@ -80,7 +102,7 @@
             <tbody>
                 @foreach($jurnal as $item)
                     <tr style="{{ $item->jenis == 'RV' ? 'background-color: #fee2e2;' : ($item->jenis == 'PV' ? 'background-color: #f4f4f5;' : ($item->jenis == 'JV' ? 'background-color: #fef9c3;' : '')) }} border-bottom: 1px solid #333;">
-                        <td style="text-align: center">{{ $loop->iteration }}</td>
+                        <td style="text-align: center">{{ $item->no_urut_transaksi }}</td>
                         <td style="text-align: center">{{ $item->jenis }}</td>
                         <td>{{ $item->keterangan }}</td>
                         <td style="text-align: right">{{ number_format($item->subtotal, 0, ',', '.') }}</td>

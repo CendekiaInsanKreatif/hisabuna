@@ -1,0 +1,10 @@
+@page {
+    size: A4;
+    margin: 50px;
+    padding: 0;
+    justify-content: center;
+
+    @bottom-center {
+        content: counter(page);
+    }
+}

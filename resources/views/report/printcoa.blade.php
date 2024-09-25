@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: 'Times New Roman', serif;
-            font-size: 12px;
+            font-size: 10px;
             max-width: 800px;
             margin: 0 auto;
         }

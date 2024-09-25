@@ -26,10 +26,19 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        // Menghapus dd untuk menampilkan pengguna yang terautentikasi
-        $request->session()->regenerate();
+        if(auth()->user()->is_active == 0){
+            Auth::guard('web')->logout();
+            return redirect()->route('login')->with('message', 'Akun anda tidak aktif')->with('color', 'red');
+        }
 
-        // dd(auth()->user());
+        // if(auth()->user()->profile == 'trial' && auth()->user()->created_at->diffInDays(now()) >= 60){
+        //     Auth::guard('web')->logout();
+        //     return redirect()->route('login')->with('message', 'Maaf, Masa Trial Anda sudah expired')->with('color', 'red');
+        // }
+
+        
+
+        $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

@@ -9,6 +9,7 @@ import Swal from 'sweetalert2/dist/sweetalert2.js'
 window.$ = window.jQuery = $;
 window.Alpine = Alpine;
 window.Swal = Swal;
+window.Previewer = Previewer;
 
 console.log('jQuery:', window.$);
 console.log('flatpickr:', flatpickr);

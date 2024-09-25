@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Laporan Mutasi Saldo</title>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -61,6 +62,14 @@
             width: 100px;
         }
 
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
+        }
     </style>
 </head>
 <body onload="window.print()">

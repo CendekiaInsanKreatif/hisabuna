@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Neraca Saldo</title>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
     <style>
         body { 
             font-family: Arial, sans-serif;
@@ -59,6 +60,15 @@
             transform: translateY(-50%);
             width: 100px;
 
+        }
+
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
         }
     </style>
 </head>

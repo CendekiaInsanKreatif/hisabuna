@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jurnal Transaksi</title>
-    <script src="{{ asset('js/paged_old.js') }}"></script>
+    <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -43,7 +43,7 @@
 
 
             @bottom-left {
-                content: "{{ auth()->user()->company_name }}";
+                content: "<?php echo e(auth()->user()->company_name); ?>";
             }
 
             @bottom-right {
@@ -87,12 +87,13 @@
 
 <body onload="window.print()">
     <header class="new-header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
-            <h1>{{ auth()->user()->company_name }}</h1>
-            <h2><u>{{ $jurnal['jenis'] == 'RV' ? 'JURNAL KAS MASUK' : ($jurnal['jenis'] == 'PV' ? 'JURNAL KAS KELUAR' : ($jurnal['jenis'] == 'JV' ? 'JURNAL UMUM' : '')) }}</u>
+            <h1><?php echo e(auth()->user()->company_name); ?></h1>
+            <h2><u><?php echo e($jurnal['jenis'] == 'RV' ? 'JURNAL KAS MASUK' : ($jurnal['jenis'] == 'PV' ? 'JURNAL KAS KELUAR' : ($jurnal['jenis'] == 'JV' ? 'JURNAL UMUM' : ''))); ?></u>
             </h2>
-            <h3>{{ $jurnal['jenis'] == 'RV' ? 'RECEIVE VOUCHER' : ($jurnal['jenis'] == 'PV' ? 'PAYMENT VOUCHER' : ($jurnal['jenis'] == 'JV' ? 'JOURNAL VOUCHER' : '')) }}
+            <h3><?php echo e($jurnal['jenis'] == 'RV' ? 'RECEIVE VOUCHER' : ($jurnal['jenis'] == 'PV' ? 'PAYMENT VOUCHER' : ($jurnal['jenis'] == 'JV' ? 'JOURNAL VOUCHER' : ''))); ?>
+
             </h3>
         </div>
     </header>
@@ -105,12 +106,14 @@
                 <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top;">Jenis Jurnal</td>
             </tr>
             <tr>
-                <td style="border: 1px solid black; text-align: center; width: 60%; vertical-align: center;"><b><em>{{ $jurnal['keterangan'] }}</em></b></td>
+                <td style="border: 1px solid black; text-align: center; width: 60%; vertical-align: center;"><b><em><?php echo e($jurnal['keterangan']); ?></em></b></td>
                 <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top; font-size: 35px; font-weight: bold;">
-                    {{ $jurnal['no_urut_transaksi'] }}
+                    <?php echo e($jurnal['no_urut_transaksi']); ?>
+
                 </td>
                 <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top; font-size: 35px; font-weight: bold;">
-                    {{ $jurnal['jenis'] }}
+                    <?php echo e($jurnal['jenis']); ?>
+
                 </td>
             </tr>
         </tbody>
@@ -125,28 +128,28 @@
             </tr>
         </thead>
         <tbody>
-            @php
+            <?php
                 $totalDebit = 0;
                 $totalCredit = 0;
                 $totalBilang = 0;
-            @endphp
-            @foreach ($jurnal['details'] as $index => $detail)
-                @if (
+            ?>
+            <?php $__currentLoopData = $jurnal['details']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php if(
                     $index == 0 ||
                         $jurnal['details'][$index]['parent']['nomor_akun'] != $jurnal['details'][$index - 1]['parent']['nomor_akun']
-                )
+                ): ?>
                     <tr style="border-top: 1px solid black;">
-                        <td style="font-weight: bold;">{{ $detail['parent']['nomor_akun'] }}</td>
-                        <td colspan="2" style="font-weight: bold;">{{ $detail['parent']['nama_akun'] }}</td>
+                        <td style="font-weight: bold;"><?php echo e($detail['parent']['nomor_akun']); ?></td>
+                        <td colspan="2" style="font-weight: bold;"><?php echo e($detail['parent']['nama_akun']); ?></td>
                         <td style="text-align: right;">
-                            {{ $jurnal['debit'] ? number_format($jurnal['debit'], 0, ',', '.') : "-" }}</td>
+                            <?php echo e($jurnal['debit'] ? number_format($jurnal['debit'], 0, ',', '.') : "-"); ?></td>
                         <td style="text-align: right;">
-                            {{ $jurnal['credit'] ? number_format($jurnal['credit'], 0, ',', '.') : "-" }}</td>
+                            <?php echo e($jurnal['credit'] ? number_format($jurnal['credit'], 0, ',', '.') : "-"); ?></td>
                     </tr>
-                @endif
+                <?php endif; ?>
                 <tr style="border-bottom: 1px solid black;">
                     <td>
-                        @php
+                        <?php
                             $formattedNomorAkun = preg_replace('/\D/', '', $detail['coa_akun']);
                             if (strlen($formattedNomorAkun) > 6) {
                                 $formattedNomorAkun =
@@ -161,21 +164,22 @@
                             } else {
                                 $formattedNomorAkun = substr($formattedNomorAkun, 0, 3);
                             }
-                        @endphp
-                        &nbsp;&nbsp;&nbsp;{{ $formattedNomorAkun }}
+                        ?>
+                        &nbsp;&nbsp;&nbsp;<?php echo e($formattedNomorAkun); ?>
+
                     </td>
-                    <td colspan="2">&nbsp;&nbsp;&nbsp;{{ $detail['nama_akun'] }}</td>
+                    <td colspan="2">&nbsp;&nbsp;&nbsp;<?php echo e($detail['nama_akun']); ?></td>
                     <td style="text-align: right;">
-                        {{ $detail['debit'] ? number_format($detail['debit'], 0, ',', '.') : "-" }}</td>
+                        <?php echo e($detail['debit'] ? number_format($detail['debit'], 0, ',', '.') : "-"); ?></td>
                     <td style="text-align: right;">
-                        {{ $detail['credit'] ? number_format($detail['credit'], 0, ',', '.') : "-" }}</td>
+                        <?php echo e($detail['credit'] ? number_format($detail['credit'], 0, ',', '.') : "-"); ?></td>
                 </tr>
-                @php
+                <?php
                     $totalBilang += $detail['debit'] ? $detail['debit'] + $detail['credit'] : $detail['debit'] + $detail['credit'];
                     $totalDebit += $detail['debit'];
                     $totalCredit += $detail['credit'];
-                @endphp
-            @endforeach
+                ?>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
 
         <tfoot>
@@ -185,21 +189,21 @@
                 </td>
             </tr>
             <tr>
-                <td colspan="2"><i>Lampiran: {{ $jurnal['keterangan'] }}</i></td>
+                <td colspan="2"><i>Lampiran: <?php echo e($jurnal['keterangan']); ?></i></td>
                 <td style="text-align: right; font-weight: bold; margin-top: 10px;">Total:</td>
-                <td style="text-align: right; margin-top: 10px;"><b>{{ number_format($totalDebit, 0, ',', '.') }}</b></td>
-                <td style="text-align: right; margin-top: 10px;"><b>{{ number_format($totalCredit, 0, ',', '.') }}</b></td>
+                <td style="text-align: right; margin-top: 10px;"><b><?php echo e(number_format($totalDebit, 0, ',', '.')); ?></b></td>
+                <td style="text-align: right; margin-top: 10px;"><b><?php echo e(number_format($totalCredit, 0, ',', '.')); ?></b></td>
             </tr>
             <tr>
-                <td colspan="2"><i>Terbilang : <b>{{ terbilang($totalBilang / 2) . ' Rupiah' }}</b></i></td>
+                <td colspan="2"><i>Terbilang : <b><?php echo e(terbilang($totalBilang / 2) . ' Rupiah'); ?></b></i></td>
             </tr>
-            @for($i=0;$i<4;$i++)
+            <?php for($i=0;$i<4;$i++): ?>
                 <tr>
                     <td colspan="5" style="text-align: center;">
                         &nbsp;
                     </td>
                 </tr>
-            @endfor
+            <?php endfor; ?>
             <tr>
                 <td colspan="5" style="text-align: center; border-bottom: 2px solid black; padding: 2px; width: 100%">
                     <div class="ttd" style="display: flex; justify-content: space-between;">
@@ -214,19 +218,10 @@
                     &nbsp;
                 </td>
             </tr>
-            {{-- <tr>
-                <td style="text-align: left;">
-                    {{ strtoupper(auth()->user()->company_name) }}
-                </td>
-                <td style="text-align: center;">
-                    &nbsp;
-                </td>
-                <td colspan="3" style="text-align:right;">
-                    <div class="perPage"></div>
-                </td>
-            </tr> --}}
+            
         </tfoot>
     </table>
 </body>
 
 </html>
+<?php /**PATH /var/www/trial_hisabuna/backend/resources/views/report/transaksi.blade.php ENDPATH**/ ?>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Laba Rugi</title>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -92,7 +93,6 @@
             }
         }
     </style>
-    <script src="{{ asset('js/paged_old.js') }}"></script>
 </head>
 <body onload="window.print()">
     <header class="new-header">

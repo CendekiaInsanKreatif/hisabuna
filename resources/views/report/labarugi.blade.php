@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -59,13 +59,11 @@
         h3 {
             margin: 0;
             padding: 0;
-            font-size: 11px;
         }
 
         h2 {
             margin: 0;
             padding: 0;
-            font-size: 11px;
         }
 
 
@@ -84,7 +82,17 @@
             width: 100px;
 
         }
+
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
+        }
     </style>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
 </head>
 <body onload="window.print()">
     <header class="new-header">
@@ -92,7 +100,7 @@
         <div class="header" style="text-align: center;">
             <h1>{{ auth()->user()->company_name }}</h1>
             <h2>Laporan Laba Rugi</h2>
-            <h3>Periode : {{$start}} - {{$end}}</h3>
+            <h3>Periode {{$start}} - {{$end}}</h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
@@ -137,9 +145,6 @@
                     <div style="height: 80px;"></div>
                     <div><strong>Staff Keuangan</strong></div>
                 </td>
-                <td style="width: 10%;"></td>
-                <td style="width: 10%;"></td>
-                <td style="width: 10%;"></td>
                 <td style="text-align: center; width: 35%;">
                     <div>Disetujui oleh, {{ $ttd2 }}</div>
                     <div style="height: 80px;"></div>

@@ -42,6 +42,11 @@ class JurnalController extends Controller
      */
     public function create()
     {
+        if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0){
+            Alert::error('Oops!', 'Masa trial anda sudah expired, Anda Tidak Bisa Membuat Jurnal');
+            return redirect()->route('jurnal.index');
+        }
+
         $coa = Coa::whereNull('is_deleted')
                     ->where('level', 5)
                     ->where('created_by', auth()->user()->id)
@@ -52,10 +57,15 @@ class JurnalController extends Controller
 
     public function store(Request $request)
     {
+
+        if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0){
+            Alert::error('Oops!', 'Masa trial anda sudah expired, Anda Tidak Bisa Membuat Jurnal');
+            return redirect()->route('jurnal.index');
+        }
+
         DB::beginTransaction();
         try {
             $input = $request->all();
-
             $debit = array_map(function($x) {
                 return strpos($x, '.') !== false ? (int) str_replace('.', '', $x) : (int) $x;
             }, $input['debit']);
@@ -152,6 +162,7 @@ class JurnalController extends Controller
     }
 
     public function show(Jurnal $jurnal){
+        // da($jurnal);
 
     }
 
@@ -168,11 +179,21 @@ class JurnalController extends Controller
                 $detail->tanggal_bukti = \Carbon\Carbon::parse($detail->tanggal_bukti)->format('Y-m-d');
             }
         }
+
         $coa = Coa::whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
-                // ->where('level', 5)
+                ->where('level', 5)
                 ->get()
                 ->toArray();
+
+
+        // foreach($jurnal->details as $detail){
+        //     if(substr($detail->coa_akun, 0, 1) === '1'){
+        //         $detail->coa_akun = '0' . substr($detail->coa_akun, 1);
+        //     }
+        // }
+
+        // da($jurnal);
 
         return view('jurnal.form', compact('jurnal', 'coa'));
     }
@@ -354,13 +375,25 @@ class JurnalController extends Controller
     {
         $file = $request->file('file');
         $importedData = $this->import($request);
+        
+        $countImport = 0;
+        if(auth()->user()->profile == 'trial'){
+            $countImport = 50;
+        }elseif(auth()->user()->profile == 'standard'){
+            $countImport = 100;
+        }elseif(auth()->user()->profile == 'pro'){
+            $countImport = 250;
+        }else{
+            $countImport = 500;
+        }
+
         if(isset($importedData['success']) && !$importedData['success']){
             return response()->json(['html' => 0, 'message' => $importedData['message']]);
         } else {
             $cek = "";
-            if (count($importedData) > 1000) {
-                $cek = "Hanya 1000 data pertama yang di import.";
-                $importedData = array_slice($importedData, 0, 1000);
+            if (count($importedData) > $countImport) {
+                $cek = "Hanya " . $countImport . " data pertama yang di import.";
+                $importedData = array_slice($importedData, 0, $countImport);
             }else{
                 $cek = "Data berhasil diimport, Silahkan Tunggu.";
             }
@@ -372,6 +405,26 @@ class JurnalController extends Controller
     public function sampleExport()
     {
         return Excel::download(new JurnalSampleExport(), 'jurnal_sample.xlsx');
+    }
+
+    public function totalJurnal()
+    {
+        $a      = auth()->user()->id; 
+        $users  = DB::select("
+            SELECT 
+            COUNT(jh.id) as total
+            FROM jurnal_headers jh
+            
+            WHERE 
+            jh.is_deleted IS NULL AND 
+            jh.created_by = ?
+        ",[$a]);
+
+        return response()->json([
+            'status'     => 200,
+            'message'    => 'Berhasil get data',
+            'data'       => $users[0]->total,
+        ]);
     }
 
     public function cekTrial()

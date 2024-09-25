@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -39,26 +39,35 @@
             width: 100px;
 
         }
-    </style>
-</head>
 
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
+        }
+    </style>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
+</head>
 <body onload="window.print()">
     <header class="new-header">
         <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
             <h1>{{ auth()->user()->company_name }}</h1>
             <h2>Laporan Perubahan Ekuitas</h2>
-            <h3>Periode: {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</h3>
+            <h3>Per {{ \Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->format('d F Y') }}</h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
     <table>
         <thead>
             <tr>
-                <th style="text-align: center;">Keterangan</th>
-                <th style="text-align: right; border-bottom: 1px solid #000;">{{ date('Y') }}</th>
-                <th style="text-align: right; border-bottom: 1px solid #000;">Penambahan / <br> (Pengurangan)</th>
-                <th style="text-align: right; border-bottom: 1px solid #000;">{{ date('Y') - 1 }}</th>
+                <th style="text-align: center; width: 40%;">Keterangan</th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;">{{ date('Y') }}</th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;">Penambahan / <br> (Pengurangan)</th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;">{{ date('Y') - 1 }}</th>
             </tr>
         </thead>
         <tbody>

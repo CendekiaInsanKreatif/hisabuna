@@ -19,6 +19,8 @@
         "flatpickr": "^4.6.13",
         "jquery": "^3.7.1",
         "jquery-ui": "^1.13.3",
-        "sweetalert2": "^11.6.13"
+        "pagedjs": "^0.4.3",
+        "sweetalert2": "^11.6.13",
+        "vfrag": "^0.0.6"
     }
 }

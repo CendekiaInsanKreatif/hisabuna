@@ -10,7 +10,7 @@
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            font-size: 12px;
+            font-size: 10px;
             background-color: #f4f4f4;
         }
         table {

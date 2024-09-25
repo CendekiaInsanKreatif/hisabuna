@@ -16,6 +16,18 @@
                 ],
             ];
         @endphp
+        <style>
+            #coaTable td {
+                padding: 10px 20px; /* Mengatur padding untuk jarak */
+            }
+            .btn-action-danger {
+                cursor: pointer; /* Mengatur cursor menjadi pointer */
+            }
+
+            .btn-action-primary{
+                cursor: pointer;
+            }
+        </style>
         <x-modal :field="$fields" maxWidth="sm" focusable />
         <div class="container mx-auto px-4 over" x-data="coaTable">
             <div class="mb-4 mt-2">
@@ -32,7 +44,7 @@
                                     Rugi</button>
                             </div>
                             <div id="filter_level" class="flex flex-wrap gap-2 items-center">
-                                <p class="text-sm text-gray-500">Level</p>
+                                <p class="text-sm text-gray-500">Level Akun</p>
                                 <button @click="filterLevel('all')" class="btn-level btn-filter">Semua</button>
                                 <template x-for="i in 5" :key="i">
                                     <button @click="filterLevel(i.toString())" class="btn-level btn-filter"
@@ -67,7 +79,6 @@
                             </div>
                         </div>
                         <div class="p-3 flex w-full gap-2 justify-start mb-2">
-
                             <a href="{{ route('report.preview-coa') }}" target="_blank"
                                 class="btn bg-gray-200 rounded py-1 px-3 hover:bg-emerald-500 transition duration-300">Preview</a>
                             <button
@@ -80,7 +91,21 @@
                                     Sample
                                 </button>
                             </form>
+                            <div id="filter_level" class="ml-5 flex flex-wrap gap-2 items-center">
+                                <p class="text-sm text-gray-500">Kepala Akun</p>
+                                <button id="kepala-1" class="btn-level btn-filter">1</button>
+                                <button id="kepala-2" class="btn-level btn-filter">2</button>
+                                <button id="kepala-3" class="btn-level btn-filter">3</button>
+                                <button id="kepala-4" class="btn-level btn-filter">4</button>
+                                <button id="kepala-5" class="btn-level btn-filter">5</button>
+                                <button id="kepala-6" class="btn-level btn-filter">6</button>
+                                <button id="kepala-7" class="btn-level btn-filter">7</button>
+                                <button id="kepala-8" class="btn-level btn-filter">8</button>
+                                <button id="kepala-9" class="btn-level btn-filter">9</button>
+                                <button id="kepala-reset" class="btn-level btn-filter">Reset</button>
+                            </div>
                         </div>
+
                     </div>
                 </div>
                 <div class="card-body width-constraint overflow-x-auto mt-1">
@@ -149,6 +174,7 @@
                             </template>
                         </tbody>
                     </table>
+                    
                     <div class="pagination flex justify-center p-4 space-x-2">
                         <button @click="prevPage"
                             class="prev bg-emerald-600 text-white py-1 px-3 rounded">Previous</button>
@@ -170,6 +196,134 @@
         </div>
     @endsection
     @push('script')
+        <script>
+            let table;
+            $(document).ready(function() {
+                const csrfToken = $('meta[name="csrf-token"]').attr('content');
+                console.log('CSRF Token:', csrfToken);
+
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                });
+
+                $('#kepala-reset').on('click', function() {
+                    window.location.reload(); // Melakukan refresh halaman
+                });
+
+                $('[id^=kepala-]').click(function(e) {
+                e.preventDefault();
+                var kepala = $(this).attr('id').split('-')[1];
+                console.log('Memuat data kepala:', kepala); // Debugging
+                loadData(kepala, 1); // Memuat halaman pertama
+            });
+
+                function loadData(kepala, page) {
+                    console.log('Memuat data halaman:', page); // Debugging
+                    $.post('filterCoa', { kepala: kepala, page: page })
+                        .done((res) => {
+                            console.log('Response:', res); // Debugging
+                            $('#coaTableBody').empty(); // Kosongkan tabel
+
+                            // Looping untuk menambahkan data ke tabel
+                            $.each(res.data, function(index, item) {
+                            let itemData = JSON.stringify(item).replace(/"/g, '&quot;');  // Escape kutipan ganda
+                            $('#coaTableBody').append(`
+                                <tr>
+                                    <td>${item.nomor_akun}</td>
+                                    <td>${item.nama_akun}</td>
+                                    <td>${item.level}</td>
+                                    <td>${item.saldo_normal}</td>
+                                    <td>
+                                        <a class="btn btn-action-primary"
+                                        x-on:click.prevent.stop="$dispatch('open-modal', { 
+                                            route: '{{ route('coas.update', '') }}/' + ${item.id}, 
+                                            name: 'coas.update', 
+                                            title: 'Edit Akun', 
+                                            data: ${itemData}, 
+                                            method: 'PUT', 
+                                            type: 'form' })">
+                                        Edit
+                                        </a>
+                                        
+                                        <a class="btn btn-action-danger"
+                                        x-on:click.prevent.stop="$dispatch('open-modal', { 
+                                            route: '{{ route('deleteCoa', '') }}/${item.id}', 
+                                            name: 'coas.destroy', 
+                                            title: 'Hapus Akun', 
+                                            data: ${itemData}, 
+                                            method: 'DELETE', 
+                                            type: 'delete' })">
+                                        Delete
+                                        </a>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+
+                            // Render pagination baru
+                            renderPagination(kepala, res); 
+                        }).fail((error) => {
+                            console.error('Error saat memuat data:', error);
+                        });
+                }
+
+                function renderPagination(kepala, res) {
+                    const paginationDiv = $('#pageNumbers');
+                    paginationDiv.empty(); // Kosongkan elemen pagination sebelumnya
+
+                    // Mendapatkan halaman yang ditampilkan
+                    const pagesToShow = [];
+                    for (let i = 1; i <= res.last_page; i++) {
+                        pagesToShow.push(i);
+                    }
+
+                    // Render tombol Previous
+                    $('.prev').off('click').on('click', function(e) {
+                        e.preventDefault();
+                        if (res.current_page > 1) {
+                            loadData(kepala, res.current_page - 1); // Memuat halaman sebelumnya
+                        }
+                    });
+
+                    // Render halaman berdasarkan `pagesToShow`
+                    $.each(pagesToShow, function(index, page) {
+                        paginationDiv.append(`
+                            <button class="page-number py-1 px-3 rounded ${page === res.current_page ? 'bg-emerald-600 text-white' : 'bg-gray-200'}" data-page="${page}">
+                                ${page}
+                            </button>
+                        `);
+                    });
+
+                    // Event listener untuk tombol halaman
+                    paginationDiv.find('.page-number').off('click').on('click', function(e) {
+                        e.preventDefault();
+                        const page = $(this).data('page');
+                        loadData(kepala, page); // Memuat halaman yang dipilih
+                    });
+
+                    // Render tombol Next
+                    $('.next').off('click').on('click', function(e) {
+                        e.preventDefault();
+                        if (res.current_page < res.last_page) {
+                            loadData(kepala, res.current_page + 1); // Memuat halaman berikutnya
+                        }
+                    });
+                }
+
+                // Fungsi untuk Edit
+                window.editData = function(id) {
+                    console.log(`Edit data dengan ID: ${id}`);
+                };
+
+                // Fungsi untuk Delete
+                window.deleteData = function(id) {
+                    console.log(`Hapus data dengan ID: ${id}`);
+                };
+               
+            })
+        </script>
         <script>
             document.addEventListener('alpine:init', () => {
                 Alpine.data('coaTable', () => ({

@@ -65,9 +65,13 @@
                             <label for="lampiran" class="block text-sm font-medium text-gray-700 mt-5">Import Transaksi (File: .xlsx)</label>
                             <div class="flex justify-between items-center space-x-2">
                                 <input type="file" id="importFile" name="file" accept=".xlsx"
-                                    class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700">
+                                    class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700" @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0)
+                                    disabled
+                                    @endif>
                                 <button type="button" x-on:click="importJurnal"
-                                        class="inline-flex items-center bg-emerald-500 px-2 py-1 justify-center border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
+                                        class="inline-flex items-center bg-emerald-500 px-2 py-1 justify-center border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0)
+                                        disabled
+                                        @endif>
                                         Import
                                 </button>
                                 <button type="button" x-on:click="downloadSample" class="inline-flex items-center bg-emerald-300 px-2 py-1 justify-center border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
@@ -85,9 +89,11 @@
                                 <th class="py-2 px-4">Debit</th>
                                 <th class="py-2 px-4">Kredit</th>
                                 <th class="py-2 px-4 text-right">
-                                    <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" x-on:click="rows.push({ no_akun: '', coa_akun: '', coa: {nama_akun: ''}, debit: '', kredit: '', keterangan: '' })">
-                                        Tambah
-                                    </button>
+                                    @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 1)
+                                        <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" x-on:click="rows.push({ no_akun: '', coa_akun: '', coa: {nama_akun: ''}, debit: '', kredit: '', keterangan: '' })">
+                                            Tambah
+                                        </button>
+                                    @endif
                                 </th>
                             </tr>
                             <tr>
@@ -109,14 +115,14 @@
                                         <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong mr-2" x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.index') }}', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: index })">
                                             Pilih
                                         </button>
-                                        <input type="text" :name="'no_akun[' + index + ']'" readonly required class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 mr-2" x-model="row.coa_akun">
+                                        <input type="text" :name="'no_akun[' + index + ']'" readonly required class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 mr-2" x-model="formattedAkun" x-init="$watch('row.coa_akun', value => row.coa_akun = formatNomorAkun(value))">
                                         <input type="text" :name="'nama_akun[' + index + ']'" readonly required class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.coa.nama_akun">
                                     </td>
                                     <td class="py-2 px-4">
-                                        <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.debit" x-on:input="formatCurrency($event, 'debit', index), updateTotals()">
+                                        <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-right" x-model="row.debit" x-on:input="formatCurrency($event, 'debit', index), updateTotals()">
                                     </td>
                                     <td class="py-2 px-4">
-                                        <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.kredit" x-on:input="formatCurrency($event, 'kredit', index), updateTotals()">
+                                        <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 mb-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-right" x-model="row.kredit" x-on:input="formatCurrency($event, 'kredit', index), updateTotals()">
                                     </td>
                                     <td class="py-2 px-4">
                                         <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-red-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong mr-2" x-on:click="rows.splice(index, 1)">
@@ -135,7 +141,10 @@
                                     <td class="py-1 px-2">
                                         <label class="block text-sm font-medium text-gray-700">Tanggal Bukti<span class="text-red-500">*</span></label>
                                         <input type="text" :name="'tanggal_bukti[' + index + ']'" 
-                                                        class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-5000 focus:ring-opacity-50 datepicker" 
+                                                        class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-5000 focus:ring-opacity-50 datepicker"
+                                                        @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0)
+                                                        disabled
+                                                        @endif
                                                         x-model="row.tanggal_bukti"
                                                         :x-ref="'tanggal_bukti_' + index"
                                                         x-datepicker
@@ -143,7 +152,9 @@
                                     </td>
                                     <td class="py-1 px-1">
                                         <label for="lampiran" class="block text-sm font-medium text-gray-700">Lampiran</label>
-                                        <input style="width: 85px;" type="file" id="lampiran" :name="'lampiran[' + index + ']'" accept=".pdf,.jpg,.png,.jpeg" class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700" multiple>
+                                        <input style="width: 85px;" type="file" id="lampiran" :name="'lampiran[' + index + ']'" accept=".pdf,.jpg,.png,.jpeg" class="file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-sm file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700" multiple @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0)
+                                        disabled
+                                        @endif>
                                         <input type="hidden" :name="'lampiran_path[' + index + ']'" x-model="row.lampiran">
                                     </td>
                                 </tr>
@@ -244,10 +255,10 @@
                                             <input type="text" :name="'nama_akun[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.nama_akun" readonly required>
                                         </td>
                                         <td class="py-2 px-4">
-                                            <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.debit" x-on:input="formatCurrency($event, 'debit', index), updateTotals()" required>
+                                            <input type="text" :name="'debit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-right" x-model="row.debit" x-on:input="formatCurrency($event, 'debit', index), updateTotals()" required>
                                         </td>
                                         <td class="py-2 px-4">
-                                            <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" x-model="row.kredit" x-on:input="formatCurrency($event, 'kredit', index), updateTotals()" required>
+                                            <input type="text" :name="'kredit[' + index + ']'" class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-right" x-model="row.kredit" x-on:input="formatCurrency($event, 'kredit', index), updateTotals()" required>
                                         </td>
                                         <td class="py-2 px-4">
                                             <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-red-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" x-on:click="removeRow(index)">
@@ -375,6 +386,23 @@
 
             formatNumber(number) {
                 return number.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            },
+
+            get formattedAkun() {
+                return this.formatNomorAkun(this.row.coa_akun);
+            },
+
+            // Fungsi untuk memformat nomor akun
+            formatNomorAkun(nomor_akun) {
+                let formatted = nomor_akun.replace(/\D/g, ''); // Hapus semua karakter non-digit
+                if (formatted.length > 6) {
+                    formatted = formatted.slice(0, 3) + '-' + formatted.slice(3, 5) + '-' + formatted.slice(5);
+                } else if (formatted.length > 4) {
+                    formatted = formatted.slice(0, 3) + '-' + formatted.slice(3);
+                } else {
+                    formatted = formatted.slice(0, 3);
+                }
+                return formatted;
             },
 
             convertDateFormat(dateStr, fromFormat, toFormat) {

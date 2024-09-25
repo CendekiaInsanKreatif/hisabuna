@@ -41,17 +41,58 @@
                                     </svg>
                                 </div>
                             </div>
-                            <a href="{{ route('report.daftarjurnal') }}" class="btn btn-filter">
+                            <!-- <a href="{{ route('report.daftarjurnal') }}" class="btn btn-filter">
                                 <p style="line-height: 1.5;">Daftar Jurnal</p>
-                            </a>
+                            </a> -->
+                            <!-- Button -->
+                            <button id="detail" type="button" class="bg-emerald-500 hover:bg-emerald-700 text-base text-white py-2 px-4 rounded" onclick="toggleModal('exampleModal')">
+                                Daftar Jurnal
+                            </button>
+
+                            <!-- Modal -->
+                           
+                        <div class="fixed z-10 inset-0 hidden overflow-y-auto bg-gray-900 bg-opacity-50" id="exampleModal" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="flex items-center justify-center min-h-screen">
+                                <div class="bg-white rounded-lg shadow-lg w-full max-w-md relative">
+                                    <div class="px-4 py-2 border-b border-gray-300 flex justify-between items-center">
+                                        <h5 class="text-lg font-medium" id="exampleModalLabel">Jurnal Detail</h5>
+                                        <button type="button" class="text-gray-500 hover:text-gray-700" onclick="toggleModal('exampleModal')" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="p-4">
+                                        <div class="flex flex-col">
+                                            <label for="" class="mb-1">Total Jurnal</label>
+                                            <input type="text" id="total-jurnal" class="border border-gray-300 rounded p-2" readonly>
+                                        </div>
+                                        <div class="flex space-x-4">
+                                            <div class="flex flex-col">
+                                                <label for="" class="mb-1">Dari Jurnal Ke</label>
+                                                <input id="dari" type="number" class="border border-gray-300 rounded p-2">
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <label for="" class="mb-1">Sampai Jurnal Ke</label>
+                                                <input id="sampai" type="number" class="border border-gray-300 rounded p-2">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="px-4 py-2 border-t border-gray-300 flex justify-end">
+                                        <button id="print" type="button" class="ml-2 bg-emerald-500 text-white py-2 px-4 rounded hover:bg-emerald-700">Print</button>
+                                    </div>
+                                    <a id="downloadLink" href="#" style="display: none;">Download PDF</a>
+                                </div>
+                            </div>
                         </div>
-                        <a role="button"
-                            class="text-base py-2 px-4 inline-flex items-center justify-center bg-emerald-500 border border-transparent rounded-md text-white hover:bg-emerald-700"
-                            href="{{ route('jurnal.create') }}"><svg xmlns="http://www.w3.org/2000/svg" width="24"
-                                height="24" viewBox="0 0 28 28" class="mr-2">
-                                <path fill="white"
-                                    d="M14 5a1 1 0 0 1 1 1v7h7a1 1 0 1 1 0 2h-7v7a1 1 0 1 1-2 0v-7H6a1 1 0 1 1 0-2h7V6a1 1 0 0 1 1-1z" />
+
+                        @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 1)
+                            <a role="button"
+                                class="text-base py-2 px-4 inline-flex items-center justify-center bg-emerald-500 border border-transparent rounded-md text-white hover:bg-emerald-700"
+                                href="{{ route('jurnal.create') }}"><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                    height="24" viewBox="0 0 28 28" class="mr-2">
+                                    <path fill="white"
+                                        d="M14 5a1 1 0 0 1 1 1v7h7a1 1 0 1 1 0 2h-7v7a1 1 0 1 1-2 0v-7H6a1 1 0 1 1 0-2h7V6a1 1 0 0 1 1-1z" />
                             </svg>Tambah Jurnal</a>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body overflow-x-auto">
@@ -146,6 +187,85 @@
     @endsection
     @push('script')
         <script>
+            $(document).ready(function() {
+                const csrfToken = $('meta[name="csrf-token"]').attr('content');
+                console.log('CSRF Token:', csrfToken);
+
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                });
+
+                $('#print').click(function(e) {
+                    e.preventDefault();
+
+                    var a = $('#dari').val();
+                    var b = $('#sampai').val();
+
+                    if (a && b) {
+                        $.ajax({
+                            url: '{{ route("printReport") }}', // Sesuaikan dengan route yang benar
+                            type: 'POST',
+                            data: {
+                                a: a,
+                                b: b,
+                                _token: '{{ csrf_token() }}' // Token CSRF
+                            },
+                            xhrFields: {
+                                responseType: 'blob' // Menangani respons sebagai file PDF (blob)
+                            },
+                            success: function(response) {
+                                var blob = new Blob([response], { type: 'application/pdf' });
+                                var url = window.URL.createObjectURL(blob);
+                                var a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'daftar_jurnal.pdf'; // Nama file PDF
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error:', error);
+                            }
+                        });
+                    } else {
+                        alert('Isi semua data!');
+                    }
+                });
+            });
+        </script>
+        <script>
+            function toggleModal(modalID) {
+                const modal = document.getElementById(modalID);
+                modal.classList.toggle('hidden');
+            }
+
+            // const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            // console.log('CSRF Token:', csrfToken);
+
+            // $.ajaxSetup({
+            //     headers: {
+            //         'X-CSRF-TOKEN': csrfToken
+            //     }
+            // });
+
+            // $('#print').click(function(e) {
+            //     e.preventDefault();
+            //     var a = $('#dari').val();
+            //     var b = $('#sampai').val();
+            //     $.post('printReport',{a:a,b:b}).done((res,status,xhr)=> {
+
+            //     })
+            // })
+
+            $('#detail').click(function(e) {
+                e.preventDefault();
+                $.get('totalJurnal').done((res,status,xhr)=> {
+                    $('#total-jurnal').val(res.data)
+                })
+            })
+
             async function cekTrial() {
                 await $.get('cekTrial').done((res, status, xhr) => {
                     var data = res.data;

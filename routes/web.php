@@ -32,10 +32,33 @@ Route::get('/dashboard', function () {
         return redirect()->route('login')->with('message', 'Akun anda tidak aktif')->with('color', 'red');
     }
 
+    if(auth()->user()->profile == 'trial'){
+        $dP = JurnalDetail::where('created_by', auth()->user()->id)->first();
+
+        if ($dP) {
+            $z = Carbon::parse($dP->tanggal_bukti);
+            $h = $z->addMonths(2);
+
+            if (now()->lessThan($h)) {
+                return view('jurnal.index');
+            } else {
+                Alert::error('Oops!', 'Masa trial anda sudah expired');
+                User::where('id', auth()->user()->id)->update([
+                    'is_active' => 0
+                ]);
+                return view('jurnal.index');
+            }
+        }
+    }
+
     return view('jurnal.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('upgrade', function(){
+        return view('upgrade.index');
+    })->name('upgrade.index');
 
     //  Main Route
     Route::resource('coas', CoaController::class);
@@ -121,13 +144,14 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('users.index')->with('message', 'Berhasil Nonaktifkan Pengguna')->with('color', 'green');
     })->name('users.destroy');
 
-    Route::match(['put', 'patch'], 'users', function(Request $request) {
+    Route::put('users/{id}', function(Request $request, $id) {
         $user = User::findOrFail($id);
         $user->update([
-            'status' => $request->input('status'),
+            'is_active' => $request->input('is_active'),
         ]);
 
-        return response()->json(['message' => 'Berhasil Update Status Pengguna'], 200);
+        Alert::success('Sukses!', 'Berhasil Update Status Pengguna');
+        return redirect()->route('users.index');
     })->name('users.update');
 
     // Arus Kas
@@ -199,7 +223,10 @@ Route::middleware('auth')->group(function () {
         return "fafa";
     })->name('jurnal.lampiran');
     Route::get('/cekTrial',[JurnalController::class, 'cekTrial'])->name('cekTrial');
-
+    Route::get('/totalJurnal',[JurnalController::class, 'totalJurnal'])->name('totalJurnal');
+    Route::post('/printReport',[ReportController::class, 'printJurnalFilter'])->name('printReport');
+    Route::post('/filterCoa',[CoaController::class, 'filterCoa'])->name('filterCoa');
+    Route::delete('/deleteCoa/{id}', [CoaController::class, 'destroy'])->name('deleteCoa');
     // Profile User
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -241,7 +268,6 @@ Route::middleware('auth')->group(function () {
         Route::get('users', function(){
             if(auth()->user()->roles == 'superadmin'){
                 $user = User::where('id', '!=', auth()->user()->id)->orderBy('name', 'asc')->get();
-                // da($user);
                 return response()->json($user);
             }else{
                 return response()->json([
@@ -265,7 +291,6 @@ Route::middleware('auth')->group(function () {
                       ->orderBy('level')
                       ->get();
 
-            // da($coa);
             return response()->json($coa);
         });
         
@@ -381,58 +406,19 @@ Route::middleware('auth')->group(function () {
             }
         });
 
-        // Route::get('multiple-jurnal', function(){
-        //     try{
-        //         $path = storage_path('app/dummy/multiple_jurnal.xlsx');
-        //         $import = new MultipleJurnal;
-        //         $data = Excel::toArray($import, $path);
-
-
-        //         $gabunganJurnal = [];
-        //         foreach ($data[1] as $header) {
-        //             $transno = $header['transno'];
-        //             $details = [];
-
-        //             foreach ($data[2] as $detail) {
-        //                 if ($detail['id'] == $transno) {
-        //                     $details[] = $detail;
-        //                 }
-        //             }
-
-        //             $header['details'] = $details;
-        //             $gabunganJurnal[] = $header;
-        //         }
-
-        //         foreach ($gabunganJurnal as $jurnal) {
-        //             da($jurnal);
-        //         }
-
-
-
-
-        //         return response()->json([
-        //             'success' => true,
-        //             'message' => 'Berhasil Upload Multiple Jurnal'
-        //         ], 200);
-        //     } catch (\Exception $e) {
-        //         return response()->json([
-        //             'success' => false,
-        //             'message' => 'Gagal Upload Multiple Jurnal: ' . $e->getMessage()
-        //         ], 500);
-        //     }
-        // });
-
         Route::get('coa-update', function () {
             $coa = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get();
             return response()->json($coa);
         });
 
         Route::get('jurnal', function () {
+            // da('fafa');
             $jurnal = Jurnal::with(['details.coa'])
                 ->whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
+            // da($jurnal);
             return response()->json($jurnal);
         });
 
@@ -462,6 +448,16 @@ Route::middleware('auth')->group(function () {
 
         return view('report.template', compact('coa'));
     })->name('report.template');
+
+    // Route::post('checkout', function(){
+    //     $params = array(
+    //         'transaction_details' => array(
+    //             'order_id' => rand(),
+    //             'gross_amount' => 10000,
+    //         ),
+            
+    //     );
+    // });
 
 });
 

@@ -1,171 +1,333 @@
 <!DOCTYPE html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Laporan {{$label}}</title>
+        <script src="{{ asset('js/paged_old.js') }}"></script>
+        {{-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> --}}
+        <style type="text/css">
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 10px;
+                max-width: 800px;
+                margin: 0 auto;
+            }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan {{$label}}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
+            h3 {
+                margin: 0;
+                padding: 0;
+            }
 
-        h3 {
-            margin: 0;
+            h2 {
+                margin: 0;
+                padding: 0;
+            }
+
+            p {
+                margin: 0;
+                padding: 0;
+            }
+
+            .amount {
+                float: right;
+                text-align: right;
+                margin-left: 20px;
+            }
+
+            table {
+                width: 100%;
+            }
+
+            .text-left {
+                text-align: left;
+            }
+
+            .new-header {
+                position: relative;
+            }
+
+            .company-logo {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 100px;
+            }
+
+            @page {
+                size: A4;
+                margin: 30px;
+                padding: 0;
+
+                @bottom-center {
+                    content: counter(page);
+                }
+            }
+
+            /* #page-number-container {
+                font-size: 12px;
+                color: #000;
+            }
+
+            @media print {
+                .page-number {
+                    position: fixed;
+                    bottom: 10px;
+                    right: 10px;
+                }
+            } */
+
+            /* @page {
+            size: A4;
+            margin: 30px;
             padding: 0;
-        }
+            counter-reset: count 3;
+            
 
-        h2 {
-            margin: 0;
-            padding: 0;
-        }
+            @bottom-center {
+                content: counter(count);
+                counter-increment: count 1;
+            }
+        } */
+        
+        </style>
+        <script>
+            // document.addEventListener('DOMContentLoaded', function() {
+            //     // Mengambil jumlah halaman awal dari Blade (Laravel)
+            //     let x = {{ $paged['jumlahLaman'] }}; // Blade syntax untuk memasukkan variabel dari backend
 
-        p {
-            margin: 0;
-            padding: 0;
-        }
+            //     // Menggunakan event 'page' dari Paged.js ketika halaman telah diproses
+            //     PagedPolyfill.on('page', function(event) {
+            //         document.querySelectorAll('.pagedjs_page').forEach((page, index) => {
+            //             let pageNumber = x + index; // Menghitung nomor halaman
+            //             let pageGet = page.querySelector('.pagedjs_margin-bottom .pagedjs_margin-bottom-center .pagedjs_margin-content');
+            //             if (!pageGet) {
+            //                 pageGet = document.createElement('div');
+            //                 pageGet.classList.add('pagedjs_margin-content', 'page-number');
+            //                 page.querySelector('.pagedjs_margin-bottom-center').appendChild(pageGet);
+            //             }
+            //             pageGet.textContent = pageNumber;
+            //         });
+            //     });
+            //     PagedPolyfill.preview();
+            // });
 
-        .amount {
-            float: right;
-            text-align: right;
-            margin-left: 20px;
-        }
+            // let number = @js($paged['jumlahLaman']);
+            // class MyHandler extends Paged.Handler {
+            //     constructor(chunker, polisher, caller, layout) {
+            //         super(chunker, polisher, caller, layout);
+            //     }
 
-        table {
-            width: 100%;
-        }
+            //     beforeParsed(pages) {
+            //         console.log(pages)
+            // pages.forEach((page, index) => {
+            // console.log(`Nomor halaman: ${index + 1}`);
+            // console.log(page.element.dataset.pageNumber)
+            // page.element.innerHTML = `<p>Nomor halaman: ${index + 4}</p>`;
+            // console.log(page.element)
+            // });
+            //     }
+            // }
+            // Paged.registerHandlers(MyHandler);
+            // let path = @js(base_path());
+            // import vfrag from `${path}/node_modules/vfrag/src/index.js`;
+            // console.log(`${path}/node_modules/vfrag/src/index.js`);
+            // console.log(`${path}/node_modules/vfrag/src/index.js`);
 
-        .text-left {
-            text-align: left;
-        }
+            // let paged = new Previewer();
+            // console.log(paged);
+            // let flow = paged.preview(DOMContent,null,document.body).then((flow) => {
+            //     console.log(flow.totalPages)
+            // })
+            // $(document).ready(function() {
+            //     let totalPageCount = @js($paged['jumlahLaman']);
+            //     let page = document.querySelector('.pagedjs_pages');
+            //     page.innerHTML = `Jumlah halaman: ${totalPageCount}`;
+            // });
+            // document.addEventListener('DOMContentLoaded', function() {
+            //     let req = @js($paged['jumlahLaman']);
+            //     let page = document.getElementById('pageNumber');
+            // });
+            // $(document).ready(async function() {
+            //     let pageNumber = @js($paged['jumlahLaman']);
+            //     console.log('Page number starts from:', pageNumber);
 
-        .new-header {
-            position: relative;
-        }
+            //     // Set up IntersectionObserver
+            //     let observer = new IntersectionObserver((entries) => {
+            //         entries.forEach(entry => {
+            //             if (entry.isIntersecting) {
+            //                 let index = [...document.querySelectorAll('.pagedjs_sheet')].indexOf(entry.target);
+            //                 let currentPageNumber = pageNumber + index;
 
-        .company-logo {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 100px;
-        }
-    </style>
-</head>
+            //                 // Cari elemen berdasarkan kelas yang mungkin berbeda per halaman
+            //                 let pagenumElement = entry.target.querySelector('.pagedjs_margin-bottom')
+            //                     || entry.target.querySelector('.pagedjs_margin-content')
+            //                     || entry.target.querySelector('.pagedjs_footer'); // Tambahkan kelas lain jika perlu
 
-<body onload="window.print()">
-    <header class="new-header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
-        <div class="header" style="text-align: center;">
-            <h1>{{ auth()->user()->company_name }}</h1>
-            <h2>{{ $label }}</h2>
-            <h3>{{$label}} Per: {{ $periode }}</h3>
-        </div>
-    </header>
-    {{-- <header>
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" style="width: 160px; float: left; padding-right: 2rem">
-        <div class="header" style="text-align: center;">
-            <h1>{{ auth()->user()->company_name }}</h1>
-            <h2>Laporan Neraca</h2>
-            <h4>Neraca Per: {{ $periode }}</h4>
-        </div>
-    </header> --}}
-    <hr style="border: 2px solid black; width: 100%;">
-    <table style="border-spacing: 16px 4px;">
-        <thead>
-            <tr>
-                <th>&nbsp;</th>
-                @foreach (array_keys($data) as $year)
-                    <th style="text-align: right; font-size: 18px;">{{ $year }}</th>
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($data[array_key_first($data)] as $level1 => $level1Data)
-                @if (is_array($level1Data))
-                    <tr>
-                        <td colspan="{{ count($data) + 1 }}">
-                            <h3>{{ $level1 == '1' ? 'ASET' : strtoupper($level1) }}</h3>
-                        </td>
-                    </tr>
-                    @php
-                        $totalLevel1 = array_fill_keys(array_keys($data), 0);
-                    @endphp
-                    @foreach ($level1Data as $level2 => $level2Data)
-                        @if (is_array($level2Data))
-                            <tr>
-                                <td colspan="{{ count($data) + 1 }}">
-                                    <h3>&nbsp;&nbsp;&nbsp;&nbsp; {{ $level2 }}</h3>
-                                </td>
-                            </tr>
-                            @php
-                                $totalLevel2 = array_fill_keys(array_keys($data), 0);
-                            @endphp
-                            @foreach ($level2Data as $level3 => $amount)
-                                <tr>
-                                    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $level3 }}</td>
-                                    @foreach ($data as $year => $yearData)
-                                        @php
-                                            $amount = $yearData[$level1][$level2][$level3] ?? 0;
-                                            $totalLevel2[$year] += $amount;
-                                            $totalLevel1[$year] += $amount;
-                                        @endphp
-                                        <td style="text-align: right; width: 1%; padding: 2px; ">
-                                            {{ number_format($amount, 0, ',', '.') }}</td>
-                                    @endforeach
-                                </tr>
-                            @endforeach
-                            <tr>
-                                <td>
-                                    <h3>&nbsp;&nbsp;&nbsp;&nbsp; Jumlah {{ $level2 }}</h3>
-                                </td>
-                                @foreach ($totalLevel2 as $year => $total)
-                                    <td
-                                        style="text-align: right; border-top: 1px solid black; border-bottom: 1px solid black;">
-                                        <h3>{{ number_format($total, 0, ',', '.') }}</h3>
-                                    </td>
-                                @endforeach
-                            </tr>
-                        @endif
+            //                 if (pagenumElement) {
+            //                     console.log(`Page ${index + 1} element found:`, pagenumElement);
+            //                     pagenumElement.innerHTML = `<p>Page ${currentPageNumber}</p>`;
+            //                 } else {
+            //                     console.warn(`Page ${index + 1} element not found`);
+            //                 }
+            //             }
+            //         });
+            //     }, {
+            //         rootMargin: '200px'
+            //     });
+
+            //     // Observasi semua elemen yang sudah ada
+            //     document.querySelectorAll('.pagedjs_sheet').forEach(sheet => observer.observe(sheet));
+
+            //     // Menggunakan MutationObserver untuk menangani penambahan elemen baru
+            //     let mutationObserver = new MutationObserver(mutations => {
+            //         mutations.forEach(mutation => {
+            //             mutation.addedNodes.forEach(node => {
+            //                 if (node.classList && node.classList.contains('pagedjs_sheet')) {
+            //                     observer.observe(node);  // Mulai mengobservasi elemen yang baru
+            //                     console.log('New page detected and observed:', node);
+            //                 }
+            //             });
+            //         });
+            //     });
+
+            //     // Mengawasi perubahan pada body atau elemen container utama
+            //     mutationObserver.observe(document.body, {
+            //         childList: true,
+            //         subtree: true
+            //     });
+
+            //     $('#btn-print').click(function() {
+            //         setTimeout(() => {
+            //             window.print();
+            //         }, 300);
+            //     });
+            // });
+        </script>
+    </head>
+
+    <body onload="window.print()">
+        <header class="new-header">
+            <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo" />
+            <div class="header" style="text-align: center;">
+                <h1>{{ auth()->user()->company_name }}</h1>
+                <h2>Laporan Posisi Keuangan</h2>
+                <h3>Per {{ $periode }}</h3>
+            </div>
+        </header>
+        <hr style="border: 2px solid black; width: 100%;" />
+        <table style="border-spacing: 6px 2px;">
+            <thead>
+                <tr>
+                    <th style="width: {{ 60/(count($data)+1) }}%;">&nbsp;</th>
+                    @foreach (array_keys($data) as $year)
+                        <th style="text-align: right; font-size: 18px; width: {{ 20/(count($data)+1) }}%;">{{ $year }}</th>
                     @endforeach
-                    <tr>
-                        <td>
-                            <h3>JUMLAH {{ $level1 == '1' ? 'ASET' : strtoupper($level1) }}</h3>
-                        </td>
-                        @foreach ($totalLevel1 as $year => $total)
-                            <td
-                                style="text-align: right; border-top: 2px double black; border-bottom: 2px double black;">
-                                <h3>{{ number_format($total, 0, ',', '.') }}</h3>
-                            </td>
-                        @endforeach
-                    </tr>
-                    <br>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($data[array_key_first($data)] as $level1 => $level1Data) @if (is_array($level1Data))
+                <tr>
+                    <td colspan="{{ count($data) + 1 }}">
+                        <h3>{{ $level1 == '1' ? 'ASET' : strtoupper($level1) }}</h3>
+                    </td>
+                </tr>
+                @php $totalLevel1 = array_fill_keys(array_keys($data), 0); @endphp @foreach ($level1Data as $level2 => $level2Data) @if (is_array($level2Data))
+                <tr>
+                    <td colspan="{{ count($data) + 1 }}">
+                        <h3>&nbsp;&nbsp;&nbsp;&nbsp; {{ $level2 }}</h3>
+                    </td>
+                </tr>
+                @php $totalLevel2 = array_fill_keys(array_keys($data), 0); @endphp @foreach ($level2Data as $level3 => $amount)
+                <tr>
+                    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $level3 }}</td>
+                    @foreach ($data as $year => $yearData) @php $amount = $yearData[$level1][$level2][$level3] ?? 0; $totalLevel2[$year] += $amount; $totalLevel1[$year] += $amount; @endphp
+                    <td style="text-align: right;">
+                        {{ number_format($amount, 0, ',', '.') }}
+                    </td>
+                    @endforeach
+                </tr>
+                @endforeach
+                <tr>
+                    <td>
+                        <h3>&nbsp;&nbsp;&nbsp;&nbsp; Jumlah {{ $level2 }}</h3>
+                    </td>
+                    @foreach ($totalLevel2 as $year => $total)
+                    <td style="text-align: right; border-top: 1px solid black; border-bottom: 1px solid black;">
+                        <h3>{{ number_format($total, 0, ',', '.') }}</h3>
+                    </td>
+                    @endforeach
+                </tr>
+                @endif @endforeach
+                <tr>
+                    <td>
+                        <h3>JUMLAH {{ $level1 == '1' ? 'ASET' : strtoupper($level1) }}</h3>
+                    </td>
+                    @foreach ($totalLevel1 as $year => $total)
+                    <td style="text-align: right; border-top: 2px double black; border-bottom: 2px double black;">
+                        <h3>{{ number_format($total, 0, ',', '.') }}</h3>
+                    </td>
+                    @endforeach
+                </tr>
+                <br />
                 @endif
-            @endforeach
-        </tbody>
-    </table>
+                <!-- <footer style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center;">
+                        <p id="page-number">{{ $paged['jumlahLaman'] }}</p>
+                    </footer> -->
+                @endforeach
+            </tbody>
+        </table>
 
+        <table style="width: 100%; margin-top: 70px;">
+            <tr>
+                <td style="text-align: center; width: 100%;">
+                    <div style="font-size: 12px;">{{ $paged['alamat'] }}, {{ $paged['tanggal'] }}</div>
+                    <div style="height: 80px;"></div>
+                    <div style="font-size: 12px;">{{ $paged['dibuat'] }}</div>
+                    <div style="border-bottom: 2px solid black; width: 100px; margin-left: auto; margin-right: auto;"></div>
+                    <div style="font-size: 12px;">{{ $paged['jabatan'] }}</div>
+                </td>
+            </tr>
+        </table>
 
+        <!-- Tambahkan lebih banyak halaman sesuai kebutuhan -->
+        {{-- <div class="page-number" style="position: fixed; bottom: 10px; right: 10px;">
+            <span id="halaman">{{ $paged['jumlahLaman'] }}</span>
+        </div> --}}
+        <script>
+            // $(document).ready(function() {
+            //     var hal = $('#halaman').text();
+            //     console.log(hal)
+            // })
+            // var jumlahLaman = {{ $paged['jumlahLaman'] }}; // Ambil dari backend
+            // var pageHeight = $(window).height(); // Tinggi halaman tampilan
 
-    <table style="width: 100%; margin-top: 70px;">
-        <tr>
-            <td style="text-align: center; width: 35%;">
-                <div>Dibuat oleh, {{ $ttd1 }}</div>
-                <div style="height: 80px;"></div>
-                <div><strong>Staff Keuangan</strong></div>
-            </td>
-            <td style="width: 10%;"></td>
-            <td style="width: 10%;"></td>
-            <td style="width: 10%;"></td>
-            <td style="text-align: center; width: 35%;">
-                <div>Disetujui oleh, {{ $ttd2 }}</div>
-                <div style="height: 80px;"></div>
-                <div><strong>Manajer Keuangan</strong></div>
-            </td>
-        </tr>
-    </table>
-</body>
+            // function updatePageNumber() {
+            //     var documentHeight = $(document).height(); // Tinggi total dokumen
+            //     var totalPages = Math.ceil(documentHeight / pageHeight); // Hitung total halaman
+            //     var currentPage = Math.floor($(window).scrollTop() / pageHeight) + 1; // Halaman saat ini
 
+            //     // Jika halaman saat ini melebihi total halaman, set ke total halaman
+            //     currentPage = Math.min(currentPage, totalPages);
+
+            //     var finalPageNumber = jumlahLaman + currentPage - 1; // Update nomor halaman
+            //     $('#halaman').text(finalPageNumber); // Menampilkan
+            // }
+
+            // // Memperbarui nomor halaman saat scroll
+            // $(window).on('scroll', function() {
+            //     updatePageNumber();
+            // });
+
+            // // Memperbarui nomor halaman sebelum dialog cetak
+            // window.onbeforeprint = function() {
+            //     updatePageNumber();
+            // };
+
+            // // Panggil fungsi untuk pertama kali saat halaman dimuat
+            // $(document).ready(function() {
+            //     updatePageNumber();
+            // });
+        </script>
+    </body>
 </html>

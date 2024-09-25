@@ -10,13 +10,8 @@
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 3px;
-            font-size: 11px;
+            font-size: 10px;
             background-color: #f4f4f4;
-        }
-        h2 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 20px;
         }
         table {
             width: 100%;
@@ -51,6 +46,10 @@
             margin: 0;
             padding: 0;
         }
+        h3 {
+            margin: 0;
+            padding: 0;
+        }
         .new-header {
             position: relative;
         }
@@ -70,7 +69,7 @@
         <div class="header" style="text-align: center;">
             <h1>{{ auth()->user()->company_name }}</h1>
             <h2>Laporan Mutasi Saldo</h2>
-            <h3>Mutasi Saldo: {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</h3>
+            <h3>Mutasi Saldo {{ $tanggal_mulai }} s/d {{ $tanggal_selesai }}</h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">

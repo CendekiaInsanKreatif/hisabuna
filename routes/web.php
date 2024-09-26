@@ -146,11 +146,9 @@ Route::middleware('auth')->group(function () {
 
     Route::put('users/{id}', function(Request $request, $id) {
         $user = User::findOrFail($id);
-        $user->update([
-            'is_active' => $request->input('is_active'),
-        ]);
+        $user->update($request->except(['password', 'password_confirmation']));
 
-        Alert::success('Sukses!', 'Berhasil Update Status Pengguna');
+        Alert::success('Sukses!', 'Berhasil Update Pengguna');
         return redirect()->route('users.index');
     })->name('users.update');
 

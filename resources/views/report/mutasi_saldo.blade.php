@@ -11,7 +11,7 @@
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 3px;
-            font-size: 10px;
+            font-size: 12px;
             background-color: #f4f4f4;
         }
         table {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Laba Rugi</title>
-    <script src="{{ asset('js/paged_old.js') }}"></script>
+    <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -96,35 +96,35 @@
 </head>
 <body onload="window.print()">
     <header class="new-header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
-            <h1>{{ auth()->user()->company_name }}</h1>
+            <h1><?php echo e(auth()->user()->company_name); ?></h1>
             <h2>Laporan Laba Rugi</h2>
-            <h3>Periode {{$start}} - {{$end}}</h3>
+            <h3>Periode <?php echo e($start); ?> - <?php echo e($end); ?></h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
     <div class="report-container">
-        @foreach ($data as $category => $details)
+        <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <table class="main-data">
-            <h3>{{ $category }}</h3>
-            @foreach ($details['Detail'] as $item => $amount)
+            <h3><?php echo e($category); ?></h3>
+            <?php $__currentLoopData = $details['Detail']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item => $amount): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr>
-                    <td class="data-desc"><h3>{{ $item }}</h3></td>
-                    <td class="data-num">{{ number_format($amount, 0, ',', '.') }}</td>
+                    <td class="data-desc"><h3><?php echo e($item); ?></h3></td>
+                    <td class="data-num"><?php echo e(number_format($amount, 0, ',', '.')); ?></td>
                 </tr>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             <tr class="total">
-                <td style="padding: 2px">Total {{ $category }}</td>
-                <td style="text-align: right;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
+                <td style="padding: 2px">Total <?php echo e($category); ?></td>
+                <td style="text-align: right;"><?php echo e(number_format($details['Jumlah'], 0, ',', '.')); ?></td>
             </tr>
         </table>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         <div style="padding: 2px;">
             <table>
                 <tr class="total">
                     <td><h2>Saldo Laba (Rugi) Tahun Berjalan</h2></td>
-                    <td style="text-align: right; border-top: 4px solid black; border-bottom: 4px solid black; width: 20%;">{{ number_format($labaRugiBersih, 0, ',', '.') }}</td>
+                    <td style="text-align: right; border-top: 4px solid black; border-bottom: 4px solid black; width: 20%;"><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></td>
                 </tr>
             </table>
         </div>
@@ -132,11 +132,11 @@
             <table style="width: 100%; margin-top: 70px;">
                 <tr>
                     <td style="text-align: center; width: 100%;">
-                        <div style="font-size: 12px;">{{ $paged['alamat'] }}, {{ $paged['tanggal'] }}</div>
+                        <div style="font-size: 12px;"><?php echo e($paged['alamat']); ?>, <?php echo e($paged['tanggal']); ?></div>
                         <div style="height: 80px;"></div>
-                        <div style="font-size: 12px;">{{ $paged['dibuat'] }}</div>
+                        <div style="font-size: 12px;"><?php echo e($paged['dibuat']); ?></div>
                         <div style="border-bottom: 2px solid black; width: 100px; margin-left: auto; margin-right: auto;"></div>
-                        <div style="font-size: 12px;">{{ $paged['jabatan'] }}</div>
+                        <div style="font-size: 12px;"><?php echo e($paged['jabatan']); ?></div>
                     </td>
                 </tr>
             </table>
@@ -144,3 +144,4 @@
     </div>
 </body>
 </html>
+<?php /**PATH /var/www/trial_hisabuna/backend/resources/views/report/labarugi.blade.php ENDPATH**/ ?>

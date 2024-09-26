@@ -457,8 +457,16 @@ class ReportController extends Controller
             $start      = $request->input('start_date');
             $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
             $end      = $request->input('end_date');
-            $ttd1 = $request->input('text_input1');
-            $ttd2 = $request->input('text_input2');
+            // $ttd1 = $request->input('text_input1');
+            // $ttd2 = $request->input('text_input2');
+
+            $paged = [
+                'dibuat' => $request->input('dibuat'),
+                'alamat' => $request->input('alamat'),
+                'tanggal' => $request->input('tanggal'),
+                'jabatan' => $request->input('jabatan'),
+                'jumlahLaman' => (int) $request->input('jumlahLaman'),
+            ];
 
             $tahunSebelumnya = date('Y');
             if($n == 1){
@@ -547,8 +555,7 @@ class ReportController extends Controller
                 'tahunSebelumnya' => $tahunSebelumnya,
                 'kategori' => $kategori,
                 'labaRugiBersih' => $labaRugiBersih,
-                'ttd1' => $ttd1,
-                'ttd2' => $ttd2,
+                'paged' => $paged,
                 'start' => $start,
                 'end'   => $end,
             ]);

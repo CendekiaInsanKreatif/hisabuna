@@ -66,7 +66,7 @@ class CoaController extends Controller
                 ->where('nomor_akun', 'LIKE', $kepala . '%')
                 ->where('created_by', $users)
                 ->count();
-
+             
         return response()->json([
             'data'          => $query,
             'total'         => $total,

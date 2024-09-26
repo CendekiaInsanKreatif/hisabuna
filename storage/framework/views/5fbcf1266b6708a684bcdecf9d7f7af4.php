@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Arus Kas</title>
-    <script src="{{ asset('js/paged_old.js') }}"></script>
+    <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -84,62 +84,64 @@
 </head>
 <body onload="window.print()">
     <header class="new-header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
-            <h1>{{ auth()->user()->company_name }}</h1>
+            <h1><?php echo e(auth()->user()->company_name); ?></h1>
             <h2>Laporan Arus Kas</h2>
-            <h3>Periode {{ $start_date }} s/d {{ $end_date }}</h3>
+            <h3>Periode <?php echo e($start_date); ?> s/d <?php echo e($end_date); ?></h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
 
-    @php
+    <?php
         $totalKas = 0;
-    @endphp
+    ?>
 
-    @foreach ($data as $kategori => $item)
-        @if($kategori != 'Total')
-            <div class="section-title">Arus Kas Dari {{ ucwords(str_replace('_', ' ', $kategori)) }}</div>
+    <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $kategori => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <?php if($kategori != 'Total'): ?>
+            <div class="section-title">Arus Kas Dari <?php echo e(ucwords(str_replace('_', ' ', $kategori))); ?></div>
             <table>
                 <tbody>
-                    @foreach ($item as $nama_akun => $nilai)
-                        @if($nama_akun != 'Total')
+                    <?php $__currentLoopData = $item; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $nama_akun => $nilai): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php if($nama_akun != 'Total'): ?>
                             <tr>
                                 <td>&nbsp;&nbsp;&nbsp;
-                                @if($nilai > 0)
+                                <?php if($nilai > 0): ?>
                                     Kenaikan (Penurunan)
-                                @else
+                                <?php else: ?>
                                     Penurunan (Kenaikan)
-                                @endif
-                                {{ $nama_akun }}
+                                <?php endif; ?>
+                                <?php echo e($nama_akun); ?>
+
                                 </td>
-                                <td style="text-align: right;">{{ number_format($nilai, 0) }}</td>
+                                <td style="text-align: right;"><?php echo e(number_format($nilai, 0)); ?></td>
                             </tr>
-                        @endif
-                    @endforeach
+                        <?php endif; ?>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
-            @php
+            <?php
                 $totalKas += $item['Total'];
-            @endphp
-        @endif
-    @endforeach
+            ?>
+        <?php endif; ?>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
     <table>
         <tbody>
             <tr class="total-row">
                 <td>Kenaikan (Penurunan) Kas dan Setara Kas</td>
-                <td style="text-align: right;">{{ number_format($data['Total']['Kenaikan (Penurunan) Kas dan Setara Kas'], 0) }}</td>
+                <td style="text-align: right;"><?php echo e(number_format($data['Total']['Kenaikan (Penurunan) Kas dan Setara Kas'], 0)); ?></td>
             </tr>
             <tr class="total-row">
                 <td>Kas dan Setara Kas Awal</td>
-                <td style="text-align: right;">{{ number_format($data['Total']['Kas dan Setara Kas Awal'], 0) }}</td>
+                <td style="text-align: right;"><?php echo e(number_format($data['Total']['Kas dan Setara Kas Awal'], 0)); ?></td>
             </tr>
             <tr class="total-row">
                 <td>Kas dan Setara Kas Akhir</td>
-                <td style="text-align: right;">{{ number_format($data['Total']['Kas dan Setara Kas Akhir'], 0) }}</td>
+                <td style="text-align: right;"><?php echo e(number_format($data['Total']['Kas dan Setara Kas Akhir'], 0)); ?></td>
             </tr>
         </tbody>
     </table>
 </body>
 </html>
+<?php /**PATH /var/www/trial_hisabuna/backend/resources/views/report/aruskas.blade.php ENDPATH**/ ?>

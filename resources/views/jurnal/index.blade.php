@@ -84,7 +84,7 @@
                             </div>
                         </div>
 
-                        @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 1)
+                        {{-- @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 1) --}}
                             <a role="button"
                                 class="text-base py-2 px-4 inline-flex items-center justify-center bg-emerald-500 border border-transparent rounded-md text-white hover:bg-emerald-700"
                                 href="{{ route('jurnal.create') }}"><svg xmlns="http://www.w3.org/2000/svg" width="24"
@@ -92,7 +92,7 @@
                                     <path fill="white"
                                         d="M14 5a1 1 0 0 1 1 1v7h7a1 1 0 1 1 0 2h-7v7a1 1 0 1 1-2 0v-7H6a1 1 0 1 1 0-2h7V6a1 1 0 0 1 1-1z" />
                             </svg>Tambah Jurnal</a>
-                        @endif
+                        {{-- @endif --}}
                     </div>
                 </div>
                 <div class="card-body overflow-x-auto">

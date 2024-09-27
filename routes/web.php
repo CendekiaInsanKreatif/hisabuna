@@ -138,8 +138,8 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('users/{id}', function($id) {
         $user = User::findOrFail($id);
-        $user->is_active = 0; // Mengubah status is_active menjadi 0
-        $user->save(); // Menyimpan perubahan ke database
+        $user->is_deleted = 1;
+        $user->save(); 
 
         return redirect()->route('users.index')->with('message', 'Berhasil Nonaktifkan Pengguna')->with('color', 'green');
     })->name('users.destroy');
@@ -224,6 +224,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/totalJurnal',[JurnalController::class, 'totalJurnal'])->name('totalJurnal');
     Route::post('/printReport',[ReportController::class, 'printJurnalFilter'])->name('printReport');
     Route::post('/filterCoa',[CoaController::class, 'filterCoa'])->name('filterCoa');
+    Route::post('/filterCoaLevel',[CoaController::class, 'filterCoaLevel'])->name('filterCoaLevel');
     Route::delete('/deleteCoa/{id}', [CoaController::class, 'destroy'])->name('deleteCoa');
     // Profile User
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -265,7 +266,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api')->group(function () {
         Route::get('users', function(){
             if(auth()->user()->roles == 'superadmin'){
-                $user = User::where('id', '!=', auth()->user()->id)->orderBy('name', 'asc')->get();
+                $user = User::where('id', '!=', auth()->user()->id)->where('is_deleted', '!=', 1)->orderBy('name', 'asc')->get();
                 return response()->json($user);
             }else{
                 return response()->json([

@@ -28,6 +28,51 @@ class CoaController extends Controller
         return view('coas.index');
     }
 
+    public function filterCoaLevel(Request $request)
+    {
+        $users          = auth()->user()->id;
+        $level          = $request->level;
+        $page           = $request->page ?? 1;
+        $perpage        = 7;
+
+        $offset         = ($page - 1) * $perpage;
+        $query           = DB::select("
+            SELECT 
+                id,
+                nama_akun,
+                level,
+                saldo_normal,
+                CASE
+                WHEN level = 4 THEN
+                    CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                WHEN level = 5 THEN 
+                CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                   SUBSTRING(nomor_akun, 4, 2), '-', 
+                   SUBSTRING(nomor_akun, 6, 3))
+                ELSE
+                nomor_akun 
+                END AS nomor_akun
+                FROM coas
+                WHERE
+                    is_deleted IS NULL AND
+                    level = ? AND
+                    created_by = ?
+                LIMIT ?
+                OFFSET ?
+        ", [$level, $users, $perpage, $offset]);
+        $total = DB::table('coas')
+            ->where('is_deleted', null)
+            ->where('level', $level)
+            ->where('created_by', $users)
+            ->count();
+
+        return response()->json([
+            'data'          => $query,
+            'total'         => $total,
+            'current_page'  => (int) $page,
+            'last_page'     => ceil($total / $perpage), // Hitung total halaman
+        ]);
+    }
 
     public function filterCoa(Request $request)
     {
@@ -37,7 +82,7 @@ class CoaController extends Controller
         $perPage    = 7;
 
         $offset     = ($page - 1) * $perPage;
-        $query = DB::select("
+        $query      = DB::select("
         SELECT
             id,
             nama_akun,
@@ -61,11 +106,11 @@ class CoaController extends Controller
         LIMIT ?
         OFFSET ?
     ", [$kepala . '%', $users, $perPage, $offset]);
-            $total = DB::table('coas')
-                ->where('is_deleted', null)
-                ->where('nomor_akun', 'LIKE', $kepala . '%')
-                ->where('created_by', $users)
-                ->count();
+        $total = DB::table('coas')
+            ->where('is_deleted', null)
+            ->where('nomor_akun', 'LIKE', $kepala . '%')
+            ->where('created_by', $users)
+            ->count();
              
         return response()->json([
             'data'          => $query,

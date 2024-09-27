@@ -47,7 +47,7 @@
                                 <p class="text-sm text-gray-500">Level Akun</p>
                                 <button @click="filterLevel('all')" class="btn-level btn-filter">Semua</button>
                                 <template x-for="i in 5" :key="i">
-                                    <button @click="filterLevel(i.toString())" class="btn-level btn-filter"
+                                    <button  @click="filterLevel(i.toString())" class="level-akun btn-level btn-filter"
                                         x-text="i"></button>
                                 </template>
                             </div>
@@ -91,13 +91,12 @@
                                     Sample
                                 </button>
                             </form>
-                            <div id="filter_kepala_akun" class="ml-5 flex flex-wrap gap-2 items-center" x-data="coaTableHandler()" x-init="init()">
+                            <div id="filter_kepala_akun" class="ml-5 flex flex-wrap gap-2 items-center">
                                 <p class="text-sm text-gray-500">Kepala Akun</p>
                                 
                                 <template x-for="kepala in [1, 2, 3, 4, 5, 6, 7, 8, 9]" :key="kepala">
                                     <button :id="'kepala-' + kepala" 
-                                            class="btn-level btn-filter" 
-                                            x-on:click="loadData(kepala, 1)">
+                                            class="btn-level btn-filter" >
                                         <span x-text="kepala"></span>
                                     </button>
                                 </template>
@@ -197,9 +196,9 @@
         </div>
     @endsection
     @push('script')
-        <!-- <script>
-            let table;
+        <script>
             $(document).ready(function() {
+                let table;
                 const csrfToken = $('meta[name="csrf-token"]').attr('content');
                 console.log('CSRF Token:', csrfToken);
 
@@ -213,11 +212,106 @@
                     window.location.reload(); // Melakukan refresh halaman
                 });
 
+                $('.level-akun').click(function() {
+                    var level = $(this).text();
+                    loadDataLevelAkun(level,1)
+                })
+
+                function loadDataLevelAkun(level, page) {
+                    $.post('filterCoaLevel', { level: level, page: page }).done((res, status, xhr) => {
+                        $('#coaTableBody').empty();
+                        $.each(res.data, function(index, item) {
+                            // Kita tidak perlu stringify item, langsung gunakan dalam template literal
+                            let itemDataLevel = JSON.stringify(item).replace(/"/g, '&quot;');
+                            $('#coaTableBody').append(`
+                                <tr>
+                                    <td>${item.nomor_akun}</td>
+                                    <td>${item.nama_akun}</td>
+                                    <td>${item.level}</td>
+                                    <td>${item.saldo_normal}</td>
+                                    <td>
+                                        <a class="btn btn-action-primary"
+                                        x-on:click.prevent.stop="$dispatch('open-modal', { 
+                                            route: '{{ route('coas.update', '') }}/' + ${item.id}, 
+                                            name: 'coas.update', 
+                                            title: 'Edit Akun', 
+                                            data: ${itemDataLevel}, 
+                                            method: 'PUT', 
+                                            type: 'form' })">
+                                        Edit
+                                        </a>
+                                        
+                                        <a class="btn btn-action-danger"
+                                        x-on:click.prevent.stop="$dispatch('open-modal', { 
+                                            route: '{{ route('deleteCoa', '') }}/${item.id}', 
+                                            name: 'coas.destroy', 
+                                            title: 'Hapus Akun', 
+                                            data: ${itemDataLevel}, 
+                                            method: 'DELETE', 
+                                            type: 'delete' })">
+                                        Delete
+                                        </a>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+
+                        // Render pagination baru
+                        renderPaginationLevel(level, res);
+                    }).fail((error) => {
+                        console.error('Error saat memuat data:', error);
+                    });
+                }
+
+                function renderPaginationLevel(level, res) {
+                    const paginationDiv = $('#pageNumbers');
+                    paginationDiv.empty(); // Kosongkan elemen pagination sebelumnya
+
+                    // Mendapatkan halaman yang ditampilkan
+                    const pagesToShow = [];
+                    for (let i = 1; i <= res.last_page; i++) {
+                        pagesToShow.push(i);
+                    }
+
+                    // Render tombol Previous
+                    $('.prev').off('click').on('click', function(e) {
+                        e.preventDefault();
+                        if (res.current_page > 1) {
+                            loadDataLevelAkun(level, res.current_page - 1); // Memuat halaman sebelumnya
+                        }
+                    });
+
+                    // Render halaman berdasarkan `pagesToShow`
+                    $.each(pagesToShow, function(index, page) {
+                        paginationDiv.append(`
+                            <button class="page-number py-1 px-3 rounded ${page === res.current_page ? 'bg-emerald-600 text-white' : 'bg-gray-200'}" data-page="${page}">
+                                ${page}
+                            </button>
+                        `);
+                    });
+
+                    // Event listener untuk tombol halaman
+                    paginationDiv.find('.page-number').off('click').on('click', function(e) {
+                        e.preventDefault();
+                        const page = $(this).data('page');
+                        loadDataLevelAkun(level, page); // Memuat halaman yang dipilih
+                    });
+
+                    // Render tombol Next
+                    $('.next').off('click').on('click', function(e) {
+                        e.preventDefault();
+                        if (res.current_page < res.last_page) {
+                            loadDataLevelAkun(level, res.current_page + 1); // Memuat halaman berikutnya
+                        }
+                    });
+                }
+                
+
                 $('[id^=kepala-]').click(function(e) {
-                e.preventDefault();
-                var kepala = $(this).attr('id').split('-')[1];
-                loadData(kepala, 1); // Memuat halaman pertama
-            });
+                    e.preventDefault();
+                    var kepala = $(this).attr('id').split('-')[1];
+                    loadData(kepala, 1); // Memuat halaman pertama
+                });
 
                 function loadData(kepala, page) {
                     console.log('Memuat data halaman:', page); // Debugging
@@ -225,7 +319,6 @@
                         .done((res) => {
                             console.log('Response:', res); // Debugging
                             $('#coaTableBody').empty(); // Kosongkan tabel
-
                             // Looping untuk menambahkan data ke tabel
                             $.each(res.data, function(index, item) {
                             let itemData = JSON.stringify(item).replace(/"/g, '&quot;');  // Escape kutipan ganda
@@ -261,13 +354,10 @@
                                 </tr>
                             `);
                         });
-
-                            // Render pagination baru
+                              // Render pagination baru
                             renderPagination(kepala, res); 
-                            Alpine.initTree(document.getElementById('coaTableBody'));
                         }).fail((error) => {
                             console.error('Error saat memuat data:', error);
-                            Alpine.initTree(document.getElementById('coaTableBody'));
                         });
                 }
 
@@ -313,7 +403,6 @@
                         }
                     });
                    
-                    Alpine.initTree(document.getElementById('coaTableBody'));
                 }
 
                 // Fungsi untuk Edit
@@ -327,8 +416,8 @@
                 };
                 
             })
-        </script> -->
-        <!-- <script>
+        </script>
+        <script>
             document.addEventListener('alpine:init', () => {
                 Alpine.data('coaTable', () => ({
                     currentPage: 1,
@@ -444,190 +533,6 @@
                 }));
             });
             
-        </script> -->
-        <script>
-            document.addEventListener('alpine:init', () => { 
-    Alpine.data('coaTable', () => ({
-        currentPage: 1,
-        rowsPerPage: 7,
-        totalRows: 0,
-        totalPage: 0,
-        sortDirection: 'asc',
-        filter: 'all',
-        searchInput: '',
-        allData: [],
-        hover: false,
-        
-        get paginatedData() {
-            const filteredData = this.filteredData();
-            const start = (this.currentPage - 1) * this.rowsPerPage;
-            const end = start + this.rowsPerPage;
-            return filteredData.slice(start, end);
-        },
-        
-        get pagesToShow() {
-            const startPage = Math.floor((this.currentPage - 1) / 3) * 3 + 1;
-            const endPage = Math.min(startPage + 4, this.totalPage);
-            return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
-        },
-        
-        changePage(page) {
-            this.currentPage = page;
-        },
-        
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-            }
-        },
-        
-        nextPage() {
-            if (this.currentPage < this.totalPage) {
-                this.currentPage++;
-            }
-        },
-        
-        async fetchCoaData() {
-            const overlay = document.getElementById('overlay');
-            overlay.style.display = 'flex';
-            try {
-                const response = await fetch('/api/coas');
-                const data = await response.json();
-                if (Array.isArray(data)) {
-                    this.allData = data;
-                    this.totalRows = data.length;
-                    this.totalPage = Math.ceil(this.totalRows / this.rowsPerPage);
-                } else {
-                    console.error('Unexpected data format:', data);
-                    alert('Error: Unexpected data format.');
-                }
-            } catch (error) {
-                console.error('Error fetching COA data:', error);
-                alert('Error fetching COA data. Please try again later.');
-            } finally {
-                overlay.style.display = 'none';
-            }
-        },
-        
-        async renderCoaTable() {
-            await this.fetchCoaData();  // Ensure data is fetched first
-            const filteredData = this.filteredData();
-            this.totalRows = filteredData.length;
-            this.totalPage = Math.ceil(this.totalRows / this.rowsPerPage);
-            this.changePage(1);
-        },
-        
-        searchCoaTable() {
-            this.renderCoaTable();
-        },
-        
-        filterCategory(category) {
-            this.filter = category;
-            this.renderCoaTable();
-        },
-        
-        async filterLevel(level) {
-            console.log("Filter level yang akan diterapkan:", level); // Debug: tampilkan level yang akan diterapkan
-            var test = this.filter = level;  // Set the filter level
-            console.log("Filter level telah diatur:", test); // Debug: tampilkan filter yang sudah diatur
-        },
-        
-        filteredData() {
-            return this.allData.filter(coa => {
-                const matchesCategory = (this.filter === 'all' ||
-                    (this.filter === 'neraca' && ['1', '2', '3'].includes(coa.nomor_akun.charAt(0))) ||
-                    (this.filter === 'labarugi' && ['4', '5', '6', '7', '8'].includes(coa.nomor_akun.charAt(0))) ||
-                    (coa.level.startsWith(this.filter))
-                );
-                const matchesSearch = coa.nama_akun.toLowerCase().includes(this.searchInput.toLowerCase());
-                return matchesCategory && matchesSearch;
-            });
-        },
-        
-        formatNomorAkun(nomor_akun) {
-            let formatted = nomor_akun.replace(/\D/g, ''); // Hapus karakter non-digit
-            if (formatted.length > 6) {
-                formatted = formatted.slice(0, 3) + '-' + formatted.slice(3, 5) + '-' + formatted.slice(5);
-            } else if (formatted.length > 4) {
-                formatted = formatted.slice(0, 3) + '-' + formatted.slice(3);
-            } else {
-                formatted = formatted.slice(0, 3);
-            }
-            return formatted;
-        },
-        
-        exportCoaTable() {
-            window.location.href = '{{ route('coas.export') }}';
-        },
-        
-        init() {
-            this.fetchCoaData();
-        }
-    }));
-});
-
-            function coaTableHandler() {
-            return {
-                currentPage: 1,
-                allData: [], // Data dari API
-                async loadData(kepala, page = 1) {
-                    console.log('Memuat data kepala akun:', kepala, 'Halaman:', page); // Debug
-                    try {
-                        const response = await fetch('/filterCoa', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            },
-                            body: JSON.stringify({ kepala: kepala, page: page })
-                        });
-                        
-                        const res = await response.json();
-                        console.log('Data diterima:', res); // Debug
-
-                        this.allData = res.data; // Simpan data yang diterima ke allData
-                        
-                        // Proses untuk merender tabel dan pagination
-                        this.renderTable();
-                        this.renderPagination(res);
-                        
-                    } catch (error) {
-                        console.error('Error saat memuat data:', error);
-                    }
-                },
-                renderTable() {
-                    console.log('Merender tabel dengan data:', this.allData);
-                    // Update HTML tabel menggunakan this.allData
-                    const tableBody = document.getElementById('coaTableBody');
-                    tableBody.innerHTML = ''; // Kosongkan tabel
-                    
-                    this.allData.forEach(item => {
-                        tableBody.innerHTML += `
-                            <tr>
-                                <td>${item.nomor_akun}</td>
-                                <td>${item.nama_akun}</td>
-                                <td>${item.level}</td>
-                                <td>${item.saldo_normal}</td>
-                                <td>
-                                    <button class="btn btn-action-primary" x-on:click.prevent.stop="editData(${item.id})">Edit</button>
-                                    <button class="btn btn-action-danger" x-on:click.prevent.stop="deleteData(${item.id})">Delete</button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                },
-                renderPagination(res) {
-                    // Logika untuk merender pagination berdasarkan respon
-                    console.log('Merender pagination:', res);
-                },
-                reloadPage() {
-                    window.location.reload(); // Melakukan refresh halaman
-                },
-                init() {
-                    console.log('Inisialisasi...');
-                }
-            }
-        }
         </script>
     @endpush
 </x-app-layout>

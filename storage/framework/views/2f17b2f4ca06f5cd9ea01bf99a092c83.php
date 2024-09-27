@@ -191,4 +191,4 @@
         </button>
     </div>
 </div>
-<?php /**PATH /var/www/trial_hisabuna/backend/vendor/laravel/framework/src/Illuminate/Foundation/Providers/../resources/exceptions/renderer/components/theme-switcher.blade.php ENDPATH**/ ?>
+<?php /**PATH /var/www/trial_hisabuna/backend/vendor/laravel/framework/src/Illuminate/Foundation/resources/exceptions/renderer/components/theme-switcher.blade.php ENDPATH**/ ?>

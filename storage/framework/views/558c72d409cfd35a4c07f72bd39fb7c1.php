@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Neraca Saldo</title>
+    <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
     <style>
         body { 
             font-family: Arial, sans-serif;
-            font-size: 10px;
+            font-size: 12px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -59,6 +60,15 @@
             transform: translateY(-50%);
             width: 100px;
 
+        }
+
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
         }
     </style>
 </head>

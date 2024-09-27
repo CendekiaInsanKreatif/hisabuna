@@ -173,7 +173,7 @@
                                     <td class="text-left px-3  break-words" x-text="jurnal.keterangan"></td>
                                     <td class="text-left  px-3 py-2">
                                         <div class="flex items-center flex-col md:flex-row gap-2">
-                                            <a class="btn btn-action-primary"
+                                            <a class="btn cursor-pointer btn-action-secondary"
                                                 :href="`<?php echo e(url('jurnal')); ?>/${jurnal.id}/edit`">
                                                 Edit
                                             </a>

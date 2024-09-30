@@ -214,11 +214,17 @@
 
                 $('.level-akun').click(function() {
                     var level = $(this).text();
-                    loadDataLevelAkun(level,1)
+                    loadDataLevelAkun(level, $('#cari').val() ,1)
                 })
 
-                function loadDataLevelAkun(level, page) {
-                    $.post('filterCoaLevel', { level: level, page: page }).done((res, status, xhr) => {
+                $('#cari').on('input', function() {
+                    var searchInput     = $(this).val();
+                    var currentLevel    = $('.level-akun.active').text();
+                    loadDataLevelAkun(currentLevel, 1, searchInput);
+                });
+
+                function loadDataLevelAkun(level, page, search ='') {
+                    $.post('filterCoaLevel', { level: level, page: page, search:search }).done((res, status, xhr) => {
                         $('#coaTableBody').empty();
                         $.each(res.data, function(index, item) {
                             // Kita tidak perlu stringify item, langsung gunakan dalam template literal
@@ -257,13 +263,13 @@
                         });
 
                         // Render pagination baru
-                        renderPaginationLevel(level, res);
+                        renderPaginationLevel(level, res, search);
                     }).fail((error) => {
                         console.error('Error saat memuat data:', error);
                     });
                 }
 
-                function renderPaginationLevel(level, res) {
+                function renderPaginationLevel(level, res, search = '') {
                     const paginationDiv = $('#pageNumbers');
                     paginationDiv.empty(); // Kosongkan elemen pagination sebelumnya
 
@@ -277,7 +283,7 @@
                     $('.prev').off('click').on('click', function(e) {
                         e.preventDefault();
                         if (res.current_page > 1) {
-                            loadDataLevelAkun(level, res.current_page - 1); // Memuat halaman sebelumnya
+                            loadDataLevelAkun(level, res.current_page - 1, search); // Memuat halaman sebelumnya
                         }
                     });
 
@@ -294,14 +300,14 @@
                     paginationDiv.find('.page-number').off('click').on('click', function(e) {
                         e.preventDefault();
                         const page = $(this).data('page');
-                        loadDataLevelAkun(level, page); // Memuat halaman yang dipilih
+                        loadDataLevelAkun(level, page, search); // Memuat halaman yang dipilih
                     });
 
                     // Render tombol Next
                     $('.next').off('click').on('click', function(e) {
                         e.preventDefault();
                         if (res.current_page < res.last_page) {
-                            loadDataLevelAkun(level, res.current_page + 1); // Memuat halaman berikutnya
+                            loadDataLevelAkun(level, res.current_page + 1, search); // Memuat halaman berikutnya
                         }
                     });
                 }
@@ -310,12 +316,18 @@
                 $('[id^=kepala-]').click(function(e) {
                     e.preventDefault();
                     var kepala = $(this).attr('id').split('-')[1];
-                    loadData(kepala, 1); // Memuat halaman pertama
+                    loadData(kepala, $('#cari').val(), 1); // Memuat halaman pertama
                 });
 
-                function loadData(kepala, page) {
+                $('#cari').on('input', function() {
+                    var searchKepala     = $(this).val();
+                    var currentKepala    = $('.level-akun.active').text();
+                    loadDataLevelAkun(currentKepala, 1, searchKepala);
+                });
+
+                function loadData(kepala, page, search ='') {
                     console.log('Memuat data halaman:', page); // Debugging
-                    $.post('filterCoa', { kepala: kepala, page: page })
+                    $.post('filterCoa', { kepala: kepala, page: page, search:search})
                         .done((res) => {
                             console.log('Response:', res); // Debugging
                             $('#coaTableBody').empty(); // Kosongkan tabel
@@ -355,13 +367,13 @@
                             `);
                         });
                               // Render pagination baru
-                            renderPagination(kepala, res); 
+                            renderPagination(kepala, res, search); 
                         }).fail((error) => {
                             console.error('Error saat memuat data:', error);
                         });
                 }
 
-                function renderPagination(kepala, res) {
+                function renderPagination(kepala, res, search = '') {
                     const paginationDiv = $('#pageNumbers');
                     paginationDiv.empty(); // Kosongkan elemen pagination sebelumnya
 
@@ -375,7 +387,7 @@
                     $('.prev').off('click').on('click', function(e) {
                         e.preventDefault();
                         if (res.current_page > 1) {
-                            loadData(kepala, res.current_page - 1); // Memuat halaman sebelumnya
+                            loadData(kepala, res.current_page - 1, search); // Memuat halaman sebelumnya
                         }
                     });
 
@@ -392,14 +404,14 @@
                     paginationDiv.find('.page-number').off('click').on('click', function(e) {
                         e.preventDefault();
                         const page = $(this).data('page');
-                        loadData(kepala, page); // Memuat halaman yang dipilih
+                        loadData(kepala, page, search); // Memuat halaman yang dipilih
                     });
 
                     // Render tombol Next
                     $('.next').off('click').on('click', function(e) {
                         e.preventDefault();
                         if (res.current_page < res.last_page) {
-                            loadData(kepala, res.current_page + 1); // Memuat halaman berikutnya
+                            loadData(kepala, res.current_page + 1, search); // Memuat halaman berikutnya
                         }
                     });
                    

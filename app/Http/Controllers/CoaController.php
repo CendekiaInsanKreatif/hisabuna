@@ -32,34 +32,62 @@ class CoaController extends Controller
     {
         $users          = auth()->user()->id;
         $level          = $request->level;
-        $page           = $request->page ?? 1;
+        $search         = $request->search;
+        $page           = intval($request->page ?? 1); // Mengonversi ke integer
         $perpage        = 7;
-
         $offset         = ($page - 1) * $perpage;
-        $query           = DB::select("
-            SELECT 
-                id,
-                nama_akun,
-                level,
-                saldo_normal,
-                CASE
-                WHEN level = 4 THEN
-                    CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
-                WHEN level = 5 THEN 
-                CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
-                   SUBSTRING(nomor_akun, 4, 2), '-', 
-                   SUBSTRING(nomor_akun, 6, 3))
-                ELSE
-                nomor_akun 
-                END AS nomor_akun
+
+        if($search && $level) {
+                $query = DB::select("
+                SELECT 
+                    id,
+                    nama_akun,
+                    level,
+                    saldo_normal,
+                    CASE
+                        WHEN level = 4 THEN
+                            CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                        WHEN level = 5 THEN 
+                            CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                                SUBSTRING(nomor_akun, 4, 2), '-', 
+                                SUBSTRING(nomor_akun, 6, 3))
+                        ELSE
+                            nomor_akun 
+                    END AS nomor_akun
                 FROM coas
                 WHERE
                     is_deleted IS NULL AND
                     level = ? AND
-                    created_by = ?
+                    created_by = ? 
                 LIMIT ?
                 OFFSET ?
-        ", [$level, $users, $perpage, $offset]);
+            ", [$level, $users, $perpage, $offset]);
+        }else{
+            $query = DB::select("
+                SELECT 
+                    id,
+                    nama_akun,
+                    level,
+                    saldo_normal,
+                    CASE
+                        WHEN level = 4 THEN
+                            CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                        WHEN level = 5 THEN 
+                            CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                                SUBSTRING(nomor_akun, 4, 2), '-', 
+                                SUBSTRING(nomor_akun, 6, 3))
+                        ELSE
+                            nomor_akun 
+                    END AS nomor_akun
+                FROM coas
+                WHERE
+                    is_deleted IS NULL AND
+                    created_by = ? AND 
+                    nama_akun LIKE ?
+                LIMIT ?
+                OFFSET ?
+            ", [$users, '%'.$search.'%', $perpage, $offset]);
+        }
         $total = DB::table('coas')
             ->where('is_deleted', null)
             ->where('level', $level)
@@ -78,34 +106,63 @@ class CoaController extends Controller
     {
         $users      = auth()->user()->id;
         $kepala     = $request->kepala;
+        $search     = $request->search;
         $page       = $request->page ?? 1; // Halaman default ke 1
         $perPage    = 7;
 
         $offset     = ($page - 1) * $perPage;
-        $query      = DB::select("
-        SELECT
-            id,
-            nama_akun,
-            level,
-            saldo_normal,
-            CASE 
-            WHEN level = 4 THEN 
-                CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
-            WHEN level = 5 THEN 
-                 CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
-                   SUBSTRING(nomor_akun, 4, 2), '-', 
-                   SUBSTRING(nomor_akun, 6, 3))
-            ELSE 
-                nomor_akun 
-        END AS nomor_akun
-        FROM coas
-        WHERE
-            is_deleted IS NULL AND
-            nomor_akun LIKE ? AND
-            created_by = ?
-        LIMIT ?
-        OFFSET ?
-    ", [$kepala . '%', $users, $perPage, $offset]);
+
+        if($search && $kepala) {
+            $query      = DB::select("
+            SELECT
+                id,
+                nama_akun,
+                level,
+                saldo_normal,
+                CASE 
+                WHEN level = 4 THEN 
+                    CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                WHEN level = 5 THEN 
+                     CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                       SUBSTRING(nomor_akun, 4, 2), '-', 
+                       SUBSTRING(nomor_akun, 6, 3))
+                ELSE 
+                    nomor_akun 
+            END AS nomor_akun
+            FROM coas
+            WHERE
+                is_deleted IS NULL AND
+                nomor_akun LIKE ? AND
+                created_by = ?
+            LIMIT ?
+            OFFSET ?
+        ", [$kepala . '%', $users, $perPage, $offset]);
+        }else{
+            $query      = DB::select("
+                SELECT
+                    id,
+                    nama_akun,
+                    level,
+                    saldo_normal,
+                    CASE 
+                    WHEN level = 4 THEN 
+                        CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                    WHEN level = 5 THEN 
+                        CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                        SUBSTRING(nomor_akun, 4, 2), '-', 
+                        SUBSTRING(nomor_akun, 6, 3))
+                    ELSE 
+                        nomor_akun 
+                END AS nomor_akun
+                FROM coas
+                WHERE
+                    is_deleted IS NULL AND
+                    created_by = ? AND 
+                    nama_akun LIKE ?
+                LIMIT ?
+                OFFSET ?
+            ", [$users,'%'.$search.'%', $perPage, $offset]);
+        }
         $total = DB::table('coas')
             ->where('is_deleted', null)
             ->where('nomor_akun', 'LIKE', $kepala . '%')

@@ -71,7 +71,6 @@
             size: A4;
             margin: 30px;
             padding: 0;
-            counter-reset: count 3;
             
 
             @bottom-center {

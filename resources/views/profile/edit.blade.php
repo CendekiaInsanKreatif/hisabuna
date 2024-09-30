@@ -1,5 +1,9 @@
 <x-app-layout>
     @section('content')
+    @php
+        $minYear = Carbon\Carbon::parse(DB::table('coas')->where('created_by', auth()->user()->id)->min('created_at'))->year;
+        $currentYear = Carbon\Carbon::now()->year;
+    @endphp
         <div class="container mx-auto px-2 py-2 rounded-lg bg-gray-100">
             <form action="{{ route('profile.update') }}" method="POST" class="bg-white rounded-lg shadow-lg w-full p-6 space-y-6" enctype="multipart/form-data">
                 @csrf
@@ -30,12 +34,20 @@
                             <label for="profile_image" class="block text-sm font-medium text-gray-800">Logo Perusahaan</label>
                             <div class="flex items-center">
                                 <input type="file" name="company_logo" id="profile_image" accept=".jpg,.png,.jpeg" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <img id="profile_image_preview" src="{{ asset('storage/' . $user->company_logo) }}" alt="Preview Image" class="w-20 h-20 rounded-md object-cover ml-4">
+                                <img id="profile_image_preview" src="{{ asset('storage/' . $user->company_logo) }}" alt="Preview Image" class="w-15 h-10 rounded-md object-contain">
                             </div>
                         </div>
                         <div class="space-y-4">
                             <label for="company_name" class="block text-sm font-medium text-gray-800">Nama Perusahaan</label>
                             <input type="text" name="company_name" id="company_name" value="{{ auth()->user()->company_name }}" required class="mt-1 block w-full px-4 py-3 border border-gray-400 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+                        </div>
+                        <div class="space-y-4">
+                            <label for="periode" class="block mb-2 text-sm font-medium text-gray-800 dark:text-white">Periode Akuntansi</label>
+                            <select name="periode" id="periode" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-emerald-500 dark:focus:border-emerald-500">
+                                @for ($year = date('Y')-1; $year <= $currentYear; $year++)
+                                    <option value="{{ $year }}" {{ $year == auth()->user()->periode ? 'selected' : '' }}>{{ $year }}</option>
+                                @endfor
+                            </select>
                         </div>
                     </div>
                 </div>

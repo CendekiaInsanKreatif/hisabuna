@@ -1,94 +1,146 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Laba Rugi</title>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            margin: 20px;
-            color: #333;
-            font-size: 12px;
-        }
-        h2 {
-            text-align: center;
-        }
-        table {
-            width: 100%;
-            margin-top: 20px;
-            background-color: #f9f9f9;
-        }
-        th, td {
-            text-align: left;
-        }
-        th {
-            background-color: #f0f0f0;
-        }
-        .total {
-            font-weight: bold;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
-        .footer.content {
-            display: flex;
-            align-items: center;
+        .report-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3px;
+            /* background-color: #fff; */
+        }
+
+
+        table.main-data tr:nth-child(odd) {
+            /* background-color: #f4f4f5;? */
+        }
+
+        /* @media print {
+            body {
+                display: block;
+            }
+            footer {
+                page-break-after: always;
+            }
+        } */
+
+
+        table {
+            width: 100%;
+            /* border-collapse: collapse; */
+        }
+
+        table.main-data tr td {
+            padding: 2px 2px 2px 22px;
+        }
+
+        table.main-data tr:nth-last-child(2) td.data-num {
+            border-bottom: solid 1px black;
+        }
+
+        .data-desc {
+            width: 80%;
+        }
+
+        .data-num {
+            text-align: right;
+        }
+
+        h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            margin: 0;
+            padding: 0;
+        }
+
+
+        .total {
+            font-size: 11px;
+        }
+
+        .new-header {
+            position: relative;
         }
 
         .company-logo {
-            width: 5rem;
-            height: 5rem;
-            margin-right: 8rem;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
         }
 
-        .company-name {
-            font-size: 1.25rem; /* Ukuran font yang sesuai */
-            position: relative;
-            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
         }
     </style>
 </head>
-<body>
-{{-- <h2><u>LAPORAN LABA RUGI</u></h2>
-<h4>{{ auth()->user()->company_name }}</h4> --}}
-<div class="footer content">
-    <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
-    <span class="company-name">{{ auth()->user()->company_name }}</span>
-</div>
-<h2><u>LAPORAN LABA RUGI</u></h2>  
-@foreach ($data as $category => $details)
-<table>
-        <h3 style="padding: 0; margin: 0;">{{ $category }}</h3>
-        @foreach ($details['Detail'] as $item => $amount)
-            <tr>
-                <td>&nbsp;&nbsp;&nbsp;{{ $item }}</td>
-                <td style="text-align: right;">{{ number_format($amount, 0, ',', '.') }}</td>
+<body onload="window.print()">
+    <header class="new-header">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Laba Rugi</h2>
+            <h3>Periode {{$start}} - {{$end}}</h3>
+        </div>
+    </header>
+    <hr style="border: 2px solid black; width: 100%;">
+    <div class="report-container">
+        @foreach ($data as $category => $details)
+        <table class="main-data">
+            <h3>{{ $category }}</h3>
+            @foreach ($details['Detail'] as $item => $amount)
+                <tr>
+                    <td class="data-desc"><h3>{{ $item }}</h3></td>
+                    <td class="data-num">{{ number_format($amount, 0, ',', '.') }}</td>
+                </tr>
+            @endforeach
+            <tr class="total">
+                <td style="padding: 2px">Total {{ $category }}</td>
+                <td style="text-align: right;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
             </tr>
+        </table>
         @endforeach
-        <tr class="total">
-            <td>Total {{ $category }}</td>
-            <td style="text-align: right;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
-        </tr>
-    </table>
-@endforeach
-<table>
-    <tr class="total">
-        <td>Saldo Laba (Rugi) Tahun Berjalan</td>
-        <td style="text-align: right;">{{ number_format($labaRugiBersih, 0, ',', '.') }}</td>
-    </tr>
-</table>
-<table style="width: 100%; margin-top: 70px; border-top: 1px solid black; padding-top: 20px;">
-    <tr>
-        <td style="text-align: center; width: 35%;">
-            <div>Dibuat oleh, {{ $ttd1 }}</div>
-            <div style="height: 80px;"></div>
-            <div><strong>Staff Keuangan</strong></div>
-        </td>
-        <td style="width: 10%;"></td>
-        <td style="width: 10%;"></td>
-        <td style="width: 10%;"></td>
-        <td style="text-align: center; width: 35%;">
-            <div>Disetujui oleh, {{ $ttd2 }}</div>
-            <div style="height: 80px;"></div>
-            <div><strong>Manager Keuangan</strong></div>
-        </td>
-    </tr>
-</table>
+        <div style="padding: 2px;">
+            <table>
+                <tr class="total">
+                    <td><h2>Saldo Laba (Rugi) Tahun Berjalan</h2></td>
+                    <td style="text-align: right; border-top: 4px solid black; border-bottom: 4px solid black; width: 20%;">{{ number_format($labaRugiBersih, 0, ',', '.') }}</td>
+                </tr>
+            </table>
+        </div>
+        <footer>
+            <table style="width: 100%; margin-top: 70px;">
+                <tr>
+                    <td style="text-align: center; width: 100%;">
+                        <div style="font-size: 12px;">{{ $paged['alamat'] }}, {{ $paged['tanggal'] }}</div>
+                        <div style="height: 80px;"></div>
+                        <div style="font-size: 12px;">{{ $paged['dibuat'] }}</div>
+                        <div style="border-bottom: 2px solid black; width: 100px; margin-left: auto; margin-right: auto;"></div>
+                        <div style="font-size: 12px;">{{ $paged['jabatan'] }}</div>
+                    </td>
+                </tr>
+            </table>
+        </footer>
+    </div>
 </body>
 </html>

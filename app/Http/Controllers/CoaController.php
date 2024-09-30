@@ -8,6 +8,7 @@ use App\Exports\CoaExport;
 use App\Imports\CoaImport;
 use Maatwebsite\Excel\Facades\Excel;
 use PDF;
+use Alert;
 
 
 use Illuminate\Http\Request;
@@ -27,6 +28,154 @@ class CoaController extends Controller
         return view('coas.index');
     }
 
+    public function filterCoaLevel(Request $request)
+    {
+        $users          = auth()->user()->id;
+        $level          = $request->level;
+        $search         = $request->search;
+        $page           = intval($request->page ?? 1); // Mengonversi ke integer
+        $perpage        = 7;
+        $offset         = ($page - 1) * $perpage;
+
+        if($search && $level) {
+                $query = DB::select("
+                SELECT 
+                    id,
+                    nama_akun,
+                    level,
+                    saldo_normal,
+                    CASE
+                        WHEN level = 4 THEN
+                            CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                        WHEN level = 5 THEN 
+                            CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                                SUBSTRING(nomor_akun, 4, 2), '-', 
+                                SUBSTRING(nomor_akun, 6, 3))
+                        ELSE
+                            nomor_akun 
+                    END AS nomor_akun
+                FROM coas
+                WHERE
+                    is_deleted IS NULL AND
+                    level = ? AND
+                    created_by = ? 
+                LIMIT ?
+                OFFSET ?
+            ", [$level, $users, $perpage, $offset]);
+        }else{
+            $query = DB::select("
+                SELECT 
+                    id,
+                    nama_akun,
+                    level,
+                    saldo_normal,
+                    CASE
+                        WHEN level = 4 THEN
+                            CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                        WHEN level = 5 THEN 
+                            CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                                SUBSTRING(nomor_akun, 4, 2), '-', 
+                                SUBSTRING(nomor_akun, 6, 3))
+                        ELSE
+                            nomor_akun 
+                    END AS nomor_akun
+                FROM coas
+                WHERE
+                    is_deleted IS NULL AND
+                    created_by = ? AND 
+                    nama_akun LIKE ?
+                LIMIT ?
+                OFFSET ?
+            ", [$users, '%'.$search.'%', $perpage, $offset]);
+        }
+        $total = DB::table('coas')
+            ->where('is_deleted', null)
+            ->where('level', $level)
+            ->where('created_by', $users)
+            ->count();
+
+        return response()->json([
+            'data'          => $query,
+            'total'         => $total,
+            'current_page'  => (int) $page,
+            'last_page'     => ceil($total / $perpage), // Hitung total halaman
+        ]);
+    }
+
+    public function filterCoa(Request $request)
+    {
+        $users      = auth()->user()->id;
+        $kepala     = $request->kepala;
+        $search     = $request->search;
+        $page       = $request->page ?? 1; // Halaman default ke 1
+        $perPage    = 7;
+
+        $offset     = ($page - 1) * $perPage;
+
+        if($search && $kepala) {
+            $query      = DB::select("
+            SELECT
+                id,
+                nama_akun,
+                level,
+                saldo_normal,
+                CASE 
+                WHEN level = 4 THEN 
+                    CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                WHEN level = 5 THEN 
+                     CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                       SUBSTRING(nomor_akun, 4, 2), '-', 
+                       SUBSTRING(nomor_akun, 6, 3))
+                ELSE 
+                    nomor_akun 
+            END AS nomor_akun
+            FROM coas
+            WHERE
+                is_deleted IS NULL AND
+                nomor_akun LIKE ? AND
+                created_by = ?
+            LIMIT ?
+            OFFSET ?
+        ", [$kepala . '%', $users, $perPage, $offset]);
+        }else{
+            $query      = DB::select("
+                SELECT
+                    id,
+                    nama_akun,
+                    level,
+                    saldo_normal,
+                    CASE 
+                    WHEN level = 4 THEN 
+                        CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
+                    WHEN level = 5 THEN 
+                        CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
+                        SUBSTRING(nomor_akun, 4, 2), '-', 
+                        SUBSTRING(nomor_akun, 6, 3))
+                    ELSE 
+                        nomor_akun 
+                END AS nomor_akun
+                FROM coas
+                WHERE
+                    is_deleted IS NULL AND
+                    created_by = ? AND 
+                    nama_akun LIKE ?
+                LIMIT ?
+                OFFSET ?
+            ", [$users,'%'.$search.'%', $perPage, $offset]);
+        }
+        $total = DB::table('coas')
+            ->where('is_deleted', null)
+            ->where('nomor_akun', 'LIKE', $kepala . '%')
+            ->where('created_by', $users)
+            ->count();
+             
+        return response()->json([
+            'data'          => $query,
+            'total'         => $total,
+            'current_page'  => (int) $page,
+            'last_page'     => ceil($total / $perPage), // Hitung total halaman
+        ]);
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -43,11 +192,13 @@ class CoaController extends Controller
                 ->first();
 
         if($validator->fails()){
-            return redirect()->route('coas.index')->with('message', 'Validasi Error')->with('color', 'red');
+            Alert::error('Oops!', 'Validasi Error');
+            return redirect()->back();
         }
 
         if($check){
-            return redirect()->route('coas.index')->with('message', 'Nomor Akun sudah ada')->with('color', 'red');
+            Alert::error('Oops!', 'Nomor Akun sudah ada');
+            return redirect()->back();
         }
 
         $nomor_akun     = $request->nomor_akun;
@@ -69,9 +220,8 @@ class CoaController extends Controller
         } elseif ($jumlah_digit_nomor_akun == 8) {
             $level = 5;
         } else {
-            return redirect()->route('coas.index')
-                            ->with('message', 'Format nomor akun tidak valid')
-                            ->with('color', 'red');
+            Alert::error('Oops!', 'Format nomor akun tidak valid');
+            return redirect()->back();
         }
         
         // Menentukan parent_id berdasarkan level
@@ -129,7 +279,6 @@ class CoaController extends Controller
         }
         
         // Verifikasi keberadaan parent akun
-        //dd($parent_id, $level);
         if ($level > 1 && $parent_id) {
             $parent_level = $level - 1;
             $selCoa = Coa::where('nomor_akun', $parent_id)
@@ -138,9 +287,8 @@ class CoaController extends Controller
                         ->first();
 
             if (empty($selCoa)) {
-                return redirect()->route('coas.index')
-                                ->with('message', 'Akun Level ' . $parent_level . ' tidak ditemukan untuk parent dengan nomor akun ' . $parent_id)
-                                ->with('color', 'red');
+                Alert::error('Oops!', 'Akun Level ' . $parent_level . ' tidak ditemukan untuk parent dengan nomor akun ' . $parent_id);
+                return redirect()->back();
             }
         }
 
@@ -163,9 +311,11 @@ class CoaController extends Controller
 
         $save = Coa::create($data);
         if($save) {
-            return redirect()->route('coas.index')->with('message', 'Berhasil membuat data')->with('color', 'green');
+            Alert::success('Sukses !', 'Berhasil membuat data');
+            return redirect()->back();
         } else {
-            return redirect()->route('coas.index')->with('message', 'Gagal membuat data')->with('color', 'red');
+            Alert::error('Oops!', 'Gagal membuat data');
+            return redirect()->back();
         }
     }
 
@@ -223,9 +373,8 @@ class CoaController extends Controller
         } elseif ($jumlah_digit_nomor_akun == 8) {
             $level = 5;
         } else {
-            return redirect()->route('coas.index')
-                            ->with('message', 'Format nomor akun tidak valid')
-                            ->with('color', 'red');
+            Alert::error('Oops!', 'Format nomor akun tidak valid');
+            return redirect()->back();
         }
 
         // Menentukan parent_id berdasarkan level
@@ -300,9 +449,11 @@ class CoaController extends Controller
 
         $update = $coa->update($data);
         if ($update) {
-            return redirect()->route('coas.index')->with('message', 'Berhasil mengubah data')->with('color', 'green');
+            Alert::success('Sukses !', 'Berhasil mengubah data');
+            return redirect()->back();
         } else {
-            return redirect()->route('coas.index')->with('message', 'Gagal mengubah data')->with('color', 'red');
+            Alert::error('Oops!', 'Gagal mengubah data');
+            return redirect()->back();
         }
     }
 
@@ -312,14 +463,15 @@ class CoaController extends Controller
     public function destroy($id)
     {
         $coa = Coa::find($id);
-        $jurnal = JurnalDetail::where('coa_akun', $coa->nomor_akun)->first();
-
-        if($jurnal){
-            return redirect()->route('coas.index')->with('message', 'Akun tidak dapat dihapus karena sudah digunakan')->with('color', 'red');
+        if (!$coa) {
+            Alert::error('Oops!', 'Data tidak ditemukan');
+            return redirect()->back();
         }
 
-        if (!$coa) {
-            return redirect()->route('coas.index')->with('message', 'Data not found')->with('color', 'red');
+        $jurnal = JurnalDetail::where('coa_akun', $coa->nomor_akun)->first();
+        if ($jurnal) {
+            Alert::error('Oops!', 'Akun tidak dapat dihapus karena sudah digunakan');
+            return redirect()->back();
         }
 
         $data = [
@@ -328,13 +480,15 @@ class CoaController extends Controller
             'deleted_by'    => Auth::user()->id,
         ];
 
-        $coa->update($data);
+        $update = $coa->update($data);
         $coa->delete();
 
         if ($update) {
-            return redirect()->route('coas.index')->with('message', 'Berhasil menghapus data')->with('color', 'green');
+            Alert::success('Sukses !', 'Berhasil menghapus data');
+            return redirect()->back();
         } else {
-            return redirect()->route('coas.index')->with('message', 'Gagal menghapus data')->with('color', 'red');
+            Alert::error('Oops!', 'Gagal menghapus data');
+            return redirect()->back();
         }
     }
 
@@ -347,13 +501,15 @@ class CoaController extends Controller
         $path = $request->file('file')->getRealPath();
         $excel = Excel::toArray(new CoaImport, $request->file('file'))[0];
 
-        // dd($excel);
+        // da($excel);
         usort($excel, function ($a, $b) {
-            // dd($a['no_akun']);
             return strlen($a['kode_akun']) <=> strlen($b['kode_akun']);
         });
 
         // dd($excel);
+        $data = []; // Initialize the data array
+        $existingAccounts = []; // Array to store existing accounts
+        $duplicatesInExcel = []; // Array to store duplicate accounts in the Excel file
 
         foreach ($excel as $key => $value) {
             $nomor_akun     = $value['kode_akun'];
@@ -362,7 +518,7 @@ class CoaController extends Controller
             $jumlah_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
             $level = 0;
 
-            // Menentukan level berdasarkan jumlah digit nomor akun
+            // da($value);
             if ($jumlah_nomor_akun == 1) {
                 $level = 1;
             } elseif ($jumlah_nomor_akun == 2) {
@@ -374,12 +530,13 @@ class CoaController extends Controller
             } elseif ($jumlah_nomor_akun == 8) {
                 $level = 5;
             } else {
-                return redirect()->route('coas.index')
-                                ->with('message', 'Format nomor akun tidak valid')
-                                ->with('color', 'red');
+                // da($value);
+                Alert::error('Oops!', 'Format nomor akun tidak valid');
+                return redirect()->back();
             }
 
             // Menentukan parent_id berdasarkan level
+            // da($level);
             $parent_id = null;
             if ($level == 2) {
                 $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 1); // Parent Level 1
@@ -434,6 +591,8 @@ class CoaController extends Controller
                     break;
             }
 
+            // da($parent_id);
+
             $selCoa = Coa::where('nomor_akun', $parent_id)
                         ->where('created_by', Auth::user()->id)
                         ->first();
@@ -443,7 +602,12 @@ class CoaController extends Controller
                               ->where('created_by', Auth::user()->id)
                               ->first();
 
-            if (!$existingCoa) {
+
+            if ($existingCoa || in_array($real_akun, $existingAccounts)) {
+                $duplicatesInExcel[] = $real_akun; // Simpan nomor akun duplikat
+            } else {
+                $existingAccounts[] = $real_akun; // Tambahkan ke daftar akun yang sudah ada
+    
                 $data[] = [
                     'parent_id'    => $selCoa->id ?? null,
                     'subchild'     => ($selCoa->subchild ?? 0) + 1,
@@ -462,26 +626,39 @@ class CoaController extends Controller
                 ];
             }
         }
-
+    
+        if (!empty($duplicatesInExcel)) {
+            Alert::error('Oops!', 'Nomor akun berikut sudah ada: ' . implode(', ', $duplicatesInExcel));
+            return redirect()->back();
+        }
         if (!empty($data)) {
-            $coa = Coa::insert($data);
-            if ($coa) {
+            $xa = Coa::insert($data);
+            if ($xa) {
                 $updateCoa = Coa::where('created_by', Auth::user()->id)->get();
                 foreach ($updateCoa as $coa) {
-                    $parent_id = $coa->level > 1 ? Coa::where('nomor_akun', substr($coa->nomor_akun, 0, $coa->level - 1))
-                                                 ->where('created_by', Auth::user()->id)
-                                                 ->value('id') : null;
+                    if($coa->level == 5){
+                        $pr = substr($coa->nomor_akun, 0, $coa->level);
+                    }else{
+                        $pr = substr($coa->nomor_akun, 0, $coa->level - 1);
+                    }
+
+                    $parent_id = $coa->level > 1 ? Coa::where('nomor_akun', $pr)
+                    ->where('created_by', Auth::user()->id)
+                    ->value('id') : null;
+
                     $coa->update([
                         'parent_id' => $parent_id,
                         'subchild' => Coa::where('parent_id', $coa->id)->where('created_by', Auth::user()->id)->count()
                     ]);
                 }
-                return redirect()->back()->with('message', 'Data Coa berhasil di import')->with('color', 'green');
+                Alert::success('Sukses !', 'Data Coa berhasil di import');
+                return redirect()->back();
             } else {
-                return redirect()->back()->with('message', 'Data Coa gagal di import')->with('color', 'red');
+                Alert::error('Oops!', 'Data Coa gagal di import');
             }
         } else {
-            return redirect()->back()->with('message', 'Tidak ada data baru yang diimport')->with('color', 'yellow');
+            Alert::warning('Oops!', 'Tidak ada data baru yang diimport');
+            return redirect()->back();
         }
     }
 
@@ -499,9 +676,29 @@ class CoaController extends Controller
         $flatArray = [];
         $this->flattenTree($coaTree, $flatArray);
 
-
-        $pdf = PDF::loadView('report.printcoa', ['data' => $flatArray]);
+        // dd($flatArray);
+        $pdf = PDF::loadView('report.printcoa', ['data' => $flatArray, 'bType' => 'download']);
         return $pdf->download('coa_'.auth()->user()->name.'.pdf');
+    }
+
+    public function previewCoa(){
+        $data = Coa::where('created_by', Auth::user()->id)
+                    ->where(function($query) {
+                        $query->where('is_deleted', 0)
+                            ->orWhereNull('is_deleted');
+                    })
+                    ->orderBy('nomor_akun')
+                    ->get();
+
+
+
+        $coaTree = $this->buildTree($data);
+        // da($coaTree);
+        $flatArray = [];
+        $this->flattenTree($coaTree, $flatArray);
+
+        // da($flatArray);
+        return view('report.printcoa', ['data' => $flatArray, 'bType' => 'preview']);
     }
 
     
@@ -520,7 +717,7 @@ class CoaController extends Controller
         return $branch;
     }
 
-    private function flattenTree($tree, &$flatArray, $level = 0) {
+    private function flattenTree($tree, &$flatArray, $level = 1) {
         foreach ($tree as $node) {
             $node->level = $level;
             $flatArray[] = $node;

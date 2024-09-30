@@ -69,13 +69,48 @@
 
 /* #f3f4f6 */
 ::-webkit-scrollbar-track {
-    background: #f3f4f6;
+    background: #f9fafb;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #10b981;
+    background: #d1d5db;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #10b981;
+    background: #d1d5db;
+}
+
+.flatpickr-prev-month,
+.flatpickr-next-month {
+    top: 8px !important;
+}
+
+
+
+.t-head {
+    @apply bg-gray-100 px-3 py-2 text-sm text-gray-500 font-normal leading-none
+}
+
+.btn-filter {
+    @apply bg-gray-200 rounded hover:bg-gray-300 text-sm h-fit px-3 py-2
+}
+
+.btn-action-primary {
+    @apply px-2 py-1 bg-white text-emerald-600 border border-emerald-600 rounded text-sm hover:bg-emerald-100
+}
+
+.btn-action-secondary {
+    @apply px-2 py-1 bg-white text-gray-800 border border-zinc-300 rounded text-sm hover:bg-gray-300
+}
+
+.btn-action-danger {
+    @apply px-2 py-1 bg-white text-red-600 border border-red-600 rounded text-sm hover:bg-red-600 hover:text-red-900
+}
+
+.table-card {
+    @apply overflow-x-scroll
+}
+
+.width-constraint {
+    min-width: 940px;
 }

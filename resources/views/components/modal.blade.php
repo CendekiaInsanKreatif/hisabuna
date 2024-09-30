@@ -43,8 +43,19 @@
         }
         return formatted;
     },
+    formatInputAkun(event) {
+        let input = event.target;
+        let value = input.value.replace(/[^0-9]/g, ''); // Menghapus semua karakter non-numeric
+        if (value.length > 6) {
+            value = value.slice(0, 3) + '-' + value.slice(3, 5) + '-' + value.slice(5);
+        } else if (value.length > 4) {
+            value = value.slice(0, 3) + '-' + value.slice(3);
+        }
+        input.value = value;
+    },
     formatCurrency(event) {
             let input = event.target;
+            {{-- console.log(event); --}}
             let value = input.value.replace(/[^0-9]/g, ''); // Menghapus semua karakter non-numeric
             let parsedValue = parseFloat(value);
             if (isNaN(parsedValue)) {
@@ -60,7 +71,7 @@
                 return value.toLocaleString('id-ID');
             }
             return '';
-        }
+    }
 }" x-init="$watch('show', value => {
     if (value) {
         document.body.classList.add('overflow-y-hidden');
@@ -69,7 +80,7 @@
         document.body.classList.remove('overflow-y-hidden');
     }
 })"
-    x-on:open-modal.window="console.log($event.detail); method = $event.detail.method; route = $event.detail.route; data = $event.detail.data; title = $event.detail.title; show = true; name = $event.detail.name; type = $event.detail.type; isDetail = $event.detail.isDetail; detailCount = $event.detail.count;"
+    x-on:open-modal.window="console.log($event.detail); method = $event.detail.method; route = $event.detail.route; data = $event.detail.data; title = $event.detail.title; show = true; name = $event.detail.name; type = $event.detail.type; isDetail = $event.detail.isDetail; detailCount = $event.detail.count; from = $event.detail.from;"
     x-on:close-modal.window="show = false" x-on:close.stop="show = false" x-on:keydown.escape.window="show = false"
     x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()" x-show="show"
@@ -113,39 +124,36 @@
                                     <tr class="border-b cursor-pointer"
                                         x-show="Object.values({{ json_encode($item2) }}).join(' ').toLowerCase().includes(search.toLowerCase())"
                                         x-on:click="
-                                            let obj = { isDetail: isDetail, data: {{ json_encode($item2) }} };
+                                        console.log(isDetail);
+                                        let obj = { isDetail: isDetail, data: {{ json_encode($item2) }} };
+                                        if (isDetail !== false) {
                                             document.getElementById('searchBarAkun').value = '';
-                                            {{-- document.getElementsByName('no_akun[' + isDetail + ']')[0].value = obj.data.nomor_akun; --}}
                                             document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
                                             let firstChar = obj.data.nomor_akun.charAt(0);
                                             let teksDebit, teksKredit, styleDebit, styleKredit;
-                                            if (firstChar === '1') {
+                                            if (['1'].includes(firstChar)) {
                                                 teksDebit = 'Bertambah';
                                                 teksKredit = 'Berkurang';
                                                 styleDebit = 'color: green;';
                                                 styleKredit = 'color: red;';
-                                            } else if (firstChar === '2' || firstChar === '3' || firstChar === '4') {
+                                            } else if (['2', '3', '4'].includes(firstChar)) {
                                                 teksDebit = 'Berkurang';
                                                 teksKredit = 'Bertambah';
                                                 styleDebit = 'color: red;';
                                                 styleKredit = 'color: green;';
-                                            } else if (firstChar === '5' || firstChar === '6') {
+                                            } else if (['5', '6'].includes(firstChar)) {
                                                 teksDebit = 'Bertambah';
                                                 teksKredit = 'Berkurang';
                                                 styleDebit = 'color: green;';
                                                 styleKredit = 'color: red;';
                                             }
-
-
-                                            {{-- console.log(jurnalApp.rows) --}}
-                                            {{-- jurnalApp.rows[isDetail].no_akun = formatNomorAkun(obj.data.nomor_akun);
-                                            jurnalApp.rows[isDetail].nama_akun = obj.data.nama_akun; --}}
-                                            {{-- jurnalApp.rows[isDetail].debit = teksDebit;
-                                            jurnalApp.rows[isDetail].kredit = teksKredit; --}}
                                             document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
                                             document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
                                             document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
-                                            $dispatch('close-modal');
+                                        } else {
+                                            document.getElementsByName('akun')[0].value = formatNomorAkun(obj.data.nomor_akun);
+                                        }
+                                        $dispatch('close-modal');
                                         ">
                                         @foreach ($field as $item)
                                             <td class="py-2 px-4">
@@ -195,12 +203,26 @@
                                 @if ($index % 2 == 0)
                                     <div class="mt-4">
                                         <label for="{{ $item['name'] }}">{{ __($item['label']) }}</label>
-                                        <x-text-input id="{{ $item['name'] }}" name="{{ $item['name'] }}"
-                                            type="{{ $item['type'] }}" class="mt-1 block w-full"
-                                            x-bind:readonly="name.includes('show')"
-                                            x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
-                                            x-bind:disabled="name.includes('show')" :placeholder="$item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])"
-                                            x-bind:value="name.includes('create') ? '' : (name.includes('saldo-awal') ? formatCurrencyValue(data.{{ $item['name'] }}) : data.{{ $item['name'] }})" />
+                                        @if ($item['type'] == 'select')
+                                            <select id="{{ $item['name'] }}" name="{{ $item['name'] }}"
+                                                class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                                x-bind:readonly="name.includes('show')"
+                                                x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
+                                                x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'credit' : false)">
+                                                @foreach ($item['options'] as $key => $value)
+                                                    <option value="{{ $key }}" :selected="data.{{ $item['name'] }} == '{{ $key }}'">{{ $value }}</option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <x-text-input id="{{ $item['name'] }}" name="{{ $item['name'] }}"
+                                                type="{{ $item['type'] }}" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                                x-bind:readonly="name.includes('show')"
+                                                {{-- x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''" --}}
+                                                x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : formatInputAkun($event)"
+                                                maxlength="10"
+                                                x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'credit' : false)" :placeholder="$item['name'] === 'no_transaksi' ? 'Generate By System' : __($item['label'])"
+                                                x-bind:value="name.includes('create') ? '' : (name.includes('saldo-awal') ? formatCurrencyValue(data.{{ $item['name'] }}) : data.{{ $item['name'] }})" />
+                                        @endif
                                     </div>
                                 @endif
                             @endforeach
@@ -210,60 +232,73 @@
                                 @if ($index % 2 != 0)
                                     <div class="mt-4">
                                         <label for="{{ $item['name'] }}">{{ __($item['label']) }}</label>
+                                        @if ($item['type'] == 'select')
+                                            <select id="{{ $item['name'] }}" name="{{ $item['name'] }}"
+                                                class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                                x-bind:readonly="name.includes('show')"
+                                                x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
+                                                x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'credit' : false)">
+                                                @foreach ($item['options'] as $key => $value)
+                                                    <option value="{{ $key }}" :selected="data.{{ $item['name'] }} == '{{ $key }}'">{{ $value }}</option>
+                                                @endforeach
+                                            </select>
+                                        @else
                                         <x-text-input id="{{ $item['name'] }}" name="{{ $item['name'] }}"
-                                            type="{{ $item['type'] }}" class="mt-1 block w-full"
+                                            type="{{ $item['type'] }}" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                             x-bind:readonly="name.includes('show')"
                                             x-on:input="name.includes('saldo-awal') ? formatCurrency($event) : ''"
-                                            x-bind:disabled="name.includes('show')"
+                                            x-bind:disabled="name.includes('show') ? true : (name.includes('saldo-awal') ? data.saldo_normal == 'debit' : false)"
                                             placeholder="{{ __($item['label']) }}"
                                             x-bind:value="name.includes('create') ? '' : (name.includes('saldo-awal') ? formatCurrencyValue(data.{{ $item['name'] }}) : data.{{ $item['name'] }})" />
+                                        @endif
                                     </div>
                                 @endif
                             @endforeach
                         </div>
                     </div>
                     <template x-if="name.includes('jurnal')">
-                        <table class="min-w-full divide-y divide-gray-200 mt-4">
-                            <thead class="bg-gray-50">
-                                @php
-                                    $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit', 'Lampiran'];
-                                @endphp
-                                @foreach ($header as $item)
-                                    <th scope="col"
-                                        class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {{ $item }}
-                                    </th>
-                                @endforeach
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200 overflow-y-auto">
-                                <template x-for="(detail, index) in data.details" :key="index">
-                                    <tr>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="detail.coa_akun"></td>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="detail.coa.nama_akun"></td>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="new Intl.NumberFormat('id-ID').format(detail.debit)"></td>
-                                        <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            x-text="new Intl.NumberFormat('id-ID').format(detail.credit)"></td>
-                                        <td
+                        <div class="overflow-y-auto" style="max-height: 250px;">
+                            <table class="min-w-full divide-y divide-gray-200 mt-4">
+                                <thead class="bg-gray-50">
+                                    @php
+                                        $header = ['Nomor Akun', 'Nama Akun', 'Debit', 'Kredit', 'Lampiran'];
+                                    @endphp
+                                    @foreach ($header as $item)
+                                        <th scope="col"
                                             class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            <a :href="`{{ asset('storage') }}/${detail.lampiran}`" target="_blank"
-                                                class="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold rounded">
-                                                <span>Lihat</span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                                            {{ $item }}
+                                        </th>
+                                    @endforeach
+                                </thead>
+                                    <tbody>
+                                        <template x-for="(detail, index) in data.details" :key="index">
+                                            <tr class="bg-white divide-y divide-gray-200">
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="formatNomorAkun(detail.coa_akun)"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="detail.coa.nama_akun"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="new Intl.NumberFormat('id-ID').format(detail.debit)"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    x-text="new Intl.NumberFormat('id-ID').format(detail.credit)"></td>
+                                                <td class="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    <a :href="`{{ asset('storage') }}/${detail.lampiran}`" target="_blank"
+                                                        class="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold rounded">
+                                                        <span>Lihat</span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                            </table>
+                        </div>
                     </template>
                 @endif
                 <div class="mt-4 flex justify-end space-x-2">
-                    <x-primary-button type="submit" x-show="!name.includes('show')">
+                    <button type="submit" x-show="!name.includes('show')" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 dark:bg-emerald-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-emerald-800 uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-white focus:bg-emerald-700 dark:focus:bg-white active:bg-emerald-900 dark:active:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-emerald-800 transition ease-in-out duration-150 shadow-custom-strong py-2 px-4">
                         <span x-text="name.includes('destroy') ? 'Hapus' : 'Simpan'"></span>
-                    </x-primary-button>
-                    {{-- <a href="#" x-show="name.includes('show')" x-on:click="window.open('{{ route('jurnal.lampiran') }}', '_blank')" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded">
+                    </button>
+                    {{-- <a href="#" x-show="name.includes('show')" x-on:click="window.open('{{ route('jurnal.lampiran') }}', '_blank')" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150 bg-gray-500 hover:bg-gray-600 text-gray-800 font-bold py-2 px-4 rounded">
                         <span>Lihat Lampiran</span>
                     </a> --}}
                     <x-secondary-button x-on:click="$dispatch('close')"

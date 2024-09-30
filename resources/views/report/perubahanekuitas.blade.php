@@ -8,25 +8,19 @@
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
+            max-width: 800px;
+            margin: 0 auto;
         }
         table {
             width: 100%;
-            border-collapse: collapse;
         }
         th, td {
             text-align: center;
-            padding: 8px;
+            padding: 2px;
         }
-        th {
-            background-color: #f2f2f2;
-        }
-        .total {
-            font-weight: bold;
-            background-color: #e8e8e8;
-        }
-        h2 {
-            text-align: center;
-            margin-top: 20px;
+        h2, h3 {
+            margin: 0;
+            padding: 0;
         }
 
         .footer.content {
@@ -34,63 +28,74 @@
             align-items: center;
         }
 
-        .company-logo {
-            width: 5rem;
-            height: 5rem;
-            margin-right: 8rem;
+        .new-header {
+            position: relative;
         }
 
-        .company-name {
-            font-size: 1.25rem; /* Ukuran font yang sesuai */
-            position: relative;
-            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+        .company-logo {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
+        }
+
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
         }
     </style>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
 </head>
-
-<body>
-    {{-- <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
-    <h4>{{ auth()->user()->company_name }}</h4> --}}
-    <div class="footer content">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
-        <span class="company-name">{{ auth()->user()->company_name }}</span>
-    </div>
-    <h2><u>LAPORAN PERUBAHAN EKUITAS</u></h2>
+<body onload="window.print()">
+    <header class="new-header">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Perubahan Ekuitas</h2>
+            <h3>Per {{ \Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->format('d F Y') }}</h3>
+        </div>
+    </header>
+    <hr style="border: 2px solid black; width: 100%;">
     <table>
         <thead>
             <tr>
-                <th></th>
-                <th>{{ $tahunSekarang }}</th>
-                <th>Penambahan / (Pengurangan)</th>
-                <th>{{ $tahunSebelumnya }}</th>
+                <th style="text-align: center; width: 40%;">Keterangan</th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;">{{ date('Y') }}</th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;">Penambahan / <br> (Pengurangan)</th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;">{{ date('Y') - 1 }}</th>
             </tr>
         </thead>
         <tbody>
             @php
-                $modalSekarang = $data[$tahunSekarang][$totalsSekarang['namaAkun']];
-                $saldoSekarang = $data[$tahunSekarang]['Saldo Tahun Berjalan'];
-                $modalDulu = $data[$tahunSebelumnya][$totalsDulu['namaAkun']];
-                $saldoDulu = $data[$tahunSebelumnya]['Saldo Tahun Berjalan'];
-                $modalDiff = $data[0][$totalsDulu['namaAkun']];
-                $saldoDiff = $data[0]['Saldo Tahun Berjalan'];
+                $totalEkuitasTahunIni = 0;
+                $totalEkuitasTahunLalu = 0;
             @endphp
-            <tr>
-                <td>Modal Disetor</td>
-                <td style="text-align: right;">{{ number_format($modalSekarang, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDulu, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td>Saldo Tahun Berjalan</td>
-                <td style="text-align: right;">{{ number_format($saldoSekarang, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($saldoDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($saldoDulu, 0, ',', '.') }}</td>
-            </tr>
+            @foreach ($data as $year => $values)
+                @if ($year == date('Y'))
+                    @foreach ($values as $key => $value)
+                        @php
+                            $totalEkuitasTahunIni += $value;
+                            $totalEkuitasTahunLalu += $data[date('Y') - 1][$key] ?? 0;
+                        @endphp
+                        <tr>
+                            <td style="text-align: left;">{{ $key }}</td>
+                            <td style="text-align: right;">{{ number_format($value) }}</td>
+                            <td style="text-align: right;">{{ number_format($value - ($data[date('Y') - 1][$key] ?? 0)) }}</td>
+                            <td style="text-align: right;">{{ number_format($data[date('Y') - 1][$key] ?? 0) }}</td>
+                        </tr>
+                    @endforeach
+                @endif
+            @endforeach
             <tr class="total">
-                <td>Jumlah Ekuitas</td>
-                <td style="text-align: right;">{{ number_format($modalSekarang + $saldoSekarang, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDiff + $saldoDiff, 0, ',', '.') }}</td>
-                <td style="text-align: right;">{{ number_format($modalDulu + $saldoDulu, 0, ',', '.') }}</td>
+                <td style="text-align: left; font-weight: bold;">Total Ekuitas</td>
+                <td style="text-align: right; font-weight: bold; border-top: 1px solid #000;">{{ number_format($totalEkuitasTahunIni) }}</td>
+                <td style="text-align: right; font-weight: bold; border-top: 1px solid #000;">{{ number_format($totalEkuitasTahunIni - $totalEkuitasTahunLalu) }}</td>
+                <td style="text-align: right; font-weight: bold; border-top: 1px solid #000;">{{ number_format($totalEkuitasTahunLalu) }}</td>
             </tr>
         </tbody>
     </table>

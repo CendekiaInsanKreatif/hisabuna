@@ -7,7 +7,11 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use PDF;
-
+use RecursiveArrayIterator;
+use RecursiveIteratorIterator;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Redirect;
+use Alert;
 use App\Models\Coa;
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
@@ -16,6 +20,56 @@ use App\Models\User;
 
 class ReportController extends Controller
 {
+    public function printJurnalFilter(Request $request) 
+    {
+        $dari = $request->a;
+        $sampai = $request->b;
+        $limit = $sampai - $dari + 1; // Jumlah baris yang akan diambil
+        $offset = $dari - 1; // Offset baris yang akan dilewati
+        
+        // Ambil ID pengguna
+        $a = auth()->user()->id; 
+        
+        // Query untuk mendapatkan data jurnal
+        $users = DB::select("
+            SELECT *
+            FROM jurnal_headers jh
+            WHERE 
+                jh.is_deleted IS NULL AND 
+                jh.created_by = ?
+            ORDER BY jh.id ASC
+            LIMIT ? OFFSET ?", [$a, $limit, $offset]);
+    
+        // Periksa jika data kosong
+        if (empty($users)) {
+            return response()->json(['error' => 'Data tidak ditemukan'], 404);
+        }
+        
+        // Inisialisasi tanggal awal dan akhir
+        $tgl_awal = $tgl_akhir = null;
+        
+        // Iterasi untuk menemukan tanggal awal dan akhir
+        foreach ($users as $user) {
+            if ($tgl_awal === null || $user->jurnal_tgl < $tgl_awal) {
+                $tgl_awal = $user->jurnal_tgl;
+            }
+            if ($tgl_akhir === null || $user->jurnal_tgl > $tgl_akhir) {
+                $tgl_akhir = $user->jurnal_tgl;
+            }
+        }
+        
+        // Render view untuk PDF
+        $view = view('report.daftarjurnal', [
+            'jurnal' => $users, 
+            'tgl_awal' => $dari, 
+            'tgl_akhir' => $sampai
+        ])->render();
+        
+        // Buat dan unduh PDF
+        $pdf = PDF::loadHTML($view);
+        return $pdf->download('daftar_jurnal_' . Carbon::now()->format('YmdHis') . '.pdf');
+    }
+
     public function daftarJurnal()
     {
         $jurnal = Jurnal::with('details')->where('created_by', auth()->user()->id)->get();
@@ -23,7 +77,8 @@ class ReportController extends Controller
         $tgl_akhir = $jurnal->max('jurnal_tgl');
 
         if($jurnal->isEmpty()){
-            return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+            Alert::error('Oops!', 'Data tidak ditemukan');
+            return redirect()->back();
         }
 
         $view = view('report.daftarjurnal', ['jurnal' => $jurnal, 'tgl_awal' => $tgl_awal, 'tgl_akhir' => $tgl_akhir])->render();
@@ -31,199 +86,207 @@ class ReportController extends Controller
         return $pdf->download('daftar_jurnal_'.Carbon::now()->format('YmdHis').'.pdf');
     }
 
-    public function transaksi($id){
-        $jurnal = Jurnal::with('details')->where(['id' => $id, 'created_by' => auth()->user()->id])->first();
-        if($jurnal){
+    public function transaksi($id) {
+        $jurnal = Jurnal::with(['details' => function($query) {
+            $query->orderBy('coa_akun');
+        }])->where(['id' => $id, 'created_by' => auth()->user()->id])->first();
+
+        if ($jurnal) {
+            $coaList = Coa::where(['created_by' => auth()->user()->id])->get()->keyBy('nomor_akun');
+
+            $jurnalDetails = JurnalDetail::where('jurnal_id', $id)
+                ->where('created_by', auth()->user()->id)
+                ->get()
+                ->groupBy(function($detail) {
+                    return substr($detail->coa_akun, 0, 5);
+                });
+
             foreach ($jurnal['details'] as $key => $detail) {
-                $dt = Coa::where(['created_by' => auth()->user()->id])->first();
-                $child = $dt->where('nomor_akun', $detail['coa_akun'])->first();
-                if($child){
+                $coaAkun = $detail['coa_akun'];
+                $child = $coaList->get($coaAkun);
+
+                if ($child) {
                     $jurnal['details'][$key]['nama_akun'] = $child['nama_akun'];
                 }
-                if (strpos($detail['coa_akun'], '-') !== false) {
-                    $parent = substr($detail['coa_akun'], 0, strpos($detail['coa_akun'], '-'));
-                    $coa = $dt->where('nomor_akun', $parent)->first();
-                    if ($coa) {
-                        $detail['parent'] = [
-                            'nomor_akun' => $coa['nomor_akun'],
-                            'nama_akun' => $coa['parent']['nama_akun']
-                        ];
+
+                $parent = substr($coaAkun, 0, 5);
+                $coa = $coaList->get($parent);
+
+                if ($coa) {
+                    $noKun = formatNomorAkun($coa['nomor_akun']);
+                    $get = explode('-', $noKun);
+                    $deNo = $parent;
+
+                    $total = 0;
+                    if ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') {
+                        $total = $jurnalDetails->get($deNo)->sum(function($detail) {
+                            return $detail->debit - $detail->credit;
+                        });
+                    } else {
+                        $total = $jurnalDetails->get($deNo)->sum(function($detail) {
+                            return $detail->credit - $detail->debit;
+                        });
                     }
-                }else{
-                    $length = strlen($detail['coa_akun']);
-                    $parent = substr($detail['coa_akun'], 0, $length-1);
-                    $coa = $dt->where('nomor_akun', $parent)->first();
-                    if ($coa) {
-                        $detail['parent'] = [
-                            'nomor_akun' => $coa['nomor_akun'],
-                            'nama_akun' => $coa['parent']['nama_akun']
-                        ];
-                    }
+
+                    $jurnal['details'][$key]['parent'] = [
+                        'nomor_akun' => $get[0] . '-' . $get[1],
+                        'nama_akun' => $coa['nama_akun'],
+                        'total' => $total ?: 0,
+                    ];
                 }
             }
         }
-        $pdf = PDF::loadView('report.transaksi', ['jurnal' => $jurnal]);
-        return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
+
+        // da($jur)
+        return view('report.transaksi', ['jurnal' => $jurnal]);
+
+        // da($jurnal);
+        // $pdf = PDF::loadView('report.transaksi', ['jurnal' => $jurnal]);
+        // return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
 
-    public function downloadBukuBesar(Request $request){
-        $tanggalMulai = trim($request->input('tanggal_mulai', Carbon::now()->format('Y-m-d')));
-        $tanggalSelesai = trim($request->input('tanggal_selesai', Carbon::now()->format('Y-m-d')));
-        $akun = $request->input('akun', '');
 
-        $query = JurnalDetail::query()->with('coa')
-            ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
-            ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan')
-            ->where('jurnal_headers.created_by', auth()->user()->id);
-
-        // da($request->all());
-        if (!empty($akun)) {
-            $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
-        }
-
-        if ($request->has('tanggal_mulai') || $request->has('tanggal_selesai')) {
-            try {
-                $startDate = Carbon::parse($tanggalMulai)->startOfDay();
-            } catch (\Exception $e) {
-                $startDate = Carbon::now()->startOfDay();
-            }
-
-            try {
-                $endDate = Carbon::parse($tanggalSelesai)->endOfDay();
-            } catch (\Exception $e) {
-                $endDate = Carbon::now()->endOfDay();
-            }
-
-            $query->whereBetween('jurnal_headers.jurnal_tgl', [$startDate, $endDate]);
-        }
-
-        $en = $query->orderBy('jurnal_headers.jurnal_tgl')
-            ->get()
-            ->groupBy('coa_akun');
-
-        // da($en);
-
-        $jurnalx = [];
-        foreach ($en as $coaAkun => $transactions) {
-            $coa = Coa::where('nomor_akun', $coaAkun)->where('created_by', auth()->user()->id)->first();
-            if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                $saldoAwal = $coa->saldo_awal_debit;
-            }else{
-                $saldoAwal = $coa->saldo_awal_credit;
-            }
-            $saldoKumulatif = $saldoAwal;
-
-            foreach ($transactions as $transaction) {
-                if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                    $saldoKumulatif += $transaction->debit - $transaction->credit;
-                }else{
-                    $saldoKumulatif += $transaction->credit - $transaction->debit;
-                }
-                $transaction->saldo = $saldoKumulatif;
-            }
-
-            $jurnalx[$coaAkun] = $transactions;
-        }
-
-        // dd($jurnalx);
-
-        $pdf = PDF::loadView('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
-        return $pdf->download('buku_besar_'.Carbon::now()->format('YmdHis').'.pdf');
-    }
+    // public function downloadBukuBesar(Request $request){
+        
+    // }
 
     public function bukuBesar(Request $request)
     {
-        $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('tanggal_mulai', Carbon::now()->format('d-m-Y'))))->format('Y-m-d');
-        $tanggalSelesai = Carbon::createFromFormat('d-m-Y', trim($request->input('tanggal_selesai', Carbon::now()->format('d-m-Y'))))->format('Y-m-d');
-        $akun = $request->input('akun', '');
+        $coa = Coa::whereNull('is_deleted')
+                    ->where('level', 5)
+                    ->where('created_by', auth()->user()->id)
+                    ->get()
+                    ->toArray();
 
-        $query = JurnalDetail::query()->with('coa')
-            ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
-            ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan')
-            ->where('jurnal_headers.created_by', auth()->user()->id);
 
-        if (!empty($akun)) {
-            $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
-        }
+        if($request->isMethod('post')){
+            // da($request->all());
+            $tanggalMulai = Carbon::createFromFormat('d-m-Y', trim($request->input('start_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->min('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
+            $tanggalSelesai = Carbon::createFromFormat('d-m-Y', trim($request->input('end_date', Carbon::parse(JurnalDetail::where('created_by', auth()->user()->id)->max('tanggal_bukti'))->format('d-m-Y'))))->format('Y-m-d');
+            $akun = $request->input('akun', '');
 
-        if ($request->has('tanggal_mulai') || $request->has('tanggal_selesai')) {
-            try {
-                $startDate = Carbon::parse($tanggalMulai)->startOfDay();
-            } catch (\Exception $e) {
-                $startDate = Carbon::now()->startOfDay();
+            $query = JurnalDetail::query()->with('coa')
+                ->join('jurnal_headers', 'jurnal_details.jurnal_id', '=', 'jurnal_headers.id')
+                ->select('jurnal_headers.jurnal_tgl', 'jurnal_details.coa_akun', 'jurnal_details.debit', 'jurnal_details.credit', 'jurnal_details.keterangan', 'jurnal_details.tanggal_bukti')
+                ->where('jurnal_headers.created_by', auth()->user()->id);
+
+            // dd($query);
+            
+            if (!empty($akun)) {
+                $akun = str_replace('-', '', $akun);
+                // da($akun);
+                $query->where('jurnal_details.coa_akun', 'like', '%' . $akun . '%');
             }
 
-            try {
-                $endDate = Carbon::parse($tanggalSelesai)->endOfDay();
-            } catch (\Exception $e) {
-                $endDate = Carbon::now()->endOfDay();
-            }
-
-            $query->whereBetween('jurnal_headers.jurnal_tgl', [$startDate, $endDate]);
-        }
-
-        $en = $query->orderBy('jurnal_headers.jurnal_tgl')
-            ->get()
-            ->groupBy('coa_akun');
-
-        $ledgers = [];
-        foreach ($en as $coaAkun => $transactions) {
-            $coa = Coa::where('nomor_akun', $coaAkun)->where('created_by', auth()->user()->id)->first();
-            if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                $saldoAwal = $coa->saldo_awal_debit;
-            }else{
-                $saldoAwal = $coa->saldo_awal_credit;
-            }
-            $saldoKumulatif = $saldoAwal;
-
-            foreach ($transactions as $transaction) {
-                if($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit'){
-                    $saldoKumulatif += $transaction->debit - $transaction->credit;
-                }else{
-                    $saldoKumulatif += $transaction->credit - $transaction->debit;
+            if ($request->has('start_date') || $request->has('end_date')) {
+                try {
+                    $startDate = Carbon::parse($tanggalMulai)->startOfDay();
+                } catch (\Exception $e) {
+                    $startDate = Carbon::now()->startOfDay();
                 }
-                $transaction->saldo = $saldoKumulatif;
+
+                try {
+                    $endDate = Carbon::parse($tanggalSelesai)->endOfDay();
+                } catch (\Exception $e) {
+                    $endDate = Carbon::now()->endOfDay();
+                }
+
+                $query->whereBetween('jurnal_details.tanggal_bukti', [$startDate, $endDate]);
             }
 
-            $ledgers[$coaAkun] = $transactions;
+            $en = $query->orderBy('jurnal_details.tanggal_bukti')
+                ->get()
+                ->groupBy('coa_akun');
+
+            // dd($en);
+            if($en->isEmpty()){
+                echo "<script>alert('Oops! Data tidak ditemukan'); window.close();</script>";
+                return;
+            }
+
+            $tanggalPertama = JurnalDetail::where('created_by', auth()->user()->id)
+                ->orderBy('tanggal_bukti', 'asc')
+                ->value('tanggal_bukti');
+            $xa = $tanggalPertama ?: Carbon::now()->format('Y-m-d');
+            $getPerSaldo = JurnalDetail::where('created_by', auth()->user()->id)
+                ->whereBetween('tanggal_bukti', [
+                    Carbon::parse($xa)->format('Y-m-d'),
+                    Carbon::parse($tanggalMulai)->format('Y-m-d')
+                ])
+                ->selectRaw('coa_akun, SUM(debit) as debit, SUM(credit) as kredit')
+                ->groupBy('coa_akun')
+                ->orderBy('coa_akun', 'asc')
+                ->get()
+                ->keyBy('coa_akun');
+
+            // da($getPerSaldo);
+
+            $coas = Coa::where('created_by', auth()->user()->id)->get()->keyBy('nomor_akun');
+            $jurnalx = [];
+            foreach ($en as $coaAkun => $transactions) {
+                $coa = $coas->get($coaAkun);
+                $saldoAwal = ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') ? $coa->saldo_awal_debit : $coa->saldo_awal_credit;
+                $saldoPer = $saldoAwal + @$getPerSaldo[$coaAkun]['debit'] - @$getPerSaldo[$coaAkun]['kredit'];
+
+                $saldoKumulatif = $saldoPer;
+                foreach ($transactions as $transaction) {
+                    $saldoKumulatif += ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') ? ($transaction->debit - $transaction->credit) : ($transaction->credit - $transaction->debit);
+                    $transaction->saldo = $saldoKumulatif;
+                    $transaction->tanggal_bukti = Carbon::parse($transaction->tanggal_bukti)->format('Y-m-d H:i:s');
+                }
+
+                $jurnalx[$coaAkun] = $transactions;
+                $jurnalx[$coaAkun]->saldo_per_tanggal = $saldoPer;
+            }
+
+            $jurnalx = collect($jurnalx)->sortBy(function($transactions, $coaAkun) {
+                return $coaAkun;
+            });
+
+
+            return view('report.bukubesar_download', ['ledgers' => $jurnalx,'tanggalMulai' => $tanggalMulai, 'tanggalSelesai' => $tanggalSelesai, 'akun' => $akun]);
         }
 
-        return view('report.bukubesar', compact('ledgers', 'tanggalMulai', 'tanggalSelesai', 'akun'));
+        return view('report.views.template', compact('coa'));
     }
 
     public function arusKas(Request $request)
     {
         if ($request->isMethod('post')) {
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
 
             $jurnal = Jurnal::whereNull('is_deleted')
-                        ->with(['details' => function($query) {
-                            $query->where('coa_akun', '>=', '1');
+                        ->with(['details' => function($query) use ($start_date, $end_date) {
+                            $query->where('coa_akun', '>', '1')
+                                  ->where('tanggal_bukti', '>=', $start_date)
+                                  ->where('tanggal_bukti', '<=', $end_date)
+                                  ->orderBy('coa_akun');
                         }])
                         ->where('created_by', auth()->user()->id)
-                        ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                         ->get();
 
             if ($jurnal->isEmpty()) {
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
 
-            $coas = Coa::where('created_by', auth()->user()->id)->get()->keyBy('nomor_akun');
-            
-            $data = [
-                'aktifitas_operasional' => ['Jumlah' => 0, 'Detail' => []],
-                'aktifitas_pendanaan' => ['Jumlah' => 0, 'Detail' => []],
-                'aktifitas_investasi' => ['Jumlah' => 0, 'Detail' => []],
-            ];
+            $coas = Coa::where('created_by', auth()->user()->id)
+                        ->where('nomor_akun', 'not like', '111%')
+                        ->orderBy('nomor_akun')
+                        ->get()
+                        ->keyBy('nomor_akun');
 
+            $data = [];
+            $totalKas = 0;
             foreach ($jurnal as $entry) {
                 foreach ($entry->details as $detail) {
                     $parent = $coas->get(substr($detail->coa_akun, 0, 1));
                     $child = $coas->get($detail->coa_akun);
-                    $aruskas = $coas->get(substr($detail->coa_akun, 0, 4));
-                    if ($parent) {
-                        if ($parent->saldo_normal == 'db' || $parent->saldo_normal == 'debit') {
+                    $aruskas = $coas->get(substr($detail->coa_akun, 0, 5));
+                    $lv5 = $coas->get(substr($detail->coa_akun, 0, 8));
+                    if ($lv5) {
+                        if ( $lv5->saldo_normal == 'db' ||  $lv5->saldo_normal == 'debit') {
                             $nilai = $detail->debit - $detail->credit;
                         } else {
                             $nilai = $detail->credit - $detail->debit;
@@ -232,62 +295,216 @@ class ReportController extends Controller
                         $kategori = $aruskas->arus_kas;
 
                         if ($kategori) {
-                            $data[$kategori]['Jumlah'] += $nilai;
-                            $data[$kategori]['Detail'][$child->nama_akun] = ($data[$kategori]['Detail'][$child->nama_akun] ?? 0) + $nilai;
+                            $data[$aruskas->arus_kas][$aruskas->nama_akun] = ($data[$aruskas->arus_kas][$aruskas->nama_akun] ?? 0) + $nilai;
                         }
+                    }
+                    if (strpos($detail->coa_akun, '1110') === 0) {
+                        $totalKas += $detail->debit - $detail->credit;
                     }
                 }
             }
 
-            foreach ($data as $kas => $value) {
-                if($value['Jumlah'] == 0){
-                    unset($data[$kas]);
-                }
+            $getKas = $this->neracaFunc($end_date);
+            foreach ($data as $key => $value) {
+                $data[$key]['Total'] = array_sum($value);
+                $data['Total']['Kenaikan (Penurunan) Kas dan Setara Kas'] = $totalKas;
+                $data['Total']['Kas dan Setara Kas Awal'] = $getKas[date('Y') - 1][1]['Aset Lancar']['Kas dan Setara Kas'];
+                $data['Total']['Kas dan Setara Kas Akhir'] = $getKas[date('Y')][1]['Aset Lancar']['Kas dan Setara Kas'];
+                // da($getKas);
             }
 
-            $pdf = PDF::loadView('report.aruskas', [
+
+            // da($data);
+
+            // foreach ($data as $kas => $value) {
+            //     if($value['Jumlah'] == 0){
+            //         unset($data[$kas]);
+            //     }
+            // }
+
+            // da($request);
+            // da($data);
+            if(!$data){
+                echo "<script>alert('Oops! Data tidak ditemukan'); window.close();</script>";
+                return;
+            }
+
+            return view('report.aruskas', [
                 'data' => $data,
-                'start_date' => $start_date,
-                'end_date' => $end_date,
+                'start_date' => Carbon::parse($start_date)->format('d/m/Y'),
+                'end_date' => Carbon::parse($end_date)->format('d/m/Y'),
             ]);
 
-            return $pdf->download('aruskas_' . Carbon::now()->format('YmdHis') . '.pdf');
+            // $pdf = PDF::loadView('report.aruskas', [
+            //     'data' => $data,
+            //     'start_date' => $start_date,
+            //     'end_date' => $end_date,
+            // ]);
+
+            // return $pdf->download('aruskas_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
     }
 
+    public function labaRugiView(Request $request , $n = 0)
+    {
+        if($_SERVER['REQUEST_METHOD'] != 'GET'){
+              return view('report.views.template');
+        }
+        $start_date = Carbon::parse($request->input('start'))->format('Y-m-d H:i:s');
+        $start      = $request->input('start');
+        $end_date = Carbon::parse($request->input('end'))->format('Y-m-d H:i:s');
+        $end      = $request->input('end_date');
+        $ttd1 = $request->input('text_input1');
+        $ttd2 = $request->input('text_input2');
 
-    public function labaRugi(Request $request)
+        $tahunSebelumnya = date('Y');
+        if($n == 1){
+            $jurnal = Jurnal::whereNull('is_deleted')
+                    ->with(['details' => function($query) use ($end_date) {
+                        $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                        ->where('tanggal_bukti', '<=' , $end_date);
+                    }])
+                    ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                    ->where('created_by', auth()->user()->id)
+                    ->get();
+        }else{
+            $jurnal = Jurnal::whereNull('is_deleted')
+                    ->with(['details' => function($query) use ($start_date, $end_date) {
+                        $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                        ->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+                    }])
+                    ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                    ->where('created_by', auth()->user()->id)
+                    ->get();
+        }
+
+        if($jurnal->isEmpty()){
+            Alert::error('Oops!', 'Data tidak ditemukan');
+            return redirect()->back();
+        }
+
+        $kategori = Coa::where('created_by', auth()->user()->id)->where('level', '=', '1')->get()->keyBy('nomor_akun')->toArray();
+        $data = [];
+
+        foreach ($jurnal as $entry) {
+            foreach ($entry->details as $detail) {
+                $kategoriAkun = substr($detail->coa_akun, 0, 1);
+                $lv3 = substr($detail->coa_akun, 0, 3);
+                if (isset($kategori[$kategoriAkun])) {
+                    $parent = $kategori[$kategoriAkun];
+                    $child = Coa::where(['nomor_akun' => $detail->coa_akun, 'created_by' => auth()->user()->id])->first();
+                    $lv3 = Coa::where(['nomor_akun' => $lv3, 'created_by' => auth()->user()->id])->first();
+                    if ($parent['saldo_normal'] == 'db' || $parent['saldo_normal'] == 'debit') {
+                        $nilai = $child['saldo_awal_debit'] + $detail->debit - $detail->credit;
+                    } else {
+                        $nilai = $child['saldo_awal_credit'] + $detail->credit - $detail->debit;
+                    }
+
+                    $data[$parent['nama_akun']]['Jumlah'] = ($data[$parent['nama_akun']]['Jumlah'] ?? 0) + $nilai;
+                    if (isset($child['nama_akun'])) {
+                        $data[$parent['nama_akun']]['Detail'][$lv3['nama_akun']] = ($data[$parent['nama_akun']]['Detail'][$lv3['nama_akun']] ?? 0) + $nilai;
+                    }
+                }
+            }
+        }
+
+        uksort($data, function($a, $b) use ($kategori) {
+            $order = array_flip(array_map(function($item) {
+                return $item['nama_akun'];
+            }, $kategori));
+            return ($order[$a] ?? PHP_INT_MAX) <=> ($order[$b] ?? PHP_INT_MAX);
+        });
+
+        $totalPendapatan = 0;
+        $totalBiaya = 0;
+
+        foreach ($data as $category => $details) {
+            if ($category == 'Pendapatan') {
+                $totalPendapatan += $details['Jumlah'];
+            } else {
+                $totalBiaya += $details['Jumlah'];
+            }
+        }
+
+
+        $labaRugiBersih = $totalPendapatan - $totalBiaya;
+        // da($labaRugiBersih);
+        if($n == 1){
+            return $labaRugiBersih;
+        }
+
+        // da($data);
+        return view('report.labarugi', [
+                'data' => $data,
+                'tahunSebelumnya' => $tahunSebelumnya,
+                'kategori' => $kategori,
+                'labaRugiBersih' => $labaRugiBersih,
+                'ttd1' => $ttd1,
+                'ttd2' => $ttd2,
+                'start' => $start,
+                'end'   => $end,
+            ]);
+
+    }
+
+
+    public function labaRugi(Request $request, $n = 0)
     {
         if($request->isMethod('post')){
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
-            $ttd1 = $request->input('text_input1');
-            $ttd2 = $request->input('text_input2');
+            $start      = $request->input('start_date');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
+            $end      = $request->input('end_date');
+            // $ttd1 = $request->input('text_input1');
+            // $ttd2 = $request->input('text_input2');
+
+            $paged = [
+                'dibuat' => $request->input('dibuat'),
+                'alamat' => $request->input('alamat'),
+                'tanggal' => $request->input('tanggal'),
+                'jabatan' => $request->input('jabatan'),
+                'jumlahLaman' => (int) $request->input('jumlahLaman'),
+            ];
 
             $tahunSebelumnya = date('Y');
-            $jurnal = Jurnal::whereNull('is_deleted')
-                        ->with(['details' => function($query) {
-                            $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4']);
+            if($n == 1){
+                $jurnal = Jurnal::whereNull('is_deleted')
+                        ->with(['details' => function($query) use ($end_date) {
+                            $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                            ->where('tanggal_bukti', '<=' , $end_date);
                         }])
+                        ->whereYear('jurnal_tgl', $tahunSebelumnya)
                         ->where('created_by', auth()->user()->id)
-                        ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                         ->get();
+            }else{
+                $jurnal = Jurnal::whereNull('is_deleted')
+                        ->with(['details' => function($query) use ($start_date, $end_date) {
+                            $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                            ->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+                        }])
+                        ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                        ->where('created_by', auth()->user()->id)
+                        ->get();
+            }
 
             if($jurnal->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
 
             $kategori = Coa::where('created_by', auth()->user()->id)->where('level', '=', '1')->get()->keyBy('nomor_akun')->toArray();
             $data = [];
+
             foreach ($jurnal as $entry) {
                 foreach ($entry->details as $detail) {
                     $kategoriAkun = substr($detail->coa_akun, 0, 1);
+                    $lv3 = substr($detail->coa_akun, 0, 3);
                     if (isset($kategori[$kategoriAkun])) {
                         $parent = $kategori[$kategoriAkun];
                         $child = Coa::where(['nomor_akun' => $detail->coa_akun, 'created_by' => auth()->user()->id])->first();
-
+                        $lv3 = Coa::where(['nomor_akun' => $lv3, 'created_by' => auth()->user()->id])->first();
                         if ($parent['saldo_normal'] == 'db' || $parent['saldo_normal'] == 'debit') {
                             $nilai = $child['saldo_awal_debit'] + $detail->debit - $detail->credit;
                         } else {
@@ -296,7 +513,7 @@ class ReportController extends Controller
 
                         $data[$parent['nama_akun']]['Jumlah'] = ($data[$parent['nama_akun']]['Jumlah'] ?? 0) + $nilai;
                         if (isset($child['nama_akun'])) {
-                            $data[$parent['nama_akun']]['Detail'][$child['nama_akun']] = ($data[$parent['nama_akun']]['Detail'][$child['nama_akun']] ?? 0) + $nilai;
+                            $data[$parent['nama_akun']]['Detail'][$lv3['nama_akun']] = ($data[$parent['nama_akun']]['Detail'][$lv3['nama_akun']] ?? 0) + $nilai;
                         }
                     }
                 }
@@ -320,17 +537,39 @@ class ReportController extends Controller
                 }
             }
 
-            $labaRugiBersih = $totalPendapatan - $totalBiaya;
 
-            $pdf = PDF::loadView('report.labarugi', [
+            $labaRugiBersih = $totalPendapatan - $totalBiaya;
+            // da($labaRugiBersih);
+            if($n == 1){
+                return $labaRugiBersih;
+            }
+
+            // da($data);
+            if(!$data){
+                echo "<script>alert('Oops! Data tidak ditemukan'); window.close();</script>";
+                return;
+            }
+
+            return view('report.labarugi', [
                 'data' => $data,
                 'tahunSebelumnya' => $tahunSebelumnya,
                 'kategori' => $kategori,
                 'labaRugiBersih' => $labaRugiBersih,
-                'ttd1' => $ttd1,
-                'ttd2' => $ttd2,
+                'paged' => $paged,
+                'start' => $start,
+                'end'   => $end,
             ]);
-            return $pdf->download('labarugi_' . Carbon::now()->format('YmdHis') . '.pdf');
+            // $pdf = PDF::loadView('report.labarugi', [
+            //     'data' => $data,
+            //     'tahunSebelumnya' => $tahunSebelumnya,
+            //     'kategori' => $kategori,
+            //     'labaRugiBersih' => $labaRugiBersih,
+            //     'ttd1' => $ttd1,
+            //     'ttd2' => $ttd2,
+            //     'start' => $start,
+            //     'end'   => $end,
+            // ]);
+            // return $pdf->download('labarugi_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
@@ -341,96 +580,64 @@ class ReportController extends Controller
             $tahunSebelumnya = date('Y') - 1;
             $tahunSekarang = date('Y');
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
-    
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
+
             $jurnalDulu = Jurnal::whereNull('is_deleted')
-                            ->with('details')
+                            ->with(['details' => function($query) use ($start_date, $end_date) {
+                                $query->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+                            }])
                             ->whereYear('jurnal_tgl', $tahunSebelumnya)
                             ->where('created_by', auth()->user()->id)->get();
             $jurnalSekarang = Jurnal::whereNull('is_deleted')
-                            ->with('details')
-                            ->whereBetween('jurnal_tgl', [$start_date, $end_date])
+                            ->with(['details' => function($query) use ($start_date, $end_date) {
+                                $query->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+                            }])
+                            ->whereYear('jurnal_tgl', $tahunSekarang)
                             ->where('created_by', auth()->user()->id)->get();
-            $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted')->get();
-    
-            if($jurnalDulu->isEmpty() && $jurnalSekarang->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
-            }
-    
-            $data = [];
-    
-            $totalsDulu = $this->calculateTotals($jurnalDulu, $coa);
-            $totalsSekarang = $this->calculateTotals($jurnalSekarang, $coa);
-            $totalsDulu['tahun'] = $tahunSebelumnya;
-            $totalsSekarang['tahun'] = $tahunSekarang;
-    
-            if($jurnalDulu->count() > 0){
-                $labaKotorDulu = $totalsDulu['pendapatan'] - $totalsDulu['hpp'];
-                $labaBersihDulu = $labaKotorDulu - $totalsDulu['beban'];
-    
-                $data[$tahunSebelumnya] = [
-                    $totalsDulu['namaAkun'] => $totalsDulu['modal'],
-                    'Saldo Laba Ditahan' => $labaBersihDulu,
-                    'Saldo Tahun Berjalan' => $labaBersihDulu,
-                ];
-            } else {
-                $totalsDulu = [
-                    'pendapatan' => 0,
-                    'hpp' => 0,
-                    'beban' => 0,
-                    'modal' => 0,
-                    'namaAkun' => $totalsSekarang['namaAkun']
-                ];
-    
-                $labaBersihDulu = 0;
-    
-                $data[$tahunSebelumnya] = [
-                    $totalsDulu['namaAkun'] => $totalsDulu['modal'],
-                    'Saldo Tahun Berjalan' => $labaBersihDulu,
-                ];
-            }
-    
-            if($jurnalSekarang->count() > 0){
-                $labaKotorSekarang = $totalsSekarang['pendapatan'] - $totalsSekarang['hpp'];
-                $labaBersihSekarang = $labaKotorSekarang - $totalsSekarang['beban'];
-    
-                $data[0] = [
-                    $totalsSekarang['namaAkun'] => $totalsSekarang['modal'] - $totalsDulu['modal'],
-                    'Saldo Tahun Berjalan' => $labaBersihSekarang - $labaBersihDulu,
-                ];
-    
-                $data[$tahunSekarang] = [
-                    $totalsSekarang['namaAkun'] => $totalsSekarang['modal'],
-                    'Saldo Tahun Berjalan' => $labaBersihSekarang,
-                ];
 
-                if ($jurnalDulu->count() > 0) {
-                    $data[$tahunSekarang]['Saldo Laba Ditahan'] = $labaBersihSekarang;
-                }
-    
-    
-            } else {
-                $data['Penambahan / (Pengurangan)'] = [
-                    $totalsDulu['namaAkun'] => $totalsDulu['modal'],
-                    'Saldo Tahun Berjalan' => $labaBersihDulu,
-                ];
-    
-                unset($data[$tahunSebelumnya]['Saldo Laba Ditahan']);
-                $data[$tahunSekarang] = [
-                    $totalsDulu['namaAkun'] => 0,
-                    'Saldo Tahun Berjalan' => 0,
-                ];
+            if($jurnalDulu->isEmpty() && $jurnalSekarang->isEmpty()){
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
-            // da($data[$tahunSekarang][$totalsSekarang['namaAkun']]);
-            // da($data);
-            $pdf = PDF::loadView('report.perubahanekuitas', [
-                'tahunSebelumnya' => $tahunSebelumnya,
-                'tahunSekarang' => $tahunSekarang,
-                'totalsDulu' => $totalsDulu,
-                'totalsSekarang' => $totalsSekarang,
-                'data' => $data,
+
+            $labaRugi = $this->labarugi($request, 1);
+            $neraca = $this->neracaFunc($end_date, $labaRugi);
+
+            $result = [];
+            foreach ($neraca as $year => $values) {
+                foreach (new RecursiveIteratorIterator(new RecursiveArrayIterator($values)) as $key => $value) {
+                    if ($key === 'Modal') {
+                        $result[$year][$key] = $value;
+                    }elseif($key == 'Saldo Tahun Berjalan'){
+                        $result[$year]['Saldo Tahun Berjalan'] = $value;
+                    }elseif (strpos($key, 'Aset Neto') !== false) {
+                        $result[$year][$key] = $value;
+                    }
+                }
+                if ($year === 0 && isset($result[date('Y')]['Saldo Tahun Berjalan'])) {
+                    $result[0]['Saldo Tahun Berjalan'] = $result[date('Y')]['Saldo Tahun Berjalan'];
+                }
+            }
+
+            $result = [
+                date('Y') => [
+                    'Modal' => $result[date('Y')]['Modal'],
+                    'Saldo Tahun Berjalan' => $result[date('Y')]['Saldo Tahun Berjalan'],
+                ],
+            ];
+
+            return view('report.perubahanekuitas', [
+                'data' => $result,
+                'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y'),
             ]);
-            return $pdf->download('perubahanekuitas_' . Carbon::now()->format('YmdHis') . '.pdf');
+
+            // $pdf = PDF::loadView('report.perubahanekuitas', [
+            //     'data' => $result,
+            //     'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+            //     'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y'),
+            // ]);
+            // return $pdf->download('perubahanekuitas_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
@@ -471,79 +678,347 @@ class ReportController extends Controller
         ];
     }
 
-    public function neraca(Request $request){
-        if($request->isMethod('post')){
-            if($request->checkbox){
-                return $this->neracaPerbandingan($request);
-            }
+    function processLevel($coa, $labaRugi)
+    {
+        $result = [];
+        $sisa = [];
+            foreach ($coa as $lv1) {
+                $lv1Result = [];
+                foreach ($lv1['child'] as $lv2) {
+                    $lv2Result = [];
+                    foreach ($lv2['child'] as $lv3) {
+                        $lv3Result = [];
+                        foreach ($lv3['child'] as $lv4) {
+                            $lv4Sum = 0;
+                            $sumSisa = 0;
+                            foreach ($lv4['child'] as $lv5) {
+                                if($lv5['saldo_awal_debit'] != '0' || $lv5['saldo_awal_credit'] != '0'){
+                                    if($lv5['saldo_normal'] == 'debit' || $lv5['saldo_normal'] == 'db'){
+                                        $balance = $lv5['saldo_awal_debit'];
+                                        // $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_debit'] - $lv5['saldo_awal_credit'];
+                                    }else{
+                                        $balance = $lv5['saldo_awal_credit'];
+                                        // $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_credit'] - $lv5['saldo_awal_debit'];
+                                    }
 
-            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
-            $ttd1 = $request->input('text_input1');
-            $ttd2 = $request->input('text_input2');
+                                    if($lv5['saldo_awal_debit'] != '0' && $lv5['saldo_normal'] != 'debit'){
+                                        $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_debit'] - $lv5['saldo_awal_credit'];
+                                    }
 
-            $jurnal = Jurnal::whereNull('is_deleted')
-                            ->with(['details' => function($query) {
-                                $query->where(function($query) {
-                                    $query->where('coa_akun', 'like', '1%')
-                                          ->orWhere('coa_akun', 'like', '2%')
-                                          ->orWhere('coa_akun', 'like', '3%');
-                                });
-                            }])
-                            ->where('created_by', auth()->user()->id)
-                            ->where('jurnal_tgl', '<=', $end_date)
-                            ->get();
-            $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
-
-            if($jurnal->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
-            }
-
-            $data = $this->neracaFunction($jurnal, $coa);
-
-            // da($data);
-
-            $totals = [];
-            foreach ($data as $category => $subcategories) {
-                $categoryTotal = 0;
-                foreach ($subcategories as $subcategory => $items) {
-                    $subcategoryTotal = array_sum($items);
-                    $totals[$category][$subcategory] = $subcategoryTotal;
-                    $categoryTotal += $subcategoryTotal;
+                                    $lv4Sum += $balance;
+                                    $sumSisa += @$sisa[$lv5['nomor_akun']];
+                                }else{
+                                    if($lv5['saldo_normal'] == 'debit' || $lv5['saldo_normal'] == 'db'){
+                                        $balance = $lv5['saldo_awal_debit'];
+                                    }else{
+                                        $balance = $lv5['saldo_awal_credit'];
+                                    }
+                                    $lv4Sum += $balance;
+                                }
+                            }
+                            if ($lv4Sum != 0 || $sumSisa != 0) {
+                                $lv3Result[$lv4['nama_akun']] = $lv4Sum;
+                                // $lv3Result['Sisa'] = $sumSisa;
+                            }
+                        }
+                        if (!empty($lv3Result)) {
+                            $sus = array_sum(array_values($lv3Result));
+                            $lv2Result[$lv3['nama_akun']] = $sus;
+                            if($lv1['nomor_akun'] == 3 || $lv1['nomor_akun'] == '3'){
+                                $lv2Result['Saldo Tahun Berjalan'] = $labaRugi;
+                            }
+                        }
+                    }
+                    if (!empty($lv2Result)) {
+                        $lv1Result[$lv2['nama_akun']] = $lv2Result;
+                    }
                 }
-                $totals[$category]['Total'] = $categoryTotal;
+                if (!empty($lv1Result)) {
+                    if($lv1['golongan'] == 'Ekuitas' || $lv1['golongan'] == 'Liabilitas'){
+                        if (isset($result['Liabilitas dan Ekuitas'])) {
+                            $result['Liabilitas dan Ekuitas'] = array_merge_recursive($result['Liabilitas dan Ekuitas'], $lv1Result);
+                        } else {
+                            $result['Liabilitas dan Ekuitas'] = $lv1Result;
+                        }
+                    }else{
+                        $result[$lv1['nama_akun']] = $lv1Result;
+                    }
+
+                    if(@$sisa){
+                        $getSisa = array_keys($sisa);
+                        $nom = substr($getSisa[0], 0, 5);
+                        if($lv4['nomor_akun'] == $nom){
+                            if($lv1['golongan'] == 'Ekuitas' || $lv1['golongan'] == 'Liabilitas'){
+                                $result['Liabilitas dan Ekuitas'][$lv1['nama_akun']]['sisa'] = @$sisa[$getSisa[0]];
+                            }
+                        }
+                    }
+                }
+            }
+
+            // da($result);
+
+        return $result;
+    }
+
+    public function neracaFunc($tanggal, $labaRugi = null){
+        $jurnal = JurnalDetail::where('created_by', auth()->user()->id)
+            ->where(function($query) {
+                $query->where('coa_akun', 'like', '1%')
+                    ->orWhere('coa_akun', 'like', '2%')
+                    ->orWhere('coa_akun', 'like', '3%');
+            })->where('tanggal_bukti', '<=', $tanggal)->orderBy('coa_akun', 'asc')->get()->keyBy('coa_akun');
+
+        if($jurnal->isEmpty()){
+            return $data = [];
+        }
+
+        $coa = Coa::whereNull('is_deleted')
+            ->where(function($query) {
+                $query->where('nomor_akun', 'like', '1%')
+                    ->orWhere('nomor_akun', 'like', '2%')
+                    ->orWhere('nomor_akun', 'like', '3%');
+            })
+            ->where('created_by', auth()->user()->id)
+            ->orderBy('nomor_akun', 'asc')
+            ->get()
+            ->keyBy('nomor_akun');
+
+        if(!$jurnal->isEmpty() && !$coa->isEmpty()) {
+            $data = [];
+            foreach($jurnal as $row) {
+                $nomorAkun = $row->coa_akun;
+                $parent = $coa->get(substr($nomorAkun, 0, 1));
+                $child = $coa->get(substr($nomorAkun, 0, 2));
+                $subChild = $coa->get(substr($nomorAkun, 0, 3));
+                $grandChild = $coa->get(substr($nomorAkun, 0, 5));
+                $detail = $coa->get(substr($nomorAkun, 0, 8));
+
+                $jurnalTotals = DB::table('jurnal_details')
+                ->select(DB::raw('SUM(debit) as debit, SUM(credit) as credit'))
+                ->where('created_by', auth()->user()->id)
+                ->where('coa_akun', 'like', substr($nomorAkun, 0, 4).'%')
+                ->limit(1)
+                ->first();
+
+                $coasTotals = DB::table('coas')
+                    ->select(
+                        DB::raw('SUM(saldo_awal_debit) AS saldo_awal_debit'),
+                        DB::raw('SUM(saldo_awal_credit) AS saldo_awal_credit')
+                    )
+                    ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
+                    ->where('created_by', auth()->user()->id)
+                    ->first();
+
+
+                if($nomorAkun === $detail->nomor_akun) {
+                    $saldo = 0;
+                    $saldoAwal = 0;
+                    if(in_array($detail->saldo_normal, ['debit', 'd', 'db'])) {
+                        $saldo = $coasTotals->saldo_awal_debit + $jurnalTotals->debit - $jurnalTotals->credit;
+                        $saldoAwal = $coasTotals->saldo_awal_debit;
+                    } else {
+                        $saldo = $coasTotals->saldo_awal_credit + $jurnalTotals->credit - $jurnalTotals->debit;
+                        $saldoAwal = $coasTotals->saldo_awal_credit;
+                    }
+                    $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldo;
+                    $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldoAwal;
+                }
             }
 
             // da($data);
 
-            $pdf = PDF::loadView('report.neraca', [
+            foreach($coa as $nomorAkun => $coaDetail) {
+                if ($coaDetail->saldo_awal_debit > 0 || $coaDetail->saldo_awal_credit > 0) {
+                    $parent = $coa->get(substr($nomorAkun, 0, 1));
+                    $child = $coa->get(substr($nomorAkun, 0, 2));
+                    $subChild = $coa->get(substr($nomorAkun, 0, 3));
+
+                    $coasTotals = DB::table('coas')
+                        ->select(
+                            DB::raw('SUM(saldo_awal_debit) AS saldo_awal_debit'),
+                            DB::raw('SUM(saldo_awal_credit) AS saldo_awal_credit')
+                        )
+                        ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
+                        ->where('created_by', auth()->user()->id)
+                        ->first();
+
+                    if($coaDetail->saldo_awal_debit != 0 || $coaDetail->saldo_awal_credit != 0){
+                        if($coaDetail->saldo_normal == 'debit' && $coaDetail->saldo_awal_credit != 0){
+                            $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_debit ?: $coaDetail->saldo_awal_credit;
+                        }
+
+                        if($coaDetail->saldo_normal == 'credit' && $coaDetail->saldo_awal_debit != 0){
+                            $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_credit ?: $coaDetail->saldo_awal_debit;
+                        }
+                    }
+
+                    if (!isset($data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun]) || $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] == 0) {
+                        $saldo = 0;
+                        $saldoAwal = 0;
+                        if(in_array($coaDetail->saldo_normal, ['debit', 'd', 'db'])) {
+                            $saldo = $coasTotals->saldo_awal_debit - $coasTotals->saldo_awal_credit;
+                            $saldoAwal = $coasTotals->saldo_awal_debit;
+                        } else {
+                            $saldo = $coasTotals->saldo_awal_credit - $coasTotals->saldo_awal_debit;
+                            $saldoAwal = $coasTotals->saldo_awal_credit;
+                        }
+                        $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldo;
+                        $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldoAwal;
+                    }
+                    if(@$parent['golongan'] == 'Liabilitas' || @$parent['golongan'] == 'Ekuitas'){
+                        $data[date('Y')]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $data[date('Y')][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] ?: $saldo;
+                        $data[date('Y') - 1]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $data[date('Y') - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] ?: $saldo;
+                    }
+
+                    if($subChild->nomor_akun == '311'){
+                        $data[date('Y')]['Liabilitas dan Ekuitas'][$child->nama_akun]['Saldo Tahun Berjalan'] = $labaRugi;
+                        $data[date('Y') - 1]['Liabilitas dan Ekuitas'][$child->nama_akun]['Saldo Tahun Berjalan'] = 0;
+                    }
+                }
+            }
+
+            foreach($data as $tahun => $rows) {
+                foreach($rows as $rowKey => $row) {
+                    if (isset($rows['Liabilitas dan Ekuitas']) && $rows['Liabilitas dan Ekuitas']) {
+                        // aa
+                    } else {
+                        // da($data[$tahun]);
+                        if (isset($data[date('Y')]['2']) && isset($data[date('Y')]['3'])) {
+                            $data[date('Y')]['Liabilitas dan Ekuitas'] = $data[date('Y')]['2'] + $data[date('Y')]['3'];
+                            $is = array_keys($data[date('Y')]['3']);
+                            if (!empty($is)) {
+                                $data[date('Y')]['Liabilitas dan Ekuitas'][$is[0]]['Saldo Tahun Berjalan'] = $labaRugi;
+                            }
+                        }
+                    }
+
+                    if(in_array($rowKey, ['2', '3', 2, 3], true)){
+                        unset($data[$tahun][$rowKey]);
+                    }
+                }
+            }
+        }
+
+
+
+        // da($data);
+        foreach($data as $key => $value){
+            foreach($value as $key2 => $value2){
+                foreach($value2 as $key3 => $value3){
+                    if (is_array($value3)) {
+                        ksort($value3);
+                        $data[$key][$key2][$key3] = $value3;
+                        foreach($value3 as $key4 => $value4){
+                            $coa = Coa::where('nomor_akun', $key4)->where('created_by', auth()->user()->id)->first();
+                            if($coa){
+                                $data[$key][$key2][$key3][@$coa->nama_akun] = $value4;
+                                unset($data[$key][$key2][$key3][$key4]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // da($data);
+
+        return $data;
+    }
+
+    public function neraca(Request $request, $n = null){
+        if($request->isMethod('post')){
+            // da($request->all());
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
+            // $ttd1 = $request->input('dibuat');
+            // $alamat = $request->input('alamat');
+            // $tanggal = $request->input('tanggal');
+            // $jabatan = $request->input('jabatan');
+            // $jumlahLaman = $request->input('jumlahLaman');
+            $paged = [
+                'dibuat' => $request->input('dibuat'),
+                'alamat' => $request->input('alamat'),
+                'tanggal' => $request->input('tanggal'),
+                'jabatan' => $request->input('jabatan'),
+                'jumlahLaman' => (int) $request->input('jumlahLaman'),
+            ];
+            $labaRugi = $this->labaRugi($request, 1);
+            $data = $this->neracaFunc($end_date, $labaRugi);
+            if($n == true){
+                unset($data[auth()->user()->periode - 1]);
+            }
+            // da($data);
+            if(!$data){
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
+            }
+            if(isset($data[0])){
+                unset($data[0]);
+            }
+
+
+            return view('report.neraca', [
                 'data' => $data,
-                'totals' => $totals,
-                'ttd1' => $ttd1,
-                'ttd2' => $ttd2,
+                'label' => $n == true ? 'Neraca' : 'Neraca Perbandingan',
+                'periode' => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
+                'paged' => $paged,
             ]);
-            return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
+            // $pdf = PDF::loadView('report.neraca', [
+            //     'data' => $data,
+            //     'periode' => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
+            //     'ttd1' => $ttd1,
+            //     'ttd2' => $ttd2,
+            // ]);
+            // return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
     }
 
+    function sortArrayByKey($array) {
+        foreach ($array as &$subArray) {
+            if (is_array($subArray)) {
+                // Check if it's an associative array that needs sorting
+                if (array_keys($subArray) !== range(0, count($subArray) - 1)) {
+                    uksort($subArray, function($a, $b) {
+                        $aNum = intval(explode(' - ', $a)[0]);
+                        $bNum = intval(explode(' - ', $b)[0]);
+                        return $aNum <=> $bNum;
+                    });
+                }
+                // Recursively sort the subarray
+                $subArray = $this->sortArrayByKey($subArray);
+            }
+        }
+        return $array;
+    }
+
+
     public function neracaSaldo(Request $request){
 
         if($request->isMethod('post')){
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
+            // da($request->all());
             $jurnal = Jurnal::whereNull('is_deleted')
-                            ->with('details')
+                            ->with(['details' => function($query) use ($start_date, $end_date) {
+                                $query->whereBetween('tanggal_bukti', [$start_date, $end_date])
+                                      ->orderBy('coa_akun', 'asc');
+                            }])
+                            ->whereYear('jurnal_tgl', date('Y'))
                             ->where('created_by', auth()->user()->id)
-                            ->whereBetween('jurnal_tgl', [$start_date, $end_date])
                             ->get();
-            $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
-    
+
+            $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted')->orderBy('nomor_akun', 'asc')->get()->keyBy('nomor_akun');
+
             if($jurnal->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
             }
-    
+
+            // da($jurnal);
+
             $data = [];
             foreach ($jurnal as $item) {
                 foreach ($item->details as $detail) {
@@ -551,56 +1026,98 @@ class ReportController extends Controller
                     $nokun3 = substr($detail->coa_akun, 0, 3);
                     $nokun1 = substr($detail->coa_akun, 0, 1);
 
-                    $akun5 = Coa::firstWhere('nomor_akun', $detail->coa_akun);
-                    $akun3 = Coa::firstWhere('nomor_akun', $nokun3);
-                    $akun2 = Coa::firstWhere('nomor_akun', $nokun2);
-                    $akun1 = Coa::firstWhere('nomor_akun', $nokun1)->first();
+                    $akun3 = $coa->get($nokun3);
+                    $akun2 = $coa->get($nokun2);
+                    $akun1 = $coa->get($nokun1);
+                    $xCoa = $coa->get($detail->coa_akun);
 
-                    $xCoa = Coa::where('nomor_akun', $detail->coa_akun)->where('created_by', auth()->user()->id)->whereNull('is_deleted')->first();
-
-                    if($xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit'){
-                        $saldoAwal = $xCoa->saldo_awal_debit;
-                    }else{
-                        $saldoAwal = $xCoa->saldo_awal_credit;
+                    if(!$akun3 || !$akun2 || !$akun1){
+                        $missingNo = !$akun3 ? $nokun3 : (!$akun2 ? $nokun2 : $nokun1);
+                        // da($missingNo);
+                        Alert::error('Oops!', 'Data CoA Nomor Akun: '.$missingNo.' tidak ditemukan');
+                        return redirect()->back();
                     }
-                    
-                    if (!isset($data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nomor_akun.' - '.$akun5->nama_akun])) {
-                        $data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nomor_akun.' - '.$akun5->nama_akun] = $saldoAwal;
+
+                    $saldoAwal = $xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit' ? $xCoa->saldo_awal_debit : $xCoa->saldo_awal_credit;
+
+                    $coaKey = $xCoa->nomor_akun.' - '.$xCoa->nama_akun;
+                    if (!isset($data[$akun3->nama_akun][$akun2->nama_akun][$coaKey])) {
+                        $data[$akun3->nama_akun][$akun2->nama_akun][$coaKey] = [
+                            'debit' => $xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit' ? $saldoAwal : 0,
+                            'kredit' => $xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit' ? 0 : $saldoAwal
+                        ];
                         $data[$akun3->nama_akun]['Total'] = 0;
                     }
-    
-                    if($akun1->saldo_normal == 'db' || $akun1->saldo_normal == 'debit'){
-                        $data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nomor_akun.' - '.$akun5->nama_akun] += $detail->debit - $detail->credit;
-                    }else{
-                        $data[$akun3->nama_akun][$akun2->nama_akun][$akun5->nomor_akun.' - '.$akun5->nama_akun] += $detail->credit - $detail->debit;
+
+                    $amountChange = $xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit' ? $detail->debit - $detail->credit : $detail->credit - $detail->debit;
+                    $data[$akun3->nama_akun][$akun2->nama_akun][$coaKey][$xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit' ? 'debit' : 'kredit'] += $amountChange;
+
+                    foreach ($akun2->child as $child) {
+                        if($child->nomor_akun !== $xCoa->nomor_akun){
+                            $childKey = $child->nomor_akun.' - '.$child->nama_akun;
+                            if (!isset($data[$akun3->nama_akun][$akun2->nama_akun][$childKey])) {
+                                $data[$akun3->nama_akun][$akun2->nama_akun][$childKey] = [
+                                    'debit' => $child->saldo_normal == 'db' || $child->saldo_normal == 'debit' ? $child->saldo_awal_debit : 0,
+                                    'kredit' => $child->saldo_normal == 'db' || $child->saldo_normal == 'debit' ? 0 : $child->saldo_awal_credit
+                                ];
+                            }
+                        }
                     }
                 }
             }
 
-            // da($data);
-    
-            foreach ($data as $akun3 => &$subcategories) {
+            $data = $this->sortArrayByKey($data);
+            $parentNo = 1;
+            $newData = [];
+            foreach ($data as $akun1 => &$subcategories) {
+                $newAkun1 = $parentNo . '.' . $akun1;
+                $childNo = 1;
+                $parentTotalDebit = 0;
+                $parentTotalKredit = 0;
                 foreach ($subcategories as $akun2 => &$accounts) {
                     if ($akun2 !== 'Total') {
-                        $subTotal = 0;
-                        foreach ($accounts as $akun5 => $balance) {
-                            if ($akun5 !== 'Total') {
-                                $subTotal += $balance;
+                        $newAkun2 = $parentNo . '.' . $childNo . '.' . $akun2;
+                        $subTotalDebit = 0;
+                        $subTotalKredit = 0;
+                        foreach ($accounts as $xCoa => $balance) {
+                            if ($xCoa !== 'Total') {
+                                $subTotalDebit += $balance['debit'];
+                                $subTotalKredit += $balance['kredit'];
                             }
                         }
-                        $accounts['Total'] = $subTotal;
-                        $subcategories['Total'] = isset($subcategories['Total']) ? $subcategories['Total'] + $subTotal : $subTotal;
+                        $accounts['Total'] = [
+                            'debit' => $subTotalDebit,
+                            'kredit' => $subTotalKredit
+                        ];
+                        $newData[$newAkun1][$newAkun2] = $accounts;
+                        $parentTotalDebit += $subTotalDebit;
+                        $parentTotalKredit += $subTotalKredit;
+                        $childNo++;
                     }
                 }
-                    }
-    
-                    
-            // dd($data);
-    
-            $pdf = PDF::loadView('report.neraca_saldo', [
-                'data' => $data,
+                $newData[$newAkun1]['Total'] = [
+                    'debit' => $parentTotalDebit,
+                    'kredit' => $parentTotalKredit
+                ];
+                $parentNo++;
+            }
+
+            // da($data);
+
+            return view('report.neraca_saldo', [
+                'data' => $newData,
+                'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y')
             ]);
-            return $pdf->download('neraca_saldo_' . Carbon::now()->format('YmdHis') . '.pdf');
+
+            // $pdf = PDF::loadView('report.neraca_saldo', [
+            //     'data' => $newData,
+            //     'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+            //     'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y')
+            // ]);
+            // $pdf->setOption('isHtml5ParserEnabled', true);
+            // $pdf->setOption('isRemoteEnabled', true);
+            // return $pdf->download('neraca_saldo_' . Carbon::now()->format('YmdHis') . '.pdf');
         }
 
         return view('report.views.template');
@@ -621,74 +1138,7 @@ class ReportController extends Controller
     }
 
     public function neracaPerbandingan(Request $request){
-        if($request->isMethod('post')){
-            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->format('Y-m-d H:i:s');
-    
-            $tahunSebelumnya = date('Y') - 1;
-            $tahunSekarang = date('Y');
-            $jurnalTahunSebelumnya = Jurnal::whereNull('is_deleted')
-                                            ->with(['details' => function($query) {
-                                                $query->where(function($query) {
-                                                    $query->where('coa_akun', 'like', '1%')
-                                                        ->orWhere('coa_akun', 'like', '2%')
-                                                        ->orWhere('coa_akun', 'like', '3%');
-                                                });
-                                            }])
-                                           ->where('created_by', auth()->user()->id)
-                                           ->whereYear('jurnal_tgl', $tahunSebelumnya)
-                                           ->get();
-            $jurnalTahunSekarang = Jurnal::whereNull('is_deleted')
-                                        ->with(['details' => function($query) {
-                                            $query->where(function($query) {
-                                                $query->where('coa_akun', 'like', '1%')
-                                                    ->orWhere('coa_akun', 'like', '2%')
-                                                    ->orWhere('coa_akun', 'like', '3%');
-                                            });
-                                        }])
-                                         ->where('created_by', auth()->user()->id)
-                                         ->whereBetween('jurnal_tgl', [$start_date, $end_date])
-                                         ->get();
-            $coa = Coa::where('created_by', auth()->user()->id)->whereNull('is_deleted');
-    
-            if($jurnalTahunSekarang->isEmpty()){
-                return redirect()->back()->with('message', 'Data tidak ditemukan')->with('color', 'red');
-            }
-    
-            $dataTahunSebelumnya = $this->neracaFunction($jurnalTahunSebelumnya, $coa);
-            $dataTahunSekarang = $this->neracaFunction($jurnalTahunSekarang, $coa);
-    
-            $dataDahulu = [];
-    
-            $data = [
-                $tahunSekarang => $dataTahunSekarang
-            ];
-    
-            if($jurnalTahunSebelumnya->isEmpty()){
-                $dataDahulu = array_map(function($section) {
-                    return array_map(function($subSection) {
-                        return array_map(function($item) {
-                            return 0;
-                        }, $subSection);
-                    }, $section);
-                }, $dataTahunSekarang);
-    
-                $data[$tahunSebelumnya] = $dataDahulu;
-            }else{
-                $data[$tahunSebelumnya] = $dataTahunSebelumnya;
-            }
-    
-            $data = $this->totalNeraca($data);
-    
-            $pdf = PDF::loadView('report.neraca_perbandingan', [
-                'data' => $data,
-                'tahunSebelumnya' => $tahunSebelumnya,
-                'tahunSekarang' => $tahunSekarang
-            ]);
-            return $pdf->download('neraca_perbandingan_' . Carbon::now()->format('YmdHis') . '.pdf');
-        }
-
-        return view('report.views.template');
+        return $this->neraca($request, true);
     }
 
     private function totalNeraca($data) {
@@ -721,7 +1171,8 @@ class ReportController extends Controller
             foreach ($item->details as $detail) {
                 $nomorAkun = substr($detail->coa_akun, 0, 1);
                 $saldoAwal = Coa::where('nomor_akun', $detail->coa_akun)->where('created_by', auth()->user()->id)->whereNull('is_deleted')->first();
-                if($saldoAwal->saldo_normal == 'db' || $saldoAwal->saldo_normal == 'debit'){
+                $saldoNormal = strtolower($saldoAwal->saldo_normal);
+                if($saldoNormal == 'db' || $saldoNormal == 'debit'){
                     $salwal = $saldoAwal->saldo_awal_debit;
                 }else{
                     $salwal = $saldoAwal->saldo_awal_credit;
@@ -739,8 +1190,10 @@ class ReportController extends Controller
                 }
             }
         }
+        // da($totalPendapatanDulu);
         $labaKotorDulu = $totalPendapatanDulu - $totalHPPDulu;
         $labaBersihDulu = $labaKotorDulu - $totalBebanDulu;
+        // da($labaBersihDulu);
 
 
         $data = [];
@@ -750,14 +1203,14 @@ class ReportController extends Controller
                 $pAkun = substr($detail->coa_akun, 0, 1);
                 $cAkun = substr($detail->coa_akun, 0, 2);
                 $scAkun = substr($detail->coa_akun, 0, 3);
-                
+
                 $parent = Coa::where('nomor_akun', $pAkun)->first();
                 $child = Coa::where('nomor_akun', $cAkun)->first();
                 $subChild = Coa::where('nomor_akun', $scAkun)->first();
 
                 $xCoa = Coa::where('nomor_akun', $detail->coa_akun)->where('created_by', auth()->user()->id)->whereNull('is_deleted')->first();
-
-                if($xCoa->saldo_normal == 'db' || $xCoa->saldo_normal == 'debit'){
+                $saldoNormal = strtolower($xCoa->saldo_normal);
+                if($saldoNormal == 'db' || $saldoNormal == 'debit'){
                     $saldoAwal = $xCoa->saldo_awal_debit;
                 }else{
                     $saldoAwal = $xCoa->saldo_awal_credit;
@@ -766,14 +1219,13 @@ class ReportController extends Controller
                 if (!isset($data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun])) {
                     $data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun] = $saldoAwal;
                 }
-                if($parent->saldo_normal == 'db' || $parent->saldo_normal == 'debit'){
+                if($saldoNormal == 'db' || $saldoNormal == 'debit'){
                     $data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun] += $detail->debit - $detail->credit;
                 }else{
                     $data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun] += $detail->credit - $detail->debit;
                 }
             }
         }
-
         // da($data);
 
         $data['Liabilitas dan Ekuitas'] = array_merge(
@@ -786,5 +1238,93 @@ class ReportController extends Controller
         $data['Liabilitas dan Ekuitas']['Ekuitas']['Saldo Tahun Berjalan'] = $labaBersihDulu;
 
         return $data;
+    }
+
+    public function mutasiSaldo(Request $request){
+        if($request->isMethod('post')){
+            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
+
+            $jurnal = JurnalDetail::where('created_by', auth()->user()->id)
+                            ->whereBetween('tanggal_bukti', [$start_date, $end_date])
+                            ->get();
+
+            $coa = Coa::where('created_by', auth()->user()->id)->where('level', 5)->whereNull('is_deleted')->orderBy('nomor_akun', 'asc')->get()->keyBy('nomor_akun');
+
+            if($jurnal->isEmpty()){
+                Alert::error('Oops!', 'Data tidak ditemukan');
+                return redirect()->back();
+            }
+
+            $data = [];
+
+            
+            // da($start_date);
+            foreach ($coa as $akun => $coaData) {
+                $saldoNormal = strtolower($coaData->saldo_normal);
+
+                if(Carbon::parse($request->input('start_date'))->format('d') != '01'){
+                    $awal_bulan = Carbon::parse($request->input('start_date'))->startOfMonth()->format('Y-m-d H:i:s');
+                    $saldoAwalDebit = JurnalDetail::where('created_by', auth()->user()->id)
+                                                ->where('coa_akun', $akun)
+                                                ->whereBetween('tanggal_bukti', [$awal_bulan, $start_date])
+                                                ->sum('debit');
+                    $saldoAwalKredit = JurnalDetail::where('created_by', auth()->user()->id)
+                                                ->where('coa_akun', $akun)
+                                                ->whereBetween('tanggal_bukti', [$awal_bulan, $start_date])
+                                                ->sum('credit');
+                }else{
+                    $saldoAwalDebit = 0;
+                    $saldoAwalKredit = 0;
+                }
+
+                $saldoAwalDebit = $coaData->saldo_awal_debit + $saldoAwalDebit ?? 0;
+                $saldoAwalKredit = $coaData->saldo_awal_credit + $saldoAwalKredit ?? 0;
+
+                $mutasiDebit = 0;
+                $mutasiKredit = 0;
+
+                $jurnalAkun = $jurnal->where('coa_akun', $akun);
+                if($jurnalAkun->isNotEmpty()){
+                    $mutasiDebit = $jurnalAkun->sum('debit');
+                    $mutasiKredit = $jurnalAkun->sum('credit');
+                }
+
+                if ($saldoNormal == 'db' || $saldoNormal == 'debit') {
+                    $saldoAkhirDebit = $saldoAwalDebit + $mutasiDebit - $mutasiKredit;
+                    $saldoAkhirKredit = 0;
+                } else {
+                    $saldoAkhirKredit = $saldoAwalKredit + $mutasiKredit - $mutasiDebit;
+                    $saldoAkhirDebit = 0;
+                }
+
+                // da($coaData);
+                $data[$coaData->golongan][$akun] = [
+                    'nama_akun' => $coaData->nama_akun,
+                    'saldo_awal' => [
+                        'debit' => $saldoAwalDebit,
+                        'credit' => $saldoAwalKredit
+                    ],
+                    'mutasi' => [
+                        'debit' => $mutasiDebit,
+                        'credit' => $mutasiKredit
+                    ],
+                    'saldo_akhir' => [
+                        'debit' => $saldoAkhirDebit,
+                        'credit' => $saldoAkhirKredit
+                    ]
+                ];
+            }
+
+            // da($data);
+
+            return view('report.mutasi_saldo', [
+                'data' => $data,
+                'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y')
+            ]);
+        }
+
+        return view('report.views.template');
     }
 }

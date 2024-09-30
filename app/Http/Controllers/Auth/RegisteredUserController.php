@@ -44,16 +44,17 @@ class RegisteredUserController extends Controller
 
         $roles = $user->count() == 0 ? 'superadmin' : 'user';
 
-        // da($request->all());
-
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'no_hp' => $request->no_hp,
-            'no_telp' => $request->no_telp,
-            'password' => Hash::make($request->password),
-            'roles' => $roles,
-            'company_name' => $request->company_name,
+            'name'          => $request->name,
+            'email'         => $request->email,
+            'no_hp'         => $request->no_hp,
+            'no_telp'       => $request->no_telp,
+            'periode'       => date('Y'),
+            'password'      => Hash::make($request->password),
+            'roles'         => $roles,
+            'company_name'  => $request->company_name,
+            'is_active'     => "1",
+            'profile'       => "trial",
         ]);
 
         if ($request->hasFile('image')) {
@@ -63,22 +64,13 @@ class RegisteredUserController extends Controller
             $tempPath = $lampiranFile->getPathName();
         
             try {
-                // Buat instance baru dari Imagick
                 $imagick = new Imagick($tempPath);
-        
-                // Atur kualitas kompresi (nilai antara 0 hingga 100, 75 adalah keseimbangan yang baik)
                 $imagick->setImageCompressionQuality(30);
-        
-                // Tentukan path untuk menyimpan gambar yang telah dikompresi
                 $compressedImagePath = storage_path('app/public/' . $filePath . '/' . $fileName);
-        
-                // Buat direktori jika belum ada
                 $directoryPath = storage_path('app/public/' . $filePath);
                 if (!file_exists($directoryPath)) {
                     mkdir($directoryPath, 0755, true);
                 }
-        
-                // Simpan gambar yang telah dikompresi
                 $imagick->writeImage($compressedImagePath);
         
                 // Hapus objek Imagick dari memori
@@ -96,8 +88,8 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
+        // Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect(route('login', absolute: true));
     }
 }

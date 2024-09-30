@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Alert;
+
 
 
 class ProfileController extends Controller
@@ -32,7 +34,6 @@ class ProfileController extends Controller
         $user = $request->user();
         $data = $request->all();
 
-        // dd($data);
         if($request->hasFile('company_logo')){
             $lampiranFile = $request->file('company_logo');
             $filePath = 'profiles/' . $user->company_name;
@@ -45,6 +46,7 @@ class ProfileController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'no_hp' => $data['no_hp'],
+            'periode' => $data['periode'],
             'no_telp' => $data['no_telp'],
             'company_name' => $data['company_name'],
             'company_logo' => $data['company_logo'] ?? $user->company_logo,
@@ -73,7 +75,8 @@ class ProfileController extends Controller
         //     $user->save();
         // }
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        Alert::success('Sukses!', 'Profile berhasil diperbarui.');
+        return redirect()->back();
     }
 
 

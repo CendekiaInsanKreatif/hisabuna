@@ -4,19 +4,19 @@
         <div class="flex space-x-2 items-end mb-4">
             <div class="flex flex-col">
                 <label for="tanggal_mulai" class="block text-sm font-medium text-gray-700">Tanggal Mulai:</label>
-                <input type="text" id="tanggal_mulai" name="tanggal_mulai" value="{{ $tanggalMulai }}" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <input type="text" id="tanggal_mulai" name="tanggal_mulai" value="{{ $tanggalMulai }}" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
             <div class="flex flex-col">
                 <label for="tanggal_selesai" class="block text-sm font-medium text-gray-700">Tanggal Selesai:</label>
-                <input type="text" id="tanggal_selesai" name="tanggal_selesai" value="{{ $tanggalSelesai }}" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <input type="text" id="tanggal_selesai" name="tanggal_selesai" value="{{ $tanggalSelesai }}" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
             <div class="flex flex-col">
-                <label for="akun" class="block text-sm font-medium text-gray-700">Akun:</label>
-                <input type="text" id="akun" name="akun" value="{{ $akun }}" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <label for="akun" class="block text-sm font-medium text-gray-700">Search Akun:</label>
+                <input type="text" id="akun" name="akun" value="{{ $akun }}" class="shadow-sm focus:ring-emerald-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
             </div>
             <div class="flex items-end">
                 <x-primary-button class="h-10">Tampilkan</x-primary-button>
-                <a href="#" id="download" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Download</a>
+                <a href="#" id="download" class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">View</a>
             </div>
         </div>
     </form>
@@ -27,7 +27,7 @@
             <h3 class="text-gray-700 mb-4">Periode {{ $tanggalMulai }} s/d {{ $tanggalSelesai }}</h3>
         </div>
         @foreach ($ledgers as $coaAkun => $transactions)
-            <h2 class="text-xl font-semibold text-gray-700">{{ $coaAkun }}</h2>
+            <h2 class="text-xl font-semibold text-gray-700">{{ formatNomorAkun($coaAkun) }}</h2>
             <table class="w-full divide-y divide-gray-200 mt-4 mb-6 table-fixed">
                 <thead class="bg-gray-50">
                     <tr>
@@ -41,11 +41,11 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach ($transactions as $transaction)
                         <tr>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ \Carbon\Carbon::parse($transaction->jurnal_tgl)->format('d/m/Y') }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/Y') }}</td>
                             <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 @php
                                     $keterangan = $transaction->keterangan;
-                                    $max_length = 50;
+                                    $max_length = 35;
                                     $output = '';
                                     while (strlen($keterangan) > $max_length) {
                                         $output .= substr($keterangan, 0, $max_length) . '<br>';
@@ -91,16 +91,28 @@
                 }
             });
 
-            document.getElementById('download').addEventListener('click', function(event) {
-                event.preventDefault();
-                var tanggalMulai = document.getElementById('tanggal_mulai').value;
-                var tanggalSelesai = document.getElementById('tanggal_selesai').value;
-                if (tanggalMulai) {
-                    var url = "{{ route('report.bukubesar.download') }}" + "?tanggal_mulai=" + tanggalMulai + "&tanggal_selesai=" + tanggalSelesai;
-                    window.location.href = url;
-                } else {
-                    alert("Harap pilih tanggal mulai.");
-                }
+            $('#download').click(function() {
+                $('<form>', {
+                    'method': 'POST',
+                    'action': '{{ route('report.bukubesar.download') }}',
+                    'target': '_blank'
+                }).append($('<input>', {
+                    'name': '_token',
+                    'value': '{{ csrf_token() }}',
+                    'type': 'hidden'
+                })).append($('<input>', {
+                    'name': 'tanggal_mulai',
+                    'value': $('#tanggal_mulai').val(),
+                    'type': 'hidden'
+                })).append($('<input>', {
+                    'name': 'tanggal_selesai',
+                    'value': $('#tanggal_selesai').val(),
+                    'type': 'hidden'
+                })).append($('<input>', {
+                    'name': 'akun',
+                    'value': $('#akun').val(),
+                    'type': 'hidden'
+                })).appendTo('body').submit();
             });
         });
         

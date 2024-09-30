@@ -3,7 +3,7 @@
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <main class="flex h-screen w-full flex-wrap">
-        <div class="flex-1 bg-emerald-500 flex items-center justify-center md:flex-1/2">
+        <div class="flex-1 bg-emerald-500 hidden md:flex items-center justify-center md:flex-1/2">
             <img class="max-w-md w-full" src="/images/login-artwork.png" alt="Login artwork Hisabuna" />
         </div>
         <div class="flex-1 flex flex-col bg-emerald-50 items-center justify-center md:flex-1/2">
@@ -31,16 +31,9 @@
 
                     <!-- Name -->
                     <div>
-                        <x-input-label for="name" :value="__('Name')" />
+                        <x-input-label for="name" :value="__('Nama')" />
                         <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
                         <x-input-error :messages="$errors->get('name')" class="mt-2" />
-                    </div>
-
-                    <!-- Logo --> 
-                    <div>
-                        <x-input-label for="profile_image" :value="__('Logo')" />
-                        <input type="file" name="image" id="profile_image" accept=".jpg,.png,.jpeg" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        {{-- <x-input-error :messages="$errors->get('image')" class="mt-2" /> --}}
                     </div>
 
                     <!-- Email Address -->
@@ -68,6 +61,13 @@
                         <x-input-error :messages="$errors->get('company_name')" class="mt-2" />
                     </div>
 
+                    <!-- Logo --> 
+                    <div class="mt-4">
+                        <x-input-label for="profile_image" :value="__('Company Logo')" />
+                        <input type="file" name="image" id="profile_image" accept=".jpg,.png,.jpeg" class="block w-full px-4 py-3 file:border file:border-gray-400 file:rounded-lg file:text-sm file:font-medium file:bg-white file:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <x-input-error :messages="$errors->get('image')" class="mt-2" />
+                    </div>
+
                     <!-- Password -->
                     <div class="mt-4">
                         <x-input-label for="password" :value="__('Password')" />
@@ -82,7 +82,7 @@
 
                     <!-- Confirm Password -->
                     <div class="mt-4">
-                        <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+                        <x-input-label for="password_confirmation" :value="__('Konfirmasi Password')" />
 
                         <x-text-input id="password_confirmation" class="block mt-1 w-full"
                                         type="password"
@@ -92,15 +92,14 @@
                     </div>
 
 
-                    <div class="flex items-center justify-end mt-4 space-x-4">
-                        <div class="flex items-center justify-end mt-4">
-                            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('login') }}">
-                                {{ __('Already registered?') }}
-                            </a>
+                    <div class="flex items-center justify-between mt-4">
+                        <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:focus:ring-offset-gray-800" href="{{ route('login') }}">
+                            {{ __('Already registered?') }}
+                        </a>
 
-                            <x-primary-button class="ms-4">
-                                {{ __('Register') }}
-                            </x-primary-button>
+                        <x-primary-button class="block mt-1 w-full text-center">
+                            {{ __('Register') }}
+                        </x-primary-button>
                     </div>
                 </form>
             </div>

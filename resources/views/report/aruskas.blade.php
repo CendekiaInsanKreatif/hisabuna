@@ -2,19 +2,31 @@
 <html>
 <head>
     <title>Arus Kas</title>
+    <script src="{{ asset('js/paged_old.js') }}"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
             font-size: 12px;
+            max-width: 800px;
+            margin: 0 auto;
         }
         table {
             width: 100%;
+            border-collapse: collapse;
         }
 
         th, td {
             padding: 2px;
             text-align: left;
+        }
+        h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            margin: 0;
+            padding: 0;
         }
         th {
             background-color: #f2f2f2;
@@ -27,71 +39,105 @@
             font-weight: bold;
         }
 
-        .footer.content {
-            display: flex;
-            align-items: center;
+        .new-header {
+            position: relative;
         }
 
         .company-logo {
-            width: 5rem;
-            height: 5rem;
-            margin-right: 8rem;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+
+        }
+
+        .company-info {
+            text-align: right;
         }
 
         .company-name {
-            font-size: 1.25rem; /* Ukuran font yang sesuai */
-            position: relative;
-            top: -1.5rem; /* Sesuaikan nilai ini sesuai kebutuhan */
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .report-title {
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .report-period {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        @page {
+            size: A4;
+            margin: 30px;
+            padding: 0;
+            @bottom-center {
+                content: counter(page);
+            }
         }
     </style>
 </head>
-<body>
-    <div class="footer content">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Company Logo" class="company-logo">
-        <span class="company-name">{{ auth()->user()->company_name }}</span>
-    </div>
-    <h2><u>Arus Kas</u></h2>
-    {{-- <h1>Arus Kas</h1> --}}
-    <p>Periode: {{ $start_date }} - {{ $end_date }}</p>
+<body onload="window.print()">
+    <header class="new-header">
+        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
+        <div class="header" style="text-align: center;">
+            <h1>{{ auth()->user()->company_name }}</h1>
+            <h2>Laporan Arus Kas</h2>
+            <h3>Periode {{ $start_date }} s/d {{ $end_date }}</h3>
+        </div>
+    </header>
+    <hr style="border: 2px solid black; width: 100%;">
 
     @php
         $totalKas = 0;
     @endphp
 
     @foreach ($data as $kategori => $item)
-        <div class="section-title">Arus Kas Dari {{ ucwords(str_replace('_', ' ', $kategori)) }}</div>
-        <table>
-            <tbody>
-                @foreach ($item['Detail'] as $nama_akun => $nilai)
-                    <tr>
-                        <td>
-                        @if($nilai > 0)
-                            Kenaikan (Penurunan)
-                        @else
-                            Penurunan (Kenaikan)
+        @if($kategori != 'Total')
+            <div class="section-title">Arus Kas Dari {{ ucwords(str_replace('_', ' ', $kategori)) }}</div>
+            <table>
+                <tbody>
+                    @foreach ($item as $nama_akun => $nilai)
+                        @if($nama_akun != 'Total')
+                            <tr>
+                                <td>&nbsp;&nbsp;&nbsp;
+                                @if($nilai > 0)
+                                    Kenaikan (Penurunan)
+                                @else
+                                    Penurunan (Kenaikan)
+                                @endif
+                                {{ $nama_akun }}
+                                </td>
+                                <td style="text-align: right;">{{ number_format($nilai, 0) }}</td>
+                            </tr>
                         @endif
-                        {{ $nama_akun }}
-                        </td>
-                        <td style="text-align: right;">{{ number_format($nilai, 0) }}</td>
-                    </tr>
-                @endforeach
-                <tr class="total-row">
-                    <td>Total {{ ucwords(str_replace('_', ' ', $kategori)) }}</td>
-                    <td style="text-align: right;">{{ number_format($item['Jumlah'], 0) }}</td>
-                </tr>
-            </tbody>
-        </table>
-        @php
-            $totalKas += $item['Jumlah'];
-        @endphp
+                    @endforeach
+                </tbody>
+            </table>
+            @php
+                $totalKas += $item['Total'];
+            @endphp
+        @endif
     @endforeach
 
-    <div class="section-title">Kas dan Setara Kas Akhir</div>
     <table>
         <tbody>
             <tr class="total-row">
-                <td>Total Kas dan Setara Kas Akhir</td>
-                <td style="text-align: right;">{{ number_format($totalKas, 0) }}</td>
+                <td>Kenaikan (Penurunan) Kas dan Setara Kas</td>
+                <td style="text-align: right;">{{ number_format($data['Total']['Kenaikan (Penurunan) Kas dan Setara Kas'], 0) }}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Kas dan Setara Kas Awal</td>
+                <td style="text-align: right;">{{ number_format($data['Total']['Kas dan Setara Kas Awal'], 0) }}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Kas dan Setara Kas Akhir</td>
+                <td style="text-align: right;">{{ number_format($data['Total']['Kas dan Setara Kas Akhir'], 0) }}</td>
             </tr>
         </tbody>
     </table>

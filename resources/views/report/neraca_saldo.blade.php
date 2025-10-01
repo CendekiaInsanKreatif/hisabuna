@@ -3,82 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ asset('images/icons/hisabuna-favicon.png') }}" type="image/x-icon">
     <title>Laporan Neraca Saldo</title>
     <script src="{{ asset('js/paged_old.js') }}"></script>
     <style>
-        body { 
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        table { 
+        @import url('{{ asset('css/rpt.css') }}');
+        table {
             width: 100%;
-            /* margin-top: 20px;  */
         }
-        th, td {
-            padding: 2px; 
-            text-align: left; 
-        }
-        th { 
-            background-color: #f2f2f2; 
-        }
-        h3 {
+        tr:last-child td {
             margin: 0;
             padding: 0;
-        }
-
-        h2 {
-            margin: 0;
-            padding: 0;
-        }
-        .indent { 
-            padding-left: 20px; 
-        }
-        .footer {
-            width: 100%;
-            text-align: center;
-            position: fixed;
-            bottom: 0;
-            font-size: 10px;
-        }
-        .footer .right::before {
-            float: left;
-            content: "Halaman " counter(page);
-        }
-        .footer .left {
-            float: right;
-        }
-
-        .new-header {
-            position: relative;
-        }
-
-        .company-logo {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 100px;
-
-        }
-
-        @page {
-            size: A4;
-            margin: 30px;
-            padding: 0;
-            @bottom-center {
-                content: counter(page);
-            }
         }
     </style>
+    <script>
+        setTimeout(() => {
+                window.print()
+            }, 5000);
+    </script>
 </head>
-<body onload="window.print()">
+<body>
     <header class="new-header">
         <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
             <h1>{{ auth()->user()->company_name }}</h1>
             <h2>Neraca Saldo</h2>
-            <h3>Per {{ \Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->format('d F Y') }}</h3>
+            <h3>Per {{ \Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->locale('id')->translatedFormat('d F Y') }}</h3>
         </div>
     </header>
     <hr style="border: 2px solid black; width: 100%;">
@@ -138,6 +88,19 @@
                 <td style="text-align: right; border-top: 2px solid black;"><strong>{{ number_format($totalKredit, 0, ',', '.') }}</strong></td>
             </tr>
         </tbody>
+    </table>
+    <table style="width: 100%; margin-top: 70px;">
+        <tr>
+            <td style="text-align: center; width: 100%;">
+                {{ $paged['alamat'] }}, {{ $paged['tanggal'] }}
+            </td>
+            <td style="text-align: center; width: 100%;">
+                {{ $paged['dibuat'] }}
+            </td>
+            <td style="text-align: center; width: 100%;">
+                {{ $paged['jabatan'] }}
+            </td>
+        </tr>
     </table>
 </body>
 </html>

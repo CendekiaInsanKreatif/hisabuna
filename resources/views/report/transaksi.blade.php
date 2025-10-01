@@ -100,7 +100,7 @@
     <table>
         <tbody>
             <tr>
-                <td style="border: 1px solid black; text-align: center; width: 60%;">Informasi Tambahan</td>
+                <td style="border: 1px solid black; text-align: center; width: 60%;">Keterangan Jurnal</td>
                 <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top;">Nomor Transaksi</td>
                 <td style="width: 20%; border: 1px solid black; text-align: center; vertical-align: top;">Jenis Jurnal</td>
             </tr>

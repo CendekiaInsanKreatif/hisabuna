@@ -4,130 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="icon" href="<?php echo e(asset('images/icons/hisabuna-favicon.png')); ?>" type="image/x-icon">
     <title>Laba Rugi</title>
-    <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
+    
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 10px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .report-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 3px;
-            /* background-color: #fff; */
-        }
-
-
-        table.main-data tr:nth-child(odd) {
-            /* background-color: #f4f4f5;? */
-        }
-
-        /* @media print {
-            body {
-                display: block;
-            }
-            footer {
-                page-break-after: always;
-            }
-        } */
-
-
-        table {
-            width: 100%;
-            /* border-collapse: collapse; */
-        }
-
-        table.main-data tr td {
-            padding: 2px 2px 2px 22px;
-        }
-
-        table.main-data tr:nth-last-child(2) td.data-num {
-            border-bottom: solid 1px black;
-        }
-
-        .data-desc {
-            width: 80%;
-        }
-
-        .data-num {
-            text-align: right;
-        }
-
-        h3 {
-            margin: 0;
-            padding: 0;
-        }
-
-        h2 {
-            margin: 0;
-            padding: 0;
-        }
-
-
-        .total {
-            font-size: 11px;
-        }
-
-        .new-header {
-            position: relative;
-        }
-
-        .company-logo {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 100px;
-
-        }
-
-        @page {
-            size: A4;
-            margin: 30px;
-            padding: 0;
-            @bottom-center {
-                content: counter(page);
-            }
-        }
+        @import url('<?php echo e(asset('css/rpt.css')); ?>');
     </style>
+    <script>
+        setTimeout(() => {
+                window.print()
+            }, 5000);
+    </script>
 </head>
-<body onload="window.print()">
+<body>
     <header class="new-header">
         <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
             <h1><?php echo e(auth()->user()->company_name); ?></h1>
             <h2>Laporan Laba Rugi</h2>
-            <h3>Periode <?php echo e($start); ?> - <?php echo e($end); ?></h3>
+            <h3>Periode <?php echo e(date('d/m/Y', strtotime($start))); ?> s/d <?php echo e(date('d/m/Y', strtotime($end))); ?></h3>
         </div>
     </header>
-    <hr style="border: 2px solid black; width: 100%;">
+    <hr style="border: 2px solid black; border-top: 2px solid black; border-bottom: 2px solid black; padding-right: 10px;">
     <div class="report-container">
+    <?php $__currentLoopData = $dataChunked; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pageIndex => $data): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    <div class="page-break">
         <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category => $details): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-        <table class="main-data">
-            <h3><?php echo e($category); ?></h3>
-            <?php $__currentLoopData = $details['Detail']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item => $amount): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <table class="main-data">
+                <h3><?php echo e($category); ?></h3>
+                <?php $__currentLoopData = $details['Detail']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item => $amount): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <tr>
+                        <td class="data-desc"><?php echo e($item); ?></td>
+                        <td class="data-num"><?php echo e(number_format($amount, 0, ',', '.')); ?></td>
+                    </tr>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 <tr>
-                    <td class="data-desc"><h3><?php echo e($item); ?></h3></td>
-                    <td class="data-num"><?php echo e(number_format($amount, 0, ',', '.')); ?></td>
+                    <td style="padding: 0px; margin: 0px; font-weight: bold; font-size: 14px;">Total <?php echo e($category); ?></td>
+                    <td class="data-num" style="text-align: right; font-weight: bold; font-size: 12px;"><?php echo e(number_format($details['Jumlah'], 0, ',', '.')); ?></td>
                 </tr>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            <tr class="total">
-                <td style="padding: 2px">Total <?php echo e($category); ?></td>
-                <td style="text-align: right;"><?php echo e(number_format($details['Jumlah'], 0, ',', '.')); ?></td>
-            </tr>
-        </table>
+                <div style="height: 5px;"></div>
+            </table>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-        <div style="padding: 2px;">
-            <table>
-                <tr class="total">
-                    <td><h2>Saldo Laba (Rugi) Tahun Berjalan</h2></td>
-                    <td style="text-align: right; border-top: 4px solid black; border-bottom: 4px solid black; width: 20%;"><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></td>
+        <div style="height: 5px;"></div>
+            <table class="main-data">
+                <tr>
+                    <td style="padding: 0px; margin: 0px; font-weight: bold; font-size: 16px;">Saldo Laba (Rugi) Tahun Berjalan</td>
+                    <td style="text-align: right; border-top: 2px solid black; width: 20%; font-weight: bold; font-size: 12px;">
+                        <h3><?php echo e(number_format($labaRugiBersih, 0, ',', '.')); ?></h3>
+                    </td>
                 </tr>
             </table>
-        </div>
         <footer>
             <table style="width: 100%; margin-top: 70px;">
                 <tr>
@@ -141,7 +67,9 @@
                 </tr>
             </table>
         </footer>
+        <!-- Footer Nomor Halaman -->
     </div>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 </body>
 </html>
 <?php /**PATH /var/www/hisabuna/backend/resources/views/report/labarugi.blade.php ENDPATH**/ ?>

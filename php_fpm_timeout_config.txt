@@ -1,0 +1,31 @@
+# Konfigurasi PHP-FPM untuk mengatasi timeout
+# Edit file /etc/php/8.3/fpm/pool.d/www.conf (untuk PHP 8.3.6)
+
+# Increase execution time
+php_admin_value[max_execution_time] = 300
+php_admin_value[max_input_time] = 300
+
+# Increase memory limit
+php_admin_value[memory_limit] = 512M
+
+# Increase upload limits
+php_admin_value[upload_max_filesize] = 50M
+php_admin_value[post_max_size] = 50M
+
+# Process management
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 35
+pm.max_requests = 500
+
+# Request timeout
+request_terminate_timeout = 300
+
+# Setelah edit, restart PHP-FPM:
+# sudo systemctl restart php8.3-fpm
+# sudo systemctl restart nginx
+
+# Verifikasi PHP-FPM berjalan:
+# sudo systemctl status php8.3-fpm

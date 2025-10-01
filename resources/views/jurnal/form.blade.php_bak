@@ -1,0 +1,1147 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-cloak>
+    @php
+        $field = ['no_urut_transaksi', 'jenis', 'keterangan'];
+        $fieldSelect = [
+                [
+                    'name' => 'nomor_akun',
+                    'type' => 'text',
+                    'label' => 'Nomor Akun',
+                    'required' => true,
+                ],
+                [
+                    'name' => 'nama_akun',
+                    'type' => 'text',
+                    'label' => 'Nama Akun',
+                    'required' => true,
+                ],
+            ];
+
+            $currentRoute = request()->route()->getName();
+    @endphp
+    <x-modal :field="$fieldSelect" :data="$coa" maxWidth="lg" focusable />
+
+    <!-- Error Alert -->
+    <div x-ref="alertError" class="hidden mb-6 bg-danger-50 border border-danger-200 text-danger-800 px-4 py-3 rounded-xl shadow-soft">
+        <div class="flex items-center gap-3">
+            <div class="flex-shrink-0">
+                <svg class="w-5 h-5 text-danger-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+            </div>
+            <div>
+                <h4 class="font-semibold">Terjadi Kesalahan!</h4>
+                <p class="text-sm mt-1" x-ref="error_message"></p>
+            </div>
+        </div>
+    </div>
+    @if ($currentRoute == 'jurnal.edit')
+    <div x-data="jurnalApp()" x-init="init()">
+        <!-- Page Header -->
+        <div class="mb-6 sm:mb-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-emerald">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold text-secondary-800">Edit Jurnal</h1>
+                        <p class="text-secondary-600 font-medium">Ubah data transaksi jurnal</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <a href="{{ route('jurnal.index') }}" class="btn btn-secondary-outline btn-md flex-1 sm:flex-none">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Batal
+                    </a>
+                    <button type="submit" form="jurnalForm" class="btn btn-secondary btn-md flex-1 sm:flex-none">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Simpan Jurnal
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ route('jurnal.update', $jurnal->id) }}" @submit.prevent="submitForm" method="post" enctype="multipart/form-data" id="jurnalForm">
+            <!-- Main Card -->
+            <div class="panel overflow-hidden">
+                <div class="panel-header">
+                    <h2 class="text-xl font-bold text-secondary-800">Informasi Jurnal</h2>
+                </div>
+
+                <div class="panel-body">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        @foreach ($field as $item)
+                        <div class="space-y-2">
+                            <label for="{{ $item }}" class="block text-sm font-semibold text-secondary-700">
+                                {{ ucwords(str_replace('_', ' ', $item)) }}
+                                @if($item != 'no_transaksi')<span class="text-danger-500">*</span>@endif
+                            </label>
+                            @if ($item == 'keterangan')
+                            <textarea name="{{ $item }}_header" id="{{ $item }}" x-ref="{{ $item }}"
+                                      class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none"
+                                      rows="3" placeholder="Masukkan keterangan jurnal...">{{ $jurnal->$item }}</textarea>
+                            @elseif ($item == 'jenis')
+                                <select name="{{ $item }}" id="{{ $item }}" x-ref="{{ $item }}"
+                                    class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
+                                    <option value="">Pilih Jenis Jurnal</option>
+                                    <option value="rv" {{ $jurnal->$item == 'RV' ? 'selected' : '' }}>Receipt Voucher (RV)</option>
+                                    <option value="pv" {{ $jurnal->$item == 'PV' ? 'selected' : '' }}>Payment Voucher (PV)</option>
+                                    <option value="jv" {{ $jurnal->$item == 'JV' ? 'selected' : '' }}>Journal Voucher (JV)</option>
+                                </select>
+                            @elseif ($item == 'no_urut_transaksi')
+                                <input type="text" name="{{ $item }}" id="{{ $item }}" readonly value="{{ $jurnal->$item }}"
+                                       placeholder="Generate By System"
+                                       class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-secondary-50 text-secondary-600 cursor-not-allowed">
+                            @endif
+                        </div>
+                        @endforeach
+
+                        <div class="space-y-2">
+                            <label for="tanggal_transaksi" class="block text-sm font-semibold text-secondary-700">
+                                Tanggal Transaksi <span class="text-danger-500">*</span>
+                            </label>
+                            <input type="text" id="tanggal_transaksi" x-model="tanggal_transaksi"
+                                   class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 datepicker"
+                                   x-on:dblclick="setToday()" placeholder="dd-mm-yyyy">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-secondary-700">Import Transaksi</label>
+                            <div class="space-y-3">
+                                <input type="file" id="importFile" name="file" accept=".xlsx"
+                                    class="w-full text-sm text-secondary-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:transition-colors file:duration-200"
+                                    @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0) disabled @endif>
+                                <div class="flex gap-2">
+                                    <button type="button" x-on:click="importJurnal"
+                                            class="btn btn-primary btn-sm flex-1"
+                                            @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0) disabled @endif>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                                        </svg>
+                                        Import
+                                    </button>
+                                    <button type="button" x-on:click="downloadSample" class="btn btn-info-outline btn-sm flex-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        Sample
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Detail Jurnal -->
+            <div class="panel overflow-hidden mt-6">
+                <div class="panel-header">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-secondary-800">Detail Transaksi</h2>
+                        <button type="button" class="btn btn-primary btn-sm" x-on:click="addRow">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Tambah Baris
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <!-- Summary Card -->
+                    <div class="bg-gradient-to-r from-secondary-50 to-white p-6 rounded-2xl border border-secondary-200/50 shadow-soft mb-6">
+                        <div class="flex items-center justify-between gap-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-emerald">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-secondary-800">Ringkasan Transaksi</h3>
+                                    <p class="text-sm text-secondary-600">Status validasi jurnal</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-8">
+                                <div class="text-center">
+                                    <p class="text-xs font-semibold text-success-600 uppercase tracking-wide mb-1">Total Debit</p>
+                                    <p class="text-2xl font-bold text-success-700" x-text="totalDebit"></p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs font-semibold text-warning-600 uppercase tracking-wide mb-1">Total Kredit</p>
+                                    <p class="text-2xl font-bold text-warning-700" x-text="totalCredit"></p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs font-semibold uppercase tracking-wide mb-1" :class="selisih == '0' ? 'text-success-600' : 'text-danger-600'">Selisih</p>
+                                    <p class="text-2xl font-bold" :class="selisih == '0' ? 'text-success-700' : 'text-danger-700'" x-text="selisih" id="selisih"></p>
+                                </div>
+                            </div>
+                        </div>
+                            <div class="bg-gradient-to-r from-success-50 to-success-100 p-4 rounded-xl border border-success-200">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-success-500 rounded-xl flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.467-.153-2.121-.659C8.737 10.962 8.737 9.538 9.879 8.659l.121-.09"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-success-600">Total Debit</p>
+                                        <p class="text-lg font-bold text-success-800" x-text="totalDebit"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-warning-50 to-warning-100 p-4 rounded-xl border border-warning-200">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-warning-500 rounded-xl flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.467-.153-2.121-.659C8.737 10.962 8.737 9.538 9.879 8.659l.121-.09"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-warning-600">Total Kredit</p>
+                                        <p class="text-lg font-bold text-warning-800" x-text="totalCredit"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-danger-50 to-danger-100 p-4 rounded-xl border border-danger-200"
+                                 :class="selisih == '0' ? 'from-success-50 to-success-100 border-success-200' : 'from-danger-50 to-danger-100 border-danger-200'">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                         :class="selisih == '0' ? 'bg-success-500' : 'bg-danger-500'">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium" :class="selisih == '0' ? 'text-success-600' : 'text-danger-600'">Selisih</p>
+                                        <p class="text-lg font-bold" :class="selisih == '0' ? 'text-success-800' : 'text-danger-800'" x-text="selisih" id="selisih"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Balance Status -->
+                    <div class="mt-4 pt-4 border-t border-secondary-200/50">
+                        <div class="flex items-center gap-3" :class="selisih == '0' ? 'text-success-700' : 'text-danger-700'">
+                            <div class="w-5 h-5 rounded-full flex items-center justify-center" :class="selisih == '0' ? 'bg-success-100' : 'bg-danger-100'">
+                                <svg x-show="selisih == '0'" class="w-3 h-3 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <svg x-show="selisih != '0'" class="w-3 h-3 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium" x-text="selisih == '0' ? 'Jurnal seimbang dan siap disimpan' : 'Jurnal belum seimbang, periksa kembali nilai debit dan kredit'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="mt-6 overflow-hidden rounded-xl border border-secondary-200 shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-full bg-white" id="jurnalDetail">
+                                <thead class="bg-secondary-50 border-b border-secondary-200">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-sm font-semibold text-secondary-700">Akun</th>
+                                        <th class="px-4 py-3 text-center text-sm font-semibold text-secondary-700 w-32">Debit</th>
+                                        <th class="px-4 py-3 text-center text-sm font-semibold text-secondary-700 w-32">Kredit</th>
+                                        <th class="px-4 py-3 text-center text-sm font-semibold text-secondary-700 w-20">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <template x-for="(row, index) in rows" :key="index">
+                                    <tbody class="divide-y divide-secondary-100" id="tBody">
+                                        <tr class="hover:bg-secondary-50 transition-colors duration-200">
+                                            <td class="px-4 py-4">
+                                                <div class="space-y-3">
+                                                    <div class="flex items-center gap-3">
+                                                        <button type="button" class="btn btn-primary-outline btn-sm flex-shrink-0"
+                                                                x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.index') }}', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: index })">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            Pilih
+                                                        </button>
+                                                        <div class="flex-1 space-y-2">
+                                                            <input type="text" :name="'no_akun[' + index + ']'"
+                                                                   class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg bg-secondary-50 text-secondary-600 font-mono"
+                                                                   x-model="row.no_akun" readonly required
+                                                                   placeholder="Nomor Akun">
+                                                            <input type="text" :name="'nama_akun[' + index + ']'"
+                                                                   class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg bg-secondary-50 text-secondary-600"
+                                                                   x-model="row.nama_akun" readonly required
+                                                                   placeholder="Nama Akun">
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Additional Details Row -->
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-secondary-100">
+                                                        <div class="space-y-2">
+                                                            <label class="block text-xs font-semibold text-secondary-700">
+                                                                Keterangan <span class="text-danger-500">*</span>
+                                                            </label>
+                                                            <textarea :name="'keterangan[' + index + ']'"
+                                                                      class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none"
+                                                                      rows="2"
+                                                                      x-model="row.keterangan"
+                                                                      x-on:dblclick="setKeteranganToRow(index)"
+                                                                      placeholder="Keterangan transaksi..."></textarea>
+                                                        </div>
+
+                                                        <div class="space-y-3">
+                                                            <div class="space-y-2">
+                                                                <label class="block text-xs font-semibold text-secondary-700">
+                                                                    Tanggal Bukti <span class="text-danger-500">*</span>
+                                                                </label>
+                                                                <input type="text" :name="'tanggal_bukti[' + index + ']'"
+                                                                       class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 datepicker"
+                                                                       @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0) disabled @endif
+                                                                       x-model="row.tanggal_bukti"
+                                                                       :x-ref="'tanggal_bukti_' + index"
+                                                                       x-datepicker
+                                                                       placeholder="dd-mm-yyyy"
+                                                                       required>
+                                                            </div>
+
+                                                            <div class="space-y-2">
+                                                                <label class="block text-xs font-semibold text-secondary-700">Lampiran</label>
+                                                                <input type="file" :name="'lampiran[' + index + ']'" accept=".pdf,.jpg,.png,.jpeg"
+                                                                       class="w-full text-xs text-secondary-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:transition-colors file:duration-200"
+                                                                       multiple @if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0) disabled @endif>
+                                                                <input type="hidden" :name="'lampiran_path[' + index + ']'" x-model="row.lampiran">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td class="px-4 py-4 text-center">
+                                                <input type="text" :name="'debit[' + index + ']'"
+                                                       class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-right font-mono"
+                                                       x-model="row.debit"
+                                                       x-on:input="formatCurrency($event, 'debit', index), updateTotals()"
+                                                       placeholder="0">
+                                            </td>
+
+                                            <td class="px-4 py-4 text-center">
+                                                <input type="text" :name="'kredit[' + index + ']'"
+                                                       class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-right font-mono"
+                                                       x-model="row.kredit"
+                                                       x-on:input="formatCurrency($event, 'kredit', index), updateTotals()"
+                                                       placeholder="0">
+                                            </td>
+
+                                            <td class="px-4 py-4 text-center">
+                                                <button type="button" class="btn btn-danger-outline btn-sm"
+                                                        x-on:click="removeRow(index)">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </template>
+                    </table>
+                </div>
+            </div>
+            </form>
+        </div>
+    </div>
+    @else
+    <div x-data="jurnalApp()" x-init="init()">
+        <!-- Page Header -->
+        <div class="mb-6 sm:mb-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-emerald">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold text-secondary-800">Buat Jurnal</h1>
+                        <p class="text-secondary-600 font-medium">Tambah transaksi jurnal baru</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <a href="{{ route('jurnal.index') }}" class="btn btn-secondary-outline btn-md flex-1 sm:flex-none">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Batal
+                    </a>
+                    <button type="submit" form="jurnalForm" class="btn btn-secondary btn-md flex-1 sm:flex-none">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Simpan Jurnal
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ route('jurnal.store') }}" @submit.prevent="submitForm" method="post" enctype="multipart/form-data" id="jurnalForm">
+            @csrf
+            @method('POST')
+            <!-- Main Card -->
+            <div class="panel overflow-hidden">
+                <div class="panel-header">
+                    <h2 class="text-xl font-bold text-secondary-800">Informasi Jurnal</h2>
+                </div>
+
+                <div class="panel-body">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        @foreach ($field as $item)
+                        <div class="space-y-2">
+                            <label for="{{ $item }}" class="block text-sm font-semibold text-secondary-700">
+                                {{ ucwords(str_replace('_', ' ', $item)) }}
+                                @if($item != 'no_transaksi')<span class="text-danger-500">*</span>@endif
+                            </label>
+                            @if ($item == 'keterangan')
+                                <textarea name="{{$item}}_header" id="{{$item}}" value="{{old($item)}}" x-ref="{{$item}}"
+                                          class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none"
+                                          rows="3" placeholder="Masukkan keterangan jurnal..."
+                                          x-model="keteranganHeader"></textarea>
+                            @elseif ($item == 'jenis')
+                                <select name="{{$item}}" id="{{$item}}" value="{{old($item)}}" x-ref="{{$item}}"
+                                          class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
+                                    <option value="">Pilih Jenis Jurnal</option>
+                                    <option value="rv">Receipt Voucher (RV)</option>
+                                    <option value="pv">Payment Voucher (PV)</option>
+                                    <option value="jv">Journal Voucher (JV)</option>
+                                </select>
+                            @elseif ($item == 'no_urut_transaksi')
+                                <input type="text" name="{{$item}}" id="{{$item}}" value="{{old($item)}}" readonly
+                                       placeholder="Generate By System"
+                                       class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-secondary-50 text-secondary-600 cursor-not-allowed">
+                            @endif
+                        </div>
+                        @endforeach
+
+                        <div class="space-y-2">
+                            <label for="tanggal_transaksi" class="block text-sm font-semibold text-secondary-700">
+                                Tanggal Transaksi <span class="text-danger-500">*</span>
+                            </label>
+                            <input type="text" id="tanggal_transaksi" x-model="tanggal_transaksi" x-ref="tanggal_transaksi"
+                                   class="w-full px-4 py-3 text-sm border border-secondary-300 rounded-xl bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 datepicker"
+                                   x-on:dblclick="setToday()" placeholder="dd-mm-yyyy">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-secondary-700">Import Transaksi</label>
+                            <div class="space-y-3">
+                                <input type="file" id="importFile" name="file" accept=".xlsx" value="{{old('file')}}"
+                                    class="w-full text-sm text-secondary-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:transition-colors file:duration-200">
+                                <div class="flex gap-2">
+                                    <button type="button" x-on:click="importJurnal" class="btn btn-primary btn-sm flex-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                                        </svg>
+                                        Import
+                                    </button>
+                                    <button type="button" x-on:click="downloadSample" class="btn btn-info-outline btn-sm flex-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        Sample
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Detail Jurnal -->
+            <div class="panel overflow-hidden mt-6">
+                <div class="panel-header">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-secondary-800">Detail Transaksi</h2>
+                        <button type="button" class="btn btn-primary btn-sm" x-on:click="addRow">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Tambah Baris
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <!-- Summary Card -->
+                    <div class="bg-gradient-to-r from-secondary-50 to-white p-6 rounded-2xl border border-secondary-200/50 shadow-soft mb-6">
+                        <div class="flex items-center justify-between gap-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-emerald">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-secondary-800">Ringkasan Transaksi</h3>
+                                    <p class="text-sm text-secondary-600">Status validasi jurnal</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-8">
+                                <div class="text-center">
+                                    <p class="text-xs font-semibold text-success-600 uppercase tracking-wide mb-1">Total Debit</p>
+                                    <p class="text-2xl font-bold text-success-700" x-text="totalDebit"></p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs font-semibold text-warning-600 uppercase tracking-wide mb-1">Total Kredit</p>
+                                    <p class="text-2xl font-bold text-warning-700" x-text="totalCredit"></p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs font-semibold uppercase tracking-wide mb-1" :class="selisih == '0' ? 'text-success-600' : 'text-danger-600'">Selisih</p>
+                                    <p class="text-2xl font-bold" :class="selisih == '0' ? 'text-success-700' : 'text-danger-700'" x-text="selisih" id="selisih"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Balance Status Alert -->
+                        <div class="mt-4 p-4 rounded-xl transition-all duration-300" x-show="selisih != '0'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" :class="selisih == '0' ? 'bg-success-50 border border-success-200' : 'bg-danger-50 border border-danger-200'" style="display: none;">
+                            <div class="flex items-center gap-3">
+                                <div class="flex-shrink-0">
+                                    <svg class="w-5 h-5" :class="selisih == '0' ? 'text-success-500' : 'text-danger-500'" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" :d="selisih == '0' ? 'M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z' : 'M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-semibold" :class="selisih == '0' ? 'text-success-800' : 'text-danger-800'">
+                                        <span x-show="selisih == '0'">Jurnal Seimbang</span>
+                                        <span x-show="selisih != '0'">Jurnal Tidak Seimbang</span>
+                                    </h4>
+                                    <p class="text-xs mt-1" :class="selisih == '0' ? 'text-success-600' : 'text-danger-600'">
+                                        <span x-show="selisih == '0'">Total debit dan kredit sudah seimbang</span>
+                                        <span x-show="selisih != '0'">Pastikan total debit sama dengan total kredit sebelum menyimpan</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                            <div class="bg-gradient-to-r from-success-50 to-success-100 p-4 rounded-xl border border-success-200">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-success-500 rounded-xl flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.467-.153-2.121-.659C8.737 10.962 8.737 9.538 9.879 8.659l.121-.09"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-success-600">Total Debit</p>
+                                        <p class="text-lg font-bold text-success-800" x-text="totalDebit"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-warning-50 to-warning-100 p-4 rounded-xl border border-warning-200">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-warning-500 rounded-xl flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.467-.153-2.121-.659C8.737 10.962 8.737 9.538 9.879 8.659l.121-.09"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-warning-600">Total Kredit</p>
+                                        <p class="text-lg font-bold text-warning-800" x-text="totalCredit"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-danger-50 to-danger-100 p-4 rounded-xl border border-danger-200"
+                                 :class="selisih == '0' ? 'from-success-50 to-success-100 border-success-200' : 'from-danger-50 to-danger-100 border-danger-200'">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                         :class="selisih == '0' ? 'bg-success-500' : 'bg-danger-500'">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium" :class="selisih == '0' ? 'text-success-600' : 'text-danger-600'">Selisih</p>
+                                        <p class="text-lg font-bold" :class="selisih == '0' ? 'text-success-800' : 'text-danger-800'" x-text="selisih" id="selisih"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Balance Status -->
+                    <div class="mt-4 pt-4 border-t border-secondary-200/50">
+                        <div class="flex items-center gap-3" :class="selisih == '0' ? 'text-success-700' : 'text-danger-700'">
+                            <div class="w-5 h-5 rounded-full flex items-center justify-center" :class="selisih == '0' ? 'bg-success-100' : 'bg-danger-100'">
+                                <svg x-show="selisih == '0'" class="w-3 h-3 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <svg x-show="selisih != '0'" class="w-3 h-3 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium" x-text="selisih == '0' ? 'Jurnal seimbang dan siap disimpan' : 'Jurnal belum seimbang, periksa kembali nilai debit dan kredit'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="mt-6 overflow-hidden rounded-xl border border-secondary-200 shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-full bg-white" id="jurnalDetail">
+                                <thead class="bg-secondary-50 border-b border-secondary-200">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-sm font-semibold text-secondary-700">Akun</th>
+                                        <th class="px-4 py-3 text-center text-sm font-semibold text-secondary-700 w-32">Debit</th>
+                                        <th class="px-4 py-3 text-center text-sm font-semibold text-secondary-700 w-32">Kredit</th>
+                                        <th class="px-4 py-3 text-center text-sm font-semibold text-secondary-700 w-20">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <template x-for="(row, index) in rows" :key="index">
+                                    <tbody class="divide-y divide-secondary-100" id="tBody">
+                                        <tr class="hover:bg-secondary-50 transition-colors duration-200">
+                                            <td class="px-4 py-4">
+                                                <div class="space-y-3">
+                                                    <div class="flex items-center gap-3">
+                                                        <button type="button" class="btn btn-primary-outline btn-sm flex-shrink-0"
+                                                                x-on:click.prevent="$dispatch('open-modal', { route: '{{ route('coas.index') }}', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: index })">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            Pilih
+                                                        </button>
+                                                        <div class="flex-1 space-y-2">
+                                                            <input type="text" :name="'no_akun[' + index + ']'"
+                                                                   class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg bg-secondary-50 text-secondary-600 font-mono"
+                                                                   x-model="row.no_akun" readonly required
+                                                                   placeholder="Nomor Akun">
+                                                            <input type="text" :name="'nama_akun[' + index + ']'"
+                                                                   class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg bg-secondary-50 text-secondary-600"
+                                                                   x-model="row.nama_akun" readonly required
+                                                                   placeholder="Nama Akun">
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Additional Details Row -->
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-secondary-100">
+                                                        <div class="space-y-2">
+                                                            <label class="block text-xs font-semibold text-secondary-700">
+                                                                Keterangan <span class="text-danger-500">*</span>
+                                                            </label>
+                                                            <textarea :name="'keterangan[' + index + ']'"
+                                                                      class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none"
+                                                                      rows="2"
+                                                                      x-model="row.keterangan"
+                                                                      x-on:dblclick="setKeteranganToRow(index)"
+                                                                      placeholder="Keterangan transaksi..."></textarea>
+                                                        </div>
+
+                                                        <div class="space-y-3">
+                                                            <div class="space-y-2">
+                                                                <label class="block text-xs font-semibold text-secondary-700">
+                                                                    Tanggal Bukti <span class="text-danger-500">*</span>
+                                                                </label>
+                                                                <input type="text" :name="'tanggal_bukti[' + index + ']'"
+                                                                       class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 datepicker"
+                                                                       x-on:dblclick="setToday(index)" :x-ref="'tanggal_bukti_' + index"
+                                                                       x-model="row.tanggal_bukti" x-datepicker readonly
+                                                                       placeholder="dd-mm-yyyy"
+                                                                       required>
+                                                            </div>
+
+                                                            <div class="space-y-2">
+                                                                <label class="block text-xs font-semibold text-secondary-700">Lampiran</label>
+                                                                <input type="file" :name="'lampiran[' + index + ']'" accept=".pdf,.jpg,.png,.jpeg"
+                                                                       class="w-full text-xs text-secondary-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:transition-colors file:duration-200"
+                                                                       x-model="row.lampiran" multiple>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td class="px-4 py-4 text-center">
+                                                <input type="text" :name="'debit[' + index + ']'"
+                                                       class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-right font-mono"
+                                                       x-model="row.debit"
+                                                       x-on:input="formatCurrency($event, 'debit', index), updateTotals()"
+                                                       placeholder="0" required>
+                                            </td>
+
+                                            <td class="px-4 py-4 text-center">
+                                                <input type="text" :name="'kredit[' + index + ']'"
+                                                       class="w-full px-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-right font-mono"
+                                                       x-model="row.kredit"
+                                                       x-on:input="formatCurrency($event, 'kredit', index), updateTotals()"
+                                                       placeholder="0" required>
+                                            </td>
+
+                                            <td class="px-4 py-4 text-center">
+                                                <button type="button" class="btn btn-danger-outline btn-sm"
+                                                        x-on:click="removeRow(index)">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </template>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    @endif
+</div>
+@endsection
+@push('script')
+<script type="text/javascript">
+    function jurnalApp() {
+        let jurnal = @json($jurnal->details ?? []);
+        let periode = @js(auth()->user()->periode);
+
+        jurnal.forEach(row => {
+            if(row.credit !== undefined){
+                row.kredit = row.credit;
+                delete row.credit;
+            }
+
+            row.debit = row.debit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            row.kredit = row.kredit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        });
+
+        return {
+            keteranganHeader: '',
+            rows: Array.isArray(jurnal) ? jurnal : [],
+            totalDebit: 0,
+            totalCredit: 0,
+            selisih: 0,
+            errorMessage: '',
+            isValid: true,
+            isImport: false,
+            tanggal_transaksi: '',
+
+            init() {
+                this.$errorElement = document.querySelector('[x-ref="alertError"]');
+                this.$errorMessageElement = document.querySelector('[x-ref="error_message"]');
+
+                if(jurnal.length > 0){
+                    this.keteranganHeader = jurnal[0].keterangan;
+                }
+
+                Alpine.directive('datepicker', (el, { expression }, { effect }) => {
+                    flatpickr(el, {
+                        dateFormat: 'd-m-Y',
+                        allowInput: true,
+                        minDate: '01-01-' + periode,
+                        maxDate: '31-12-' + periode,
+                        onClose: function(selectedDates, dateStr, instance) {
+                            instance.setDate(dateStr, true);
+                            el.dispatchEvent(new Event('input'));
+                        }.bind(this)
+                    });
+
+                    effect(() => {
+                        flatpickr(el, {
+                            dateFormat: 'd-m-Y',
+                            allowInput: true,
+                            minDate: '01-01-' + periode,
+                            maxDate: '31-12-' + periode,
+                            onClose: function(selectedDates, dateStr, instance) {
+                                instance.setDate(dateStr, true);
+                                el.dispatchEvent(new Event('input'));
+                            }
+                        });
+                    });
+                });
+
+                this.initializeDatePickers();
+                this.updateTotals()
+            },
+
+            initializeDatePickers() {
+                // Inisialisasi datepicker untuk input tanggal transaksi
+                const datepickerTransaksi = this.$refs.tanggal_transaksi;
+                if (datepickerTransaksi) {
+                    flatpickr(datepickerTransaksi, {
+                        dateFormat: 'd-m-Y',
+                        allowInput: true,
+                        minDate: '01-01-' + periode,
+                        maxDate: '31-12-' + periode,
+                        onClose: function(selectedDates, dateStr, instance) {
+                            instance.setDate(dateStr, true);
+                            datepickerTransaksi.dispatchEvent(new Event('input'));
+                        }
+                    });
+                }
+                this.rows.forEach((row, index) => {
+                    if (row.tanggal_bukti) {
+                        this.$nextTick(() => {
+                            const datepicker = document.querySelector(`[x-ref="tanggal_bukti_${index}"]`);
+                            if (datepicker) {
+                                flatpickr(datepicker, {
+                                    dateFormat: 'd-m-Y',
+                                    defaultDate: this.convertDateFormat(row.tanggal_bukti, 'Y-m-d', 'd-m-Y'),
+                                    allowInput: true,
+                                    minDate: '01-01-' + periode,
+                                    maxDate: '31-12-' + periode,
+                                    onClose: function(selectedDates, dateStr, instance) {
+                                        instance.setDate(dateStr, true);
+                                        datepicker.dispatchEvent(new Event('input'));
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            },
+
+            formatNumber(number) {
+                return number.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            },
+
+            get formattedAkun() {
+                return this.formatNomorAkun(this.row.coa_akun);
+            },
+
+            // Fungsi untuk memformat nomor akun
+            formatNomorAkun(nomor_akun) {
+                let formatted = nomor_akun.replace(/\D/g, ''); // Hapus semua karakter non-digit
+                if (formatted.length > 6) {
+                    formatted = formatted.slice(0, 3) + '-' + formatted.slice(3, 5) + '-' + formatted.slice(5);
+                } else if (formatted.length > 4) {
+                    formatted = formatted.slice(0, 3) + '-' + formatted.slice(3);
+                } else {
+                    formatted = formatted.slice(0, 3);
+                }
+                return formatted;
+            },
+
+            convertDateFormat(dateStr, fromFormat, toFormat) {
+                const fromParts = dateStr.split(fromFormat.includes('-') ? '-' : '/');
+                let dateObj;
+
+                if (fromFormat === 'Y-m-d') {
+                    dateObj = new Date(fromParts[0], fromParts[1] - 1, fromParts[2]);
+                } else if (fromFormat === 'd-m-Y') {
+                    dateObj = new Date(fromParts[2], fromParts[1] - 1, fromParts[0]);
+                }
+
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const year = dateObj.getFullYear();
+
+                if (toFormat === 'd-m-Y') {
+                    return `${day}-${month}-${year}`;
+                } else if (toFormat === 'Y-m-d') {
+                    return `${year}-${month}-${day}`;
+                }
+            },
+
+            setToday(index) {
+                const today = new Date();
+                const day = String(today.getDate()).padStart(2, '0');
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const year = today.getFullYear();
+                const todayFormatted = `${day}-${month}-${year}`;
+
+                //this.rows[index].tanggal_bukti = todayFormatted;
+
+                this.$nextTick(() => {
+                    const datepicker = this.$refs[`tanggal_bukti_${index}`];
+                    if (datepicker) {
+                        datepicker._flatpickr.setDate(todayFormatted, true);
+                    }
+                });
+            },
+
+            formatDate(event, field, index) {
+                let value = event.target.value.replace(/\./g, '').replace(/,/g, '.');
+                this.rows[index][field] = value;
+            },
+
+             // Tambahkan fungsi untuk mengupdate tanggal transaksi
+             updateTanggalBukti(index) {
+                if (this.tanggalTransaksi) {
+                    this.rows[index].tanggal_bukti = this.tanggalTransaksi;
+                    this.$nextTick(() => {
+                        const datepicker = this.$refs[`tanggal_bukti_${index}`];
+                        if (datepicker) {
+                            datepicker._flatpickr.setDate(this.tanggalTransaksi, true);
+                        }
+                    });
+                }
+            },
+
+            addRow() {
+                this.rows.push({
+                    keterangan: this.keteranganHeader,
+                    tanggal_bukti: this.tanggal_transaksi,
+                    lampiran: '',
+                    no_akun: '',
+                    nama_akun: '',
+                    debit: '',
+                    kredit: ''
+                });
+
+
+                this.updateTotals();
+                this.updateTanggalBukti(this.rows.length - 1);
+            },
+
+
+            removeRow(index) {
+                this.rows.splice(index, 1);
+                this.updateTotals();
+            },
+
+            setKeteranganToRow(index) {
+                console.log(this.keteranganHeader)
+                this.rows[index].keterangan = this.keteranganHeader;;
+            },
+
+
+            updateTotals() {
+                this.totalDebit = this.rows.reduce((sum, row) => {
+                    let debit = parseFloat((row.debit || '0').toString().replace(/\./g, '').replace(',', '.')) || 0;
+                    return sum + debit;
+                }, 0);
+                this.totalCredit = this.rows.reduce((sum, row) => {
+                    let kredit = parseFloat((row.kredit || '0').toString().replace(/\./g, '').replace(',', '.')) || 0;
+                    return sum + kredit;
+                }, 0);
+                this.selisih = this.totalDebit - this.totalCredit;
+                this.totalDebit = this.totalDebit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                this.totalCredit = this.totalCredit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                this.selisih = this.selisih.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            },
+
+
+            formatCurrency(event, field, index) {
+                let value = event.target.value.replace(/\./g, '').replace(/,/g, '.');
+                if (value === '') {
+                    value = '0';
+                }
+                let parsedValue = parseFloat(value);
+                if (isNaN(parsedValue)) {
+                    parsedValue = 0;
+                }
+                const formattedValue = parsedValue.toLocaleString('id-ID');
+                this.rows[index][field] = formattedValue;
+            },
+
+            importJurnal() {
+                const overlay = document.getElementById('overlay');
+                overlay.style.display = 'flex';
+
+                let getFile = document.getElementById('importFile').files;
+                if (getFile.length === 0) {
+                    document.getElementById('importFile').focus();
+                    alert('Silakan pilih file untuk diimport.');
+                    overlay.style.display = 'none';
+                    return;
+                }
+                let formData = new FormData();
+                formData.append('file', getFile[0]);
+                fetch('{{ route('jurnal.import.html') }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.html === 0){
+                        alert(data.message);
+                        overlay.style.display = 'none';
+                        return;
+                    }else{
+                        if (data.html && data.html.length > 0) {
+                            alert(data.message);
+                            this.rows = data.html;
+                            this.isImport = true;
+                            this.updateTotals();
+                            this.importUpdate();
+                            // console.log(this.rows)
+                        } else {
+                            alert('Terjadi kesalahan saat mengimpor jurnal.');
+                        }
+                        overlay.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    this.isValid = false;
+                    this.errorMessage = 'Terjadi kesalahan saat mengimpor jurnal.';
+                    if (this.$refs.errorElement) {
+                        this.$refs.errorElement.removeAttribute('hidden');
+                        setTimeout(() => {
+                            this.$refs.errorElement.setAttribute('hidden', true);
+                        }, 3000);
+                    }
+                    overlay.style.display = 'none';
+                });
+            },
+
+            importUpdate(){
+                this.totalDebit = 0;
+                this.totalCredit = 0;
+                for(let i = 0; i < this.rows.length; i++){
+                    this.totalDebit += parseFloat(this.rows[i].debit) || 0;
+                    this.totalCredit += parseFloat(this.rows[i].kredit) || 0;
+
+                    this.rows[i].debit = this.formatNumber(this.rows[i].debit);
+                    this.rows[i].kredit = this.formatNumber(this.rows[i].kredit);
+                }
+                this.initializeDatePickers();
+                this.selisih = this.totalDebit - this.totalCredit;
+
+                this.totalDebit = this.totalDebit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                this.totalCredit = this.totalCredit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                this.selisih = this.selisih.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            },
+
+            downloadSample() {
+                const overlay = document.getElementById('overlay');
+                if (overlay) overlay.style.display = 'flex';
+
+                fetch('{{ route('jurnal.sample.export') }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'jurnal_sample.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    console.error('Error downloading sample:', error);
+                    alert('Terjadi kesalahan saat mengunduh sample file');
+                })
+                .finally(() => {
+                    if (overlay) overlay.style.display = 'none';
+                });
+            },
+
+            validateForm() {
+                this.isValid = true;
+                this.errorMessage = '';
+
+                if (this.$refs.jenis.value.trim() === '') {
+                    this.isValid = false;
+                    this.errorMessage += 'Jenis harus diisi.<br>';
+                }
+
+                if (this.$refs.keterangan.value.trim() === '') {
+                    this.isValid = false;
+                    this.errorMessage += 'Keterangan Header harus diisi.<br>';
+                }
+
+                if(this.isImport){
+                    const tbody = document.querySelectorAll('#tBody tr').length / 2;
+
+                    for(let i = 0; i < tbody; i++){
+                        let no_akun = document.getElementsByName('no_akun[' + i + ']')[0].value;
+                        let nama_akun = document.getElementsByName('nama_akun[' + i + ']')[0].value;
+                        let debit = document.getElementsByName('debit[' + i + ']')[0].value;
+                        let kredit = document.getElementsByName('kredit[' + i + ']')[0].value;
+                        let tanggal_bukti = document.getElementsByName('tanggal_bukti[' + i + ']')[0].value;
+                    }
+
+                }else{
+                    if (this.rows.length === 0) {
+                        this.isValid = false;
+                        this.errorMessage += 'Detail jurnal tidak boleh kosong.<br>';
+                    }
+
+                    if(this.rows.length === 1){
+                        this.isValid = false;
+                        this.errorMessage += 'Masukan Detail Pembanding.<br>';
+                    }
+
+                    let totalDebit = 0;
+                    let totalCredit = 0;
+
+                    this.rows.forEach((row, index) => {
+                        let no_akun = document.getElementsByName('no_akun[' + index + ']')[0].value;
+                        let nama_akun = document.getElementsByName('nama_akun[' + index + ']')[0].value;
+
+                        console.log(row.tanggal_bukti)
+
+                        if ((parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) || row.debit === '' || row.kredit === '') {
+                            this.isValid = false;
+                            // if (row.tanggal_bukti.trim() === '') this.errorMessage += `Tanggal bukti pada baris ${index + 1} harus diisi.<br>`;
+                            if (parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) this.errorMessage += `Debit atau kredit pada baris ${index + 1} harus diisi.<br>`;
+                            if (row.debit === '') this.errorMessage += `Debit pada baris ${index + 1} harus diisi.<br>`;
+                            if (row.kredit === '') this.errorMessage += `Kredit pada baris ${index + 1} harus diisi.<br>`;
+                        }
+
+                        if(no_akun === '' || nama_akun === ''){
+                            this.isValid = false;
+                            this.errorMessage += `No Akun atau Nama Akun pada baris ${index + 1} harus diisi.<br>`;
+                        }
+
+                        totalDebit += parseFloat(row.debit) || 0;
+                        totalCredit += parseFloat(row.kredit) || 0;
+                    });
+
+                    // console.log(totalDebit, totalCredit)
+                    // return false;
+
+                }
+
+
+                console.log(this.rows)
+
+                // if(this.rows.length === 1){
+                //     this.isValid = false;
+                //     this.errorMessage += 'Masukan Detail Pembanding.<br>';
+                // }
+
+                if (parseFloat(this.selisih) !== 0) {
+                    this.isValid = false;
+                    this.errorMessage += 'Total debit dan kredit harus seimbang.<br>';
+                }
+
+                if (!this.isValid) {
+                    this.$errorMessageElement.innerHTML = this.errorMessage;
+                    this.$errorElement.classList.remove('hidden');
+                    setTimeout(() => {
+                        this.$errorElement.classList.add('hidden');
+                    }, 3000);
+                }
+
+                return this.isValid;
+            },
+
+            submitForm(event) {
+                const overlay = document.getElementById('overlay');
+                overlay.style.display = 'flex';
+
+                if (!this.validateForm()) {
+                    event.preventDefault();
+                    overlay.style.display = 'none';
+                } else {
+                    event.target.submit();
+                }
+            }
+        };
+    }
+</script>
+@endpush

@@ -17,11 +17,11 @@
 $report = [
     [
         'label' => 'Neraca',
-        'route' => '/report/neraca-perbandingan'
+        'route' => '/report/neraca'
     ],
     [
         'label' => 'Neraca Perbandingan',
-        'route' => '/report/neraca'
+        'route' => '/report/neraca-perbandingan'
     ],
     [
         'label' => 'Laba / Rugi',
@@ -50,7 +50,7 @@ $report = [
 ];
 ?>
 
- 
+
 <?php $__env->startSection('content'); ?>
 <?php if (isset($component)) { $__componentOriginal9f64f32e90b9102968f2bc548315018c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal9f64f32e90b9102968f2bc548315018c = $attributes; } ?>
@@ -90,8 +90,11 @@ $report = [
             </div>
             
         </div>
+        <div class="w-full md:w-1/2 px-2">
+            
+        </div>
     </div>
-    
+
     <div class="flex flex-wrap -mx-2">
         <?php $__currentLoopData = $report; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div class="container-card-report mt-1 flex flex-row gap-5 w-full p-2">
@@ -105,17 +108,18 @@ $report = [
                                     Pilih
                                 </button>
                     <?php endif; ?>
-                    <?php if(in_array($i['route'], ['/report/neraca-perbandingan', '/report/neraca', '/report/labarugi', '/report/aruskas', '/report/perubahanekuitas'])): ?>
+                    <?php if(in_array($i['route'], ['/report/neraca', '/report/neraca-perbandingan', '/report/labarugi', '/report/aruskas', '/report/perubahanekuitas'])): ?>
                         <button @click="showReport('<?php echo e($loop->index); ?>', '<?php echo e($i['route']); ?>')" class="h-fit text-sm border border-slate-500 py-1 px-2 rounded-md hover:bg-slate-200">Show Options</button>
                     <?php endif; ?>
-                    <button @click="downloadReport('<?php echo e($i['route']); ?>', <?php echo e($loop->index); ?>)" class="h-fit text-sm border border-slate-500 py-1 px-2 rounded-md hover:bg-slate-200">Preview</button>
+                    <button @click="downloadReport('<?php echo e($i['route']); ?>', <?php echo e($loop->index); ?>, 0)" class="h-fit text-sm border border-slate-500 py-1 px-2 rounded-md hover:bg-slate-200">Preview</button>
                     
+
                     
 
                 </div>
             </div>
         </div>
-        <?php if(in_array($i['route'], ['/report/neraca-perbandingan', '/report/neraca', '/report/labarugi', '/report/aruskas', '/report/perubahanekuitas'])): ?>
+        <?php if(in_array($i['route'], ['/report/neraca', '/report/neraca-perbandingan', '/report/labarugi', '/report/aruskas', '/report/perubahanekuitas'])): ?>
         <?php
             $pecah = explode('/', $i['route']);
             $pecah = end($pecah);
@@ -123,7 +127,7 @@ $report = [
             <div id="showReport<?php echo e($loop->index); ?>" class="hidden container-card-report w-full p-2">
                 <div class="flex justify-evenly p-2">
                     <div class="px-1">
-                        <label for="alamat_<?php echo e($loop->index); ?>" class="block text-sm font-medium text-gray-700">Alamat</label>
+                        <label for="alamat_<?php echo e($loop->index); ?>" class="block text-sm font-medium text-gray-700">Tempat</label>
                         <input type="text" id="alamat_<?php echo e($loop->index); ?>" oninput="funcState(this.value, 'alamat', <?php echo e($loop->index); ?>)" name="alamat_<?php echo e($loop->index); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                     </div>
                     <div class="px-1">
@@ -131,7 +135,7 @@ $report = [
                         <input type="text" id="tanggal_<?php echo e($loop->index); ?>" oninput="funcState(this.value, 'tanggal', <?php echo e($loop->index); ?>)" name="tanggal_<?php echo e($loop->index); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                     </div>
                     <div class="px-1">
-                        <label for="dibuat_<?php echo e($loop->index); ?>" class="block text-sm font-medium text-gray-700">Dibuat</label>
+                        <label for="dibuat_<?php echo e($loop->index); ?>" class="block text-sm font-medium text-gray-700">Ditandatangani Oleh</label>
                         <input type="text" id="dibuat_<?php echo e($loop->index); ?>" oninput="funcState(this.value, 'dibuat', <?php echo e($loop->index); ?>)" name="dibuat_<?php echo e($loop->index); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                     </div>
                     <div class="px-1">
@@ -139,7 +143,7 @@ $report = [
                         <input type="text" id="jabatan_<?php echo e($loop->index); ?>" oninput="funcState(this.value, 'jabatan', <?php echo e($loop->index); ?>)" name="jabatan_<?php echo e($loop->index); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                     </div>
                 </div>
-            </div>            
+            </div>
         <?php endif; ?>
             
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -196,12 +200,15 @@ $report = [
                 });
             }
 
+            const currentYear   = new Date().getFullYear();
+            const defaultDate   = `01-01-${currentYear}`;
+
             flatpickr('#start_date', {
                 dateFormat: 'd-m-Y',
                 allowInput: true,
-                minDate: '01-01-' + periode,
+                minDate: '01-01-1990',
                 maxDate: '31-12-' + periode,
-                defaultDate: defaultDateStart,
+                defaultDate: defaultDate,
                 onClose: function(selectedDates, dateStr, instance) {
                     instance.setDate(dateStr, true);
                 }
@@ -229,7 +236,7 @@ $report = [
             });
 
 
-            downloadReport = function(route, index) {
+            downloadReport = function(route, index, jenis = 0) {
                 let startDate = $('#start_date').val();
                 let endDate = $('#end_date').val();
                 let akun = $('#akun').val();
@@ -237,12 +244,21 @@ $report = [
                 let tanggal = $('#tanggal_'+index).val();
                 let dibuat = $('#dibuat_'+index).val();
                 let jabatan = $('#jabatan_'+index).val();
-                let jumlahLaman = $('#jumlahLaman'+index).val();
+                let jumlahLaman = $('#jumlahLaman').val();
                 let token = $('meta[name="csrf-token"]').attr("content");
+                let routenya = '';
+
+                if(jenis == 0){
+                    routenya = `${route}?excel=0`
+                }else{
+                    routenya = `${route}?excel=1`
+                }
+
+                console.log(routenya)
 
                 var form = $('<form>', {
                     'method': 'POST',
-                    'action': route,
+                    'action': routenya,
                     'target': '_blank'
                 }).append($('<input>', {
                     'name': 'start_date',
@@ -282,14 +298,19 @@ $report = [
                     'type': 'hidden'
                 }));
 
-                form.appendTo('body').submit();
+                form.appendTo('body').submit().fail(function(jqXHR) {
+                    if (jqXHR.status === 419) {
+                        // Tangani error 419, misalnya dengan meminta token baru
+                        alert('Session expired. Please refresh the page.');
+                        location.reload(); // Reload halaman untuk mendapatkan token baru
+                    }
+                });
             };
 
-
-            
         });
-        
+
     </script>
 
 <?php $__env->stopPush(); ?>
-<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH /var/www/hisabuna/backend/resources/views/report/template.blade.php ENDPATH**/ ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /var/www/hisabuna/backend/resources/views/report/template.blade.php ENDPATH**/ ?>

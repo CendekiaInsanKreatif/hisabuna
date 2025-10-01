@@ -34,6 +34,8 @@ class Coa extends Model
         "is_deleted",
         "deleted_at",
         "deleted_by",
+        "tgl_dibuat",
+        "periode",
     ];
 
     public function parent()

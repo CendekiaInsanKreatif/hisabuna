@@ -115,7 +115,7 @@
                 })).appendTo('body').submit();
             });
         });
-        
+
     </script>
     @endpush
 </x-app-layout>

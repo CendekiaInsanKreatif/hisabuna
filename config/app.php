@@ -125,12 +125,16 @@ return [
 
     // 'providers' => [
     //     // ...
-    //     Intervention\Image\ImageServiceProvider::class,
+    //     // Intervention\Image\ImageServiceProvider::class,
+    //     Illuminate\Filesystem\FilesystemServiceProvider::class,
+    //     Illuminate\Cache\CacheServiceProvider::class,
     // ],
 
     // 'aliases' => [
     //     // ...
-    //     'Image' => Intervention\Image\Facades\Image::class,
+    //     // 'Image' => Intervention\Image\Facades\Image::class,
+    //     'Storage' => Illuminate\Support\Facades\Storage::class,
+    //     'Cache' => Illuminate\Support\Facades\Cache::class,
     // ],
 
 ];

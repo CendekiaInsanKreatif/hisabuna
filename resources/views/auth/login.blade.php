@@ -12,7 +12,10 @@
                     <img src="/images/brand/logo-hisabuna-color.svg" class="w-40" alt="Official Logo of Hisabuna" />
                 </div>
             </div>
-            <div class="h-5 flex items-center w-full max-w-md">
+            {{-- <div class="flex flex-col p-5 gap-5 w-full max-w-md">
+
+            </div> --}}
+            <div class="flex flex-col p-5 gap-5 w-full max-w-md">
                 @if (session('message'))
                     <div
                         class="flex gap-2 border border-{{ session('color') }}-400 bg-{{ session('color') }}-100 p-2 rounded w-full">
@@ -21,9 +24,12 @@
                             !</div>
                         <p class="text-sm text-{{ session('color') }}-400">{{ session('message') }}</p>
                     </div>
+                    <script>
+                        setTimeout(function() {
+                            $('.border-{{ session('color') }}-400').fadeOut('fast');
+                        }, 3000);
+                    </script>
                 @endif
-            </div>
-            <div class="flex flex-col p-5 gap-5 w-full max-w-md">
                 <form method="POST" action="{{ route('login') }}" class="flex flex-col">
                     @csrf
 

@@ -24,7 +24,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        try {
+            $request->authenticate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('login')->with('message', 'Email atau password yang Anda masukkan salah.')->with('color', 'red');
+        }
 
         if(auth()->user()->is_active == 0){
             Auth::guard('web')->logout();
@@ -35,13 +39,6 @@ class AuthenticatedSessionController extends Controller
             Auth::guard('web')->logout();
             return redirect()->route('login')->with('message', 'Maaf, Masa Trial Anda sudah expired')->with('color', 'red');
         }
-
-        // if(auth()->user()->profile == 'trial' && auth()->user()->created_at->diffInDays(now()) >= 60){
-        //     Auth::guard('web')->logout();
-        //     return redirect()->route('login')->with('message', 'Maaf, Masa Trial Anda sudah expired')->with('color', 'red');
-        // }
-
-        
 
         $request->session()->regenerate();
 
@@ -59,6 +56,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/login');
     }
 }

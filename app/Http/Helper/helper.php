@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Menu;
+use App\Models\Jurnal;
 
 
 function da($data){
@@ -59,7 +60,7 @@ function terbilang($x) {
 function pisah($x) {
     // Taufiq
     preg_match_all('/\d+|[a-zA-Z\s]+/', $x, $a);
-    
+
     $angka = '';
     $huruf = '';
 
@@ -101,7 +102,7 @@ function recursive_ksort(&$array) {
 
 
 
-  function buildTree($elements, $parentId = 0) {
+function buildTree($elements, $parentId = 0) {
     $branch = [];
     foreach ($elements as $element) {
         if ($element->parent_id == $parentId) {
@@ -123,4 +124,92 @@ function flattenTree($tree, &$flatArray, $level = 0) {
           flattenTree($node->children, $flatArray, $level + 1);
       }
   }
+}
+
+function getJurnalDetail($jurnal_id)
+{
+    $jurnal = Jurnal::with('details.coa')->find($jurnal_id);
+    return $jurnal;
+}
+
+
+/**
+ * Anggap $data berbentuk:
+ * $data[<tahun>][<group>][<subgroup>][<akun>] = <nilai number>
+ *
+ * Aturan:
+ * - Jika nilai tahun sekarang DAN tahun sebelumnya sama-sama 0/blank → hapus di KEDUA tahun.
+ * - Jika salah satu ≠ 0 → biarkan keduanya tampil.
+ * - Setelah itu, hapus array kosong yang tersisa (parent yang tak punya anak).
+ */
+function pruneZerosPairYears(array $data, int $currentYear, float $eps = 0.0): array
+{
+    $prevYear = $currentYear - 1;
+
+    // helper: cek nol
+    $isZero = function($v) use ($eps): bool {
+        if ($v === null) return true;
+        if (!is_numeric($v)) return false;
+        return abs((float)$v) <= $eps;
+    };
+
+    // ambil union key di setiap level agar perbandingan lengkap
+    $yearNow  = $data[$currentYear]   ?? [];
+    $yearPrev = $data[$prevYear]      ?? [];
+
+    $groups = array_values(array_unique(array_merge(array_keys($yearNow), array_keys($yearPrev))));
+    foreach ($groups as $g) {
+        $subNow  = $yearNow[$g]  ?? [];
+        $subPrev = $yearPrev[$g] ?? [];
+
+        $children = array_values(array_unique(array_merge(array_keys($subNow), array_keys($subPrev))));
+        foreach ($children as $c) {
+            $leafNow  = $subNow[$c]  ?? [];
+            $leafPrev = $subPrev[$c] ?? [];
+
+            // kalau level ini bukan array (aneh), lewati
+            if (!is_array($leafNow) && !is_array($leafPrev)) {
+                continue;
+            }
+
+            $akunKeys = array_values(array_unique(array_merge(
+                is_array($leafNow)  ? array_keys($leafNow)  : [],
+                is_array($leafPrev) ? array_keys($leafPrev) : []
+            )));
+
+            foreach ($akunKeys as $a) {
+                $vNow  = $leafNow[$a]  ?? null;
+                $vPrev = $leafPrev[$a] ?? null;
+
+                // hanya proses leaf numeric / null
+                if (($isZero($vNow) && $isZero($vPrev))) {
+                    // hapus di kedua tahun
+                    if (isset($data[$currentYear][$g][$c][$a])) unset($data[$currentYear][$g][$c][$a]);
+                    if (isset($data[$prevYear][$g][$c][$a]))   unset($data[$prevYear][$g][$c][$a]);
+                }
+            }
+
+            // bersihkan child kosong
+            if (isset($data[$currentYear][$g][$c]) && empty($data[$currentYear][$g][$c])) {
+                unset($data[$currentYear][$g][$c]);
+            }
+            if (isset($data[$prevYear][$g][$c]) && empty($data[$prevYear][$g][$c])) {
+                unset($data[$prevYear][$g][$c]);
+            }
+        }
+
+        // bersihkan group kosong
+        if (isset($data[$currentYear][$g]) && empty($data[$currentYear][$g])) {
+            unset($data[$currentYear][$g]);
+        }
+        if (isset($data[$prevYear][$g]) && empty($data[$prevYear][$g])) {
+            unset($data[$prevYear][$g]);
+        }
+    }
+
+    // kalau seluruh tahun kosong, hapus key tahun
+    if (isset($data[$currentYear]) && empty($data[$currentYear])) unset($data[$currentYear]);
+    if (isset($data[$prevYear])   && empty($data[$prevYear]))   unset($data[$prevYear]);
+
+    return $data;
 }

@@ -6,20 +6,26 @@ use App\Models\Coa;
 use App\Models\JurnalDetail;
 use App\Exports\CoaExport;
 use App\Imports\CoaImport;
+use App\Http\Requests\CoaRequest;
+use App\Services\CoaService;
 use Maatwebsite\Excel\Facades\Excel;
 use PDF;
 use Alert;
-
-
 use Illuminate\Http\Request;
-use Validator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 class CoaController extends Controller
 {
+    protected $coaService;
+
+    public function __construct(CoaService $coaService)
+    {
+        $this->coaService = $coaService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -28,431 +34,96 @@ class CoaController extends Controller
         return view('coas.index');
     }
 
-    public function filterCoaLevel(Request $request)
+    public function filterCoaLevel(Request $request): JsonResponse
     {
-        $users          = auth()->user()->id;
-        $level          = $request->level;
-        $search         = $request->search;
-        $page           = intval($request->page ?? 1); // Mengonversi ke integer
-        $perpage        = 7;
-        $offset         = ($page - 1) * $perpage;
+        try {
+            $filters = [
+                'level' => $request->level,
+                'search' => $request->search,
+                'page' => $request->page,
+            ];
 
-        if($search && $level) {
-                $query = DB::select("
-                SELECT 
-                    id,
-                    nama_akun,
-                    level,
-                    saldo_normal,
-                    CASE
-                        WHEN level = 4 THEN
-                            CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
-                        WHEN level = 5 THEN 
-                            CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
-                                SUBSTRING(nomor_akun, 4, 2), '-', 
-                                SUBSTRING(nomor_akun, 6, 3))
-                        ELSE
-                            nomor_akun 
-                    END AS nomor_akun
-                FROM coas
-                WHERE
-                    is_deleted IS NULL AND
-                    level = ? AND
-                    created_by = ? 
-                LIMIT ?
-                OFFSET ?
-            ", [$level, $users, $perpage, $offset]);
-        }else{
-            $query = DB::select("
-                SELECT 
-                    id,
-                    nama_akun,
-                    level,
-                    saldo_normal,
-                    CASE
-                        WHEN level = 4 THEN
-                            CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
-                        WHEN level = 5 THEN 
-                            CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
-                                SUBSTRING(nomor_akun, 4, 2), '-', 
-                                SUBSTRING(nomor_akun, 6, 3))
-                        ELSE
-                            nomor_akun 
-                    END AS nomor_akun
-                FROM coas
-                WHERE
-                    is_deleted IS NULL AND
-                    created_by = ? AND 
-                    nama_akun LIKE ?
-                LIMIT ?
-                OFFSET ?
-            ", [$users, '%'.$search.'%', $perpage, $offset]);
+            $result = $this->coaService->getFilteredCoa($filters);
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            Log::error('Error filtering COA by level: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memfilter data'], 500);
         }
-        $total = DB::table('coas')
-            ->where('is_deleted', null)
-            ->where('level', $level)
-            ->where('created_by', $users)
-            ->count();
-
-        return response()->json([
-            'data'          => $query,
-            'total'         => $total,
-            'current_page'  => (int) $page,
-            'last_page'     => ceil($total / $perpage), // Hitung total halaman
-        ]);
     }
 
-    public function filterCoa(Request $request)
+    public function filterCoa(Request $request): JsonResponse
     {
-        $users      = auth()->user()->id;
-        $kepala     = $request->kepala;
-        $search     = $request->search;
-        $page       = $request->page ?? 1; // Halaman default ke 1
-        $perPage    = 7;
+        try {
+            $filters = [
+                'kepala' => $request->kepala,
+                'search' => $request->search,
+                'page' => $request->page,
+            ];
 
-        $offset     = ($page - 1) * $perPage;
+            $result = $this->coaService->getFilteredCoa($filters);
 
-        if($search && $kepala) {
-            $query      = DB::select("
-            SELECT
-                id,
-                nama_akun,
-                level,
-                saldo_normal,
-                CASE 
-                WHEN level = 4 THEN 
-                    CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
-                WHEN level = 5 THEN 
-                     CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
-                       SUBSTRING(nomor_akun, 4, 2), '-', 
-                       SUBSTRING(nomor_akun, 6, 3))
-                ELSE 
-                    nomor_akun 
-            END AS nomor_akun
-            FROM coas
-            WHERE
-                is_deleted IS NULL AND
-                nomor_akun LIKE ? AND
-                created_by = ?
-            LIMIT ?
-            OFFSET ?
-        ", [$kepala . '%', $users, $perPage, $offset]);
-        }else{
-            $query      = DB::select("
-                SELECT
-                    id,
-                    nama_akun,
-                    level,
-                    saldo_normal,
-                    CASE 
-                    WHEN level = 4 THEN 
-                        CONCAT(SUBSTRING(nomor_akun, 1, LENGTH(nomor_akun) - 2), '-', SUBSTRING(nomor_akun, LENGTH(nomor_akun) - 1))
-                    WHEN level = 5 THEN 
-                        CONCAT(SUBSTRING(nomor_akun, 1, 3), '-', 
-                        SUBSTRING(nomor_akun, 4, 2), '-', 
-                        SUBSTRING(nomor_akun, 6, 3))
-                    ELSE 
-                        nomor_akun 
-                END AS nomor_akun
-                FROM coas
-                WHERE
-                    is_deleted IS NULL AND
-                    created_by = ? AND 
-                    nama_akun LIKE ?
-                LIMIT ?
-                OFFSET ?
-            ", [$users,'%'.$search.'%', $perPage, $offset]);
+            return response()->json($result);
+        } catch (\Exception $e) {
+            Log::error('Error filtering COA: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memfilter data'], 500);
         }
-        $total = DB::table('coas')
-            ->where('is_deleted', null)
-            ->where('nomor_akun', 'LIKE', $kepala . '%')
-            ->where('created_by', $users)
-            ->count();
-             
-        return response()->json([
-            'data'          => $query,
-            'total'         => $total,
-            'current_page'  => (int) $page,
-            'last_page'     => ceil($total / $perPage), // Hitung total halaman
-        ]);
     }
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(CoaRequest $request)
     {
-        $input = $request->all();
-        $validator = Validator::make($input, [
-            'nomor_akun'    => 'required|regex:/^[0-9\-]+$/',
-            'nama_akun'     => 'required|string',
-        ]);
-        
-        $check = Coa::where('nomor_akun', $request->nomor_akun)
-                ->where('created_by', Auth::user()->id)
-                ->first();
+        // dd($request->all());
+        try {
+            DB::beginTransaction();
 
-        if($validator->fails()){
-            Alert::error('Oops!', 'Validasi Error');
+            $data = $this->coaService->prepareCOAData($request->validated());
+            // dd($data);
+            $coa = Coa::create($data);
+
+            DB::commit();
+
+            Alert::success('Sukses!', 'Berhasil membuat data');
             return redirect()->back();
-        }
-
-        if($check){
-            Alert::error('Oops!', 'Nomor Akun sudah ada');
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            Alert::error('Oops!', $e->getMessage());
             return redirect()->back();
-        }
-
-        $nomor_akun     = $request->nomor_akun;
-        $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
-        $real_akun = $nomor_akun_tanpa_tanda_hubung;
-        // Menentukan level berdasarkan panjang nomor akun
-        $jumlah_digit_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
-        $level = 0;
-        
-        // Menentukan level berdasarkan jumlah digit nomor akun
-        if ($jumlah_digit_nomor_akun == 1) {
-            $level = 1;
-        } elseif ($jumlah_digit_nomor_akun == 2) {
-            $level = 2;
-        } elseif ($jumlah_digit_nomor_akun == 3) {
-            $level = 3;
-        } elseif ($jumlah_digit_nomor_akun == 5) {
-            $level = 4;
-        } elseif ($jumlah_digit_nomor_akun == 8) {
-            $level = 5;
-        } else {
-            Alert::error('Oops!', 'Format nomor akun tidak valid');
-            return redirect()->back();
-        }
-        
-        // Menentukan parent_id berdasarkan level
-        $parent_id = null;
-        if ($level == 2) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 1); // Parent Level 1
-        } elseif ($level == 3) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 2); // Parent Level 2
-        } elseif ($level == 4) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 3); // Parent Level 3
-        } elseif ($level == 5) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 5); // Parent Level 4
-        }
-
-        $nama_akun      = $request->nama_akun;
-        // Menentukan saldo_normal, golongan otomatis
-        $awal = substr($nomor_akun_tanpa_tanda_hubung, 0, 1);
-        switch ($awal) {
-            case '1':
-                $saldo_normal = 'debit';
-                $golongan = 'Aset';
-                break;
-            case '2':
-                $saldo_normal = 'credit';
-                $golongan = 'Liabilitas';
-                break;
-            case '3':
-                $saldo_normal = 'credit';
-                $golongan = 'Ekuitas';
-                break;
-            case '4':
-                $saldo_normal = 'credit';
-                $golongan = 'Pendapatan';
-                break;
-            case '5':
-                $saldo_normal = 'debit';
-                $golongan = 'Beban';
-                break;
-            case '6':
-                $saldo_normal = 'debit';
-                $golongan = 'Beban Umum';
-                break;
-            case '7':
-                $saldo_normal = 'credit';
-                $golongan = 'Pendapatan Lainnya';
-                break;
-            case '8':
-                $saldo_normal = 'debit';
-                $golongan = 'Beban Lainnya';
-                break;
-            default:
-                $saldo_normal = 'credit';
-                $golongan = 'Beban Umum'; // Nilai default untuk golongan
-                break;
-        }
-        
-        // Verifikasi keberadaan parent akun
-        if ($level > 1 && $parent_id) {
-            $parent_level = $level - 1;
-            $selCoa = Coa::where('nomor_akun', $parent_id)
-                        ->where('level', $parent_level)
-                        ->where('created_by', Auth::user()->id)
-                        ->first();
-
-            if (empty($selCoa)) {
-                Alert::error('Oops!', 'Akun Level ' . $parent_level . ' tidak ditemukan untuk parent dengan nomor akun ' . $parent_id);
-                return redirect()->back();
-            }
-        }
-
-        $data = [
-            'parent_id'    => $selCoa->id ?? null,
-            'subchild'     => ($selCoa->subchild ?? 0) + 1,
-            'nomor_akun'   => $real_akun,
-            'nama_akun'    => $nama_akun,
-            'level'        => $level,
-            'saldo_normal' => $saldo_normal,
-            'golongan'     => $golongan,
-            'arus_kas'     => 'aktifitas_operasional',
-            'saldo_awal_debit' => 0,
-            'saldo_awal_credit' => 0,
-            'saldo_berjalan_debit' => 0,
-            'saldo_berjalan_credit' => 0,
-            'created_at'   => now(),
-            'created_by'   => Auth::user()->id,
-        ];
-
-        $save = Coa::create($data);
-        if($save) {
-            Alert::success('Sukses !', 'Berhasil membuat data');
-            return redirect()->back();
-        } else {
-            Alert::error('Oops!', 'Gagal membuat data');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error creating COA: ' . $e->getMessage());
+            Alert::error('Oops!', $e->getMessage());
             return redirect()->back();
         }
     }
 
-    // Metode untuk menentukan saldo_normal
-    private function determineSaldoNormal($nomor_akun)
+    public function update(CoaRequest $request, Coa $coa)
     {
-        // Menentukan saldo_normal berdasarkan awalan nomor akun
-        $awal = substr($nomor_akun, 0, 1);
-        
-        switch ($awal) {
-            case '1':
-            case '5':
-                return 'debit';
-            case '2':
-            case '3':
-            case '4':
-                return 'credit';
-            default:
-                return 'credit'; // Nilai default untuk saldo_normal
-        }
-    }
+        try {
+            DB::beginTransaction();
 
-    public function update(Request $request, Coa $coa)
-    {
-        $input = $request->all();
+            $data = $this->coaService->prepareCOAData($request->validated());
 
-        $validator = Validator::make($input, [
-            'nomor_akun' => 'required|regex:/^[0-9\-]+$/',
-            'nama_akun'  => 'required|string',
-        ]);
+            // Remove creation-specific fields for update
+            unset($data['created_at'], $data['tgl_dibuat'], $data['created_by'], $data['periode']);
+            $data['updated_at'] = now();
+            $data['updated_by'] = Auth::id();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status'  => 400,
-                'message' => 'Validation error',
-                'errors'  => $validator->errors()
-            ], 400);
-        }
+            $coa->update($data);
 
-        $nomor_akun = $coa->nomor_akun = $input['nomor_akun'];
-        $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
-        $real_akun = $nomor_akun_tanpa_tanda_hubung;
-        $jumlah_digit_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
-        $level = 0;
+            DB::commit();
 
-       // Menentukan level berdasarkan jumlah digit nomor akun
-       if ($jumlah_digit_nomor_akun == 1) {
-        $level = 1;
-        } elseif ($jumlah_digit_nomor_akun == 2) {
-            $level = 2;
-        } elseif ($jumlah_digit_nomor_akun == 3) {
-            $level = 3;
-        } elseif ($jumlah_digit_nomor_akun == 5) {
-            $level = 4;
-        } elseif ($jumlah_digit_nomor_akun == 8) {
-            $level = 5;
-        } else {
-            Alert::error('Oops!', 'Format nomor akun tidak valid');
+            Alert::success('Sukses!', 'Berhasil mengubah data');
             return redirect()->back();
-        }
-
-        // Menentukan parent_id berdasarkan level
-        $parent_id = null;
-        if ($level == 2) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 1); // Parent Level 1
-        } elseif ($level == 3) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 2); // Parent Level 2
-        } elseif ($level == 4) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 3); // Parent Level 3
-        } elseif ($level == 5) {
-            $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 5); // Parent Level 4
-        }
-
-        $nama_akun = $input['nama_akun'];
-
-        // Menentukan saldo_normal, golongan otomatis
-        $awal = substr($nomor_akun_tanpa_tanda_hubung, 0, 1);
-        switch ($awal) {
-            case '1':
-                $saldo_normal = 'debit';
-                $golongan = 'Aset';
-                break;
-            case '2':
-                $saldo_normal = 'credit';
-                $golongan = 'Liabilitas';
-                break;
-            case '3':
-                $saldo_normal = 'credit';
-                $golongan = 'Ekuitas';
-                break;
-            case '4':
-                $saldo_normal = 'credit';
-                $golongan = 'Pendapatan';
-                break;
-            case '5':
-                $saldo_normal = 'debit';
-                $golongan = 'Beban';
-                break;
-            case '6':
-                $saldo_normal = 'debit';
-                $golongan = 'Beban Umum';
-                break;
-            case '7':
-                $saldo_normal = 'credit';
-                $golongan = 'Pendapatan Lainnya';
-                break;
-            case '8':
-                $saldo_normal = 'debit';
-                $golongan = 'Beban Lainnya';
-                break;
-            default:
-                $saldo_normal = 'credit';
-                $golongan = 'Beban Umum'; // Nilai default untuk golongan
-                break;
-        }
-
-
-        $selCoa = Coa::where('nomor_akun', $parent_id)
-                      ->where('created_by', Auth::user()
-                      ->id)->first();
-        $data = [
-            'parent_id'    => $selCoa->id ?? null,
-            'nomor_akun'   => $real_akun,
-            'nama_akun'    => $nama_akun,
-            'level'        => $level,
-            'golongan'     => $golongan,
-            'saldo_normal' => $saldo_normal,
-            'updated_at'   => now(),
-            'updated_by'   => Auth::user()->id,
-        ];
-
-        $update = $coa->update($data);
-        if ($update) {
-            Alert::success('Sukses !', 'Berhasil mengubah data');
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            Alert::error('Oops!', $e->getMessage());
             return redirect()->back();
-        } else {
-            Alert::error('Oops!', 'Gagal mengubah data');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating COA: ' . $e->getMessage());
+            Alert::error('Oops!', $e->getMessage());
             return redirect()->back();
         }
     }
@@ -462,31 +133,33 @@ class CoaController extends Controller
      */
     public function destroy($id)
     {
-        $coa = Coa::find($id);
-        if (!$coa) {
-            Alert::error('Oops!', 'Data tidak ditemukan');
+        try {
+            $coa = Coa::findOrFail($id);
+
+            // Check if account is used in journal entries
+            $jurnal = JurnalDetail::where('coa_akun', $coa->nomor_akun)->first();
+            if ($jurnal) {
+                Alert::error('Oops!', 'Akun tidak dapat dihapus karena sudah digunakan');
+                return redirect()->back();
+            }
+
+            DB::beginTransaction();
+
+            $coa->update([
+                'is_deleted' => 1,
+                'deleted_at' => now(),
+                'deleted_by' => Auth::id(),
+            ]);
+
+            $coa->delete();
+
+            DB::commit();
+
+            Alert::success('Sukses!', 'Berhasil menghapus data');
             return redirect()->back();
-        }
-
-        $jurnal = JurnalDetail::where('coa_akun', $coa->nomor_akun)->first();
-        if ($jurnal) {
-            Alert::error('Oops!', 'Akun tidak dapat dihapus karena sudah digunakan');
-            return redirect()->back();
-        }
-
-        $data = [
-            'is_deleted'    => 1,
-            'deleted_at'    => now(),
-            'deleted_by'    => Auth::user()->id,
-        ];
-
-        $update = $coa->update($data);
-        $coa->delete();
-
-        if ($update) {
-            Alert::success('Sukses !', 'Berhasil menghapus data');
-            return redirect()->back();
-        } else {
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting COA: ' . $e->getMessage());
             Alert::error('Oops!', 'Gagal menghapus data');
             return redirect()->back();
         }
@@ -498,212 +171,150 @@ class CoaController extends Controller
             'file' => 'required|mimes:xls,xlsx',
         ]);
 
-        $path = $request->file('file')->getRealPath();
-        $excel = Excel::toArray(new CoaImport, $request->file('file'))[0];
+        try {
+            DB::beginTransaction();
 
-        // da($excel);
-        usort($excel, function ($a, $b) {
-            return strlen($a['kode_akun']) <=> strlen($b['kode_akun']);
-        });
+            $excel = Excel::toArray(new CoaImport, $request->file('file'))[0];
 
-        // dd($excel);
-        $data = []; // Initialize the data array
-        $existingAccounts = []; // Array to store existing accounts
-        $duplicatesInExcel = []; // Array to store duplicate accounts in the Excel file
+            usort($excel, function ($a, $b) {
+                return strlen($a['kode_akun']) <=> strlen($b['kode_akun']);
+            });
 
-        foreach ($excel as $key => $value) {
-            $nomor_akun     = $value['kode_akun'];
-            $nomor_akun_tanpa_tanda_hubung = str_replace('-', '', $nomor_akun);
-            $real_akun = $nomor_akun_tanpa_tanda_hubung;
-            $jumlah_nomor_akun = strlen($nomor_akun_tanpa_tanda_hubung);
-            $level = 0;
+            $data = [];
+            $existingAccounts = [];
+            $duplicatesInExcel = [];
+            $periode = auth()->user()->periode;
 
-            // da($value);
-            if ($jumlah_nomor_akun == 1) {
-                $level = 1;
-            } elseif ($jumlah_nomor_akun == 2) {
-                $level = 2;
-            } elseif ($jumlah_nomor_akun == 3) {
-                $level = 3;
-            } elseif ($jumlah_nomor_akun == 5) {
-                $level = 4;
-            } elseif ($jumlah_nomor_akun == 8) {
-                $level = 5;
-            } else {
-                // da($value);
-                Alert::error('Oops!', 'Format nomor akun tidak valid');
-                return redirect()->back();
-            }
+            foreach ($excel as $value) {
+                $cleanAccountNumber = str_replace('-', '', $value['kode_akun']);
 
-            // Menentukan parent_id berdasarkan level
-            // da($level);
-            $parent_id = null;
-            if ($level == 2) {
-                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 1); // Parent Level 1
-            } elseif ($level == 3) {
-                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 2); // Parent Level 2
-            } elseif ($level == 4) {
-                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 3); // Parent Level 3
-            } elseif ($level == 5) {
-                $parent_id = substr($nomor_akun_tanpa_tanda_hubung, 0, 5); // Parent Level 4
-            }
+                // Check for duplicates
+                $existingCoa = Coa::where('nomor_akun', $cleanAccountNumber)
+                    ->where('created_by', Auth::id())
+                    ->first();
 
-            $nama_akun      = $value['nama_akun'];
-
-            // Menentukan saldo_normal, golongan otomatis
-            $awal = substr($nomor_akun_tanpa_tanda_hubung, 0, 1);
-            switch ($awal) {
-                case '1':
-                    $saldo_normal = 'debit';
-                    $golongan = 'Aset';
-                    break;
-                case '2':
-                    $saldo_normal = 'credit';
-                    $golongan = 'Liabilitas';
-                    break;
-                case '3':
-                    $saldo_normal = 'credit';
-                    $golongan = 'Ekuitas';
-                    break;
-                case '4':
-                    $saldo_normal = 'credit';
-                    $golongan = 'Pendapatan';
-                    break;
-                case '5':
-                    $saldo_normal = 'debit';
-                    $golongan = 'Beban';
-                    break;
-                case '6':
-                    $saldo_normal = 'debit';
-                    $golongan = 'Beban Umum';
-                    break;
-                case '7':
-                    $saldo_normal = 'credit';
-                    $golongan = 'Pendapatan Lainnya';
-                    break;
-                case '8':
-                    $saldo_normal = 'debit';
-                    $golongan = 'Beban Lainnya';
-                    break;
-                default:
-                    $saldo_normal = 'credit';
-                    $golongan = 'Beban Umum'; // Nilai default untuk golongan
-                    break;
-            }
-
-            // da($parent_id);
-
-            $selCoa = Coa::where('nomor_akun', $parent_id)
-                        ->where('created_by', Auth::user()->id)
-                        ->first();
-
-            // Cek apakah data sudah ada
-            $existingCoa = Coa::where('nomor_akun', $real_akun)
-                              ->where('created_by', Auth::user()->id)
-                              ->first();
-
-
-            if ($existingCoa || in_array($real_akun, $existingAccounts)) {
-                $duplicatesInExcel[] = $real_akun; // Simpan nomor akun duplikat
-            } else {
-                $existingAccounts[] = $real_akun; // Tambahkan ke daftar akun yang sudah ada
-    
-                $data[] = [
-                    'parent_id'    => $selCoa->id ?? null,
-                    'subchild'     => ($selCoa->subchild ?? 0) + 1,
-                    'nomor_akun'   => $real_akun,
-                    'nama_akun'    => $nama_akun,
-                    'level'        => $level,
-                    'saldo_normal' => $saldo_normal,
-                    'golongan'     => $golongan,
-                    'arus_kas'     => 'aktifitas_operasional',
-                    'saldo_awal_debit' => 0,
-                    'saldo_awal_credit' => 0,
-                    'saldo_berjalan_debit' => 0,
-                    'saldo_berjalan_credit' => 0,
-                    'created_at'   => now(),
-                    'created_by'   => Auth::user()->id,
-                ];
-            }
-        }
-    
-        if (!empty($duplicatesInExcel)) {
-            Alert::error('Oops!', 'Nomor akun berikut sudah ada: ' . implode(', ', $duplicatesInExcel));
-            return redirect()->back();
-        }
-        if (!empty($data)) {
-            $xa = Coa::insert($data);
-            if ($xa) {
-                $updateCoa = Coa::where('created_by', Auth::user()->id)->get();
-                foreach ($updateCoa as $coa) {
-                    if($coa->level == 5){
-                        $pr = substr($coa->nomor_akun, 0, $coa->level);
-                    }else{
-                        $pr = substr($coa->nomor_akun, 0, $coa->level - 1);
-                    }
-
-                    $parent_id = $coa->level > 1 ? Coa::where('nomor_akun', $pr)
-                    ->where('created_by', Auth::user()->id)
-                    ->value('id') : null;
-
-                    $coa->update([
-                        'parent_id' => $parent_id,
-                        'subchild' => Coa::where('parent_id', $coa->id)->where('created_by', Auth::user()->id)->count()
-                    ]);
+                if ($existingCoa || in_array($cleanAccountNumber, $existingAccounts)) {
+                    $duplicatesInExcel[] = $cleanAccountNumber;
+                    continue;
                 }
-                Alert::success('Sukses !', 'Data Coa berhasil di import');
-                return redirect()->back();
-            } else {
-                Alert::error('Oops!', 'Data Coa gagal di import');
+
+                try {
+                    $coaData = $this->coaService->prepareCOAData([
+                        'nomor_akun' => $value['kode_akun'],
+                        'nama_akun' => $value['nama_akun']
+                    ]);
+
+                    $data[] = $coaData;
+                    $existingAccounts[] = $cleanAccountNumber;
+                } catch (\InvalidArgumentException $e) {
+                    Alert::error('Oops!', $e->getMessage());
+                    return redirect()->back();
+                }
             }
-        } else {
-            Alert::warning('Oops!', 'Tidak ada data baru yang diimport');
+
+            if (!empty($duplicatesInExcel)) {
+                Alert::error('Oops!', 'Nomor akun berikut sudah ada: ' . implode(', ', $duplicatesInExcel));
+                return redirect()->back();
+            }
+
+            if (!empty($data)) {
+                Coa::insert($data);
+                $this->updateParentRelationships();
+
+                DB::commit();
+                Alert::success('Sukses!', 'Data COA berhasil diimport');
+            } else {
+                Alert::warning('Oops!', 'Tidak ada data baru yang diimport');
+            }
+
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error importing COA: ' . $e->getMessage());
+            Alert::error('Oops!', 'Data COA gagal diimport: ' . $e->getMessage());
             return redirect()->back();
         }
     }
 
-    public function printCoa(){
-        $data = Coa::where('created_by', Auth::user()->id)
-                    ->where(function($query) {
-                        $query->where('is_deleted', 0)
-                            ->orWhereNull('is_deleted');
-                    })
-                    ->orderBy('nomor_akun')
-                    ->get();
+    /**
+     * Update parent relationships after bulk insert
+     */
+    private function updateParentRelationships(): void
+    {
+        $updateCoa = Coa::where('created_by', Auth::id())->get();
 
+        foreach ($updateCoa as $coa) {
+            $parentAccountNumber = $coa->level == 5
+                ? substr($coa->nomor_akun, 0, $coa->level)
+                : substr($coa->nomor_akun, 0, $coa->level - 1);
+
+            $parentId = $coa->level > 1
+                ? Coa::where('nomor_akun', $parentAccountNumber)
+                    ->where('created_by', Auth::id())
+                    ->value('id')
+                : null;
+
+            $coa->update([
+                'parent_id' => $parentId,
+                'subchild' => Coa::where('parent_id', $coa->id)
+                    ->where('created_by', Auth::id())
+                    ->count()
+            ]);
+        }
+    }
+
+    public function printCoa()
+    {
+        try {
+            $data = $this->getCoaTreeData();
+            $pdf = PDF::loadView('report.printcoa', ['data' => $data, 'bType' => 'download']);
+            return $pdf->download('coa_' . auth()->user()->name . '.pdf');
+        } catch (\Exception $e) {
+            Log::error('Error printing COA: ' . $e->getMessage());
+            Alert::error('Oops!', 'Gagal mencetak data COA');
+            return redirect()->back();
+        }
+    }
+
+    public function previewCoa()
+    {
+        try {
+            $data = $this->getCoaTreeData();
+            return view('report.printcoa', ['data' => $data, 'bType' => 'preview']);
+        } catch (\Exception $e) {
+            Log::error('Error previewing COA: ' . $e->getMessage());
+            Alert::error('Oops!', 'Gagal menampilkan preview COA');
+            return redirect()->back();
+        }
+    }
+
+    /**
+     * Get COA data organized in tree structure
+     */
+    private function getCoaTreeData(): array
+    {
+        $data = Coa::where('created_by', Auth::id())
+            ->where(function ($query) {
+                $query->where('is_deleted', 0)
+                    ->orWhereNull('is_deleted');
+            })
+            ->orderBy('nomor_akun')
+            ->get();
 
         $coaTree = $this->buildTree($data);
         $flatArray = [];
         $this->flattenTree($coaTree, $flatArray);
 
-        // dd($flatArray);
-        $pdf = PDF::loadView('report.printcoa', ['data' => $flatArray, 'bType' => 'download']);
-        return $pdf->download('coa_'.auth()->user()->name.'.pdf');
+        return $flatArray;
     }
 
-    public function previewCoa(){
-        $data = Coa::where('created_by', Auth::user()->id)
-                    ->where(function($query) {
-                        $query->where('is_deleted', 0)
-                            ->orWhereNull('is_deleted');
-                    })
-                    ->orderBy('nomor_akun')
-                    ->get();
 
 
-
-        $coaTree = $this->buildTree($data);
-        // da($coaTree);
-        $flatArray = [];
-        $this->flattenTree($coaTree, $flatArray);
-
-        // da($flatArray);
-        return view('report.printcoa', ['data' => $flatArray, 'bType' => 'preview']);
-    }
-
-    
-
-    private function buildTree($elements, $parentId = 0) {
+    /**
+     * Build hierarchical tree structure from flat data
+     */
+    private function buildTree($elements, $parentId = 0): array
+    {
         $branch = [];
         foreach ($elements as $element) {
             if ($element->parent_id == $parentId) {
@@ -717,7 +328,11 @@ class CoaController extends Controller
         return $branch;
     }
 
-    private function flattenTree($tree, &$flatArray, $level = 1) {
+    /**
+     * Flatten tree structure for display
+     */
+    private function flattenTree($tree, &$flatArray, $level = 1): void
+    {
         foreach ($tree as $node) {
             $node->level = $level;
             $flatArray[] = $node;
@@ -725,10 +340,16 @@ class CoaController extends Controller
                 $this->flattenTree($node->children, $flatArray, $level + 1);
             }
         }
-    } 
+    }
 
     public function export()
     {
-        return Excel::download(new CoaExport(), 'coas.xlsx');
+        try {
+            return Excel::download(new CoaExport(), 'coas.xlsx');
+        } catch (\Exception $e) {
+            Log::error('Error exporting COA: ' . $e->getMessage());
+            Alert::error('Oops!', 'Gagal mengekspor data COA');
+            return redirect()->back();
+        }
     }
 }

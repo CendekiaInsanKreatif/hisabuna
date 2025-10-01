@@ -5,175 +5,238 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Laporan Mutasi Saldo</title>
-    <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
     <style>
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+
         body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 3px;
+            font-family: Arial, sans-serif;
             font-size: 12px;
-            background-color: #f4f4f4;
+            max-width: 1000px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border-bottom: 1px solid #ccc;
-            padding: 3px;
-            text-align: left;
-        }
-        th {
-            background-color: #f0f0f0;
-        }
-        .text-right {
-            text-align: right;
-        }
-        .text-center {
-            text-align: center;
-        }
-        .row {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        .col-md-6 {
-            flex: 0 0 50%;
-        }
-        .col-md-12 {
-            flex: 0 0 100%;
-        }
-        h2 {
-            margin: 0;
-            padding: 0;
-        }
-        h3 {
-            margin: 0;
-            padding: 0;
-        }
+
         .new-header {
             position: relative;
+            text-align: center;
         }
 
         .company-logo {
             position: absolute;
-            top: 50%;
+            top: 5%;
+            left: 0;
             transform: translateY(-50%);
             width: 100px;
         }
 
-        @page {
-            size: A4;
-            margin: 30px;
+	    table tbody {
+            page-break-inside: avoid; /* Hindari pemisahan tabel */
+        }
+
+        .fill-space {
+            flex: 1 1 auto;
+            height: auto; /* Elemen ini akan mengisi ruang kosong */
+        }
+
+        tfoot {
+            page-break-inside: avoid; /* Pastikan footer tidak terpotong */
+        }
+
+        hr {
+            border: 2px solid black;
+            width: 100%;
+        }
+
+        .nowrap {
+            white-space: nowrap;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        h2, h3 {
+            margin: 0;
             padding: 0;
-            @bottom-center {
-                content: counter(page);
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            display: table-header-group;
+        }
+
+        tfoot {
+            display: table-footer-group;
+        }
+
+        th, td {
+            border-bottom: 1px solid #ccc;
+            padding: 3px;
+            text-align: left;
+            width: 100px; /* Ubah angka ini sesuai kebutuhan */
+            word-break: break-all;
+            vertical-align: top;
+        }
+
+        .page {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100vh; /* Pastikan setiap halaman penuh */
+            page-break-before: always;
+        }
+
+        #page-footer {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        @media print {
+            thead {
+                display: table-header-group;
+            }
+
+            tfoot {
+                display: table-footer-group;
+                page-break-inside: avoid;
+            }
+
+            tbody {
+                page-break-inside: avoid;
+            }
+
+            .manual-header {
+                display: none;
             }
         }
+
     </style>
+    <script>
+        setTimeout(() => {
+            window.print()
+        }, 5000);
+    </script>
 </head>
-<body onload="window.print()">
-    <header class="new-header">
-        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
-        <div class="header" style="text-align: center;">
-            <h1><?php echo e(auth()->user()->company_name); ?></h1>
-            <h2>Laporan Mutasi Saldo</h2>
-            <h3>Mutasi Saldo <?php echo e($tanggal_mulai); ?> s/d <?php echo e($tanggal_selesai); ?></h3>
-        </div>
-    </header>
-    <hr style="border: 2px solid black; width: 100%;">
+<body>
+    <?php $__currentLoopData = $dataChunked; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pageIndex => $data): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    <div class="<?php echo e($pageIndex == 0 ? 'page-break-first' : 'page-break'); ?>">
+        <?php if($pageIndex == 0): ?>
+        <header>
+            <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
+            <div class="new-header">
+                <h1><?php echo e(auth()->user()->company_name); ?></h1>
+                <h2>Laporan Mutasi Saldo</h2>
+                <h3>Per <?php echo e(\Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->locale('id')->isoFormat('D MMMM YYYY')); ?></h3>
+            </div>
+        </header>
+        <hr>
+        <?php endif; ?>
 
-    <div class="row">
-        <div class="col-md-12">
-            <table>
-                <thead>
+        <table>
+            <?php if($pageIndex === 0): ?>
+            <thead>
+                <tr>
+                    <th rowspan="2" class="nomor_akun">Nomor Akun</th>
+                    <th rowspan="2" class="nama_akun">Nama Akun</th>
+                    <th colspan="2" class="text-center">Saldo Awal</th>
+                    <th colspan="2" class="text-center">Mutasi</th>
+                    <th colspan="2" class="text-center">Saldo Akhir</th>
+                </tr>
+                <tr>
+                    <th class="text-center">Debit</th>
+                    <th class="text-center">Kredit</th>
+                    <th class="text-center">Debit</th>
+                    <th class="text-center">Kredit</th>
+                    <th class="text-center">Debit</th>
+                    <th class="text-center">Kredit</th>
+                </tr>
+            </thead>
+            <?php endif; ?>
+            <tbody>
+            <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $golongan => $golonganData): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <tr>
+                    <td colspan="8"><h2 style="text-align: left;"><?php echo e($golongan); ?></h2></td>
+                </tr>
+                <?php
+                    $subtotal_saldo_awal_debit = 0;
+                    $subtotal_saldo_awal_credit = 0;
+                    $subtotal_mutasi_debit = 0;
+                    $subtotal_mutasi_credit = 0;
+                    $subtotal_saldo_akhir_debit = 0;
+                    $subtotal_saldo_akhir_credit = 0;
+                ?>
+                <?php $__currentLoopData = $golonganData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $nomor_akun => $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr>
-                        <th rowspan="2">Nomor Akun</th>
-                        <th rowspan="2">Nama Akun</th>
-                        <th colspan="2" class="text-center">Saldo Awal</th>
-                        <th colspan="2" class="text-center">Mutasi</th>
-                        <th colspan="2" class="text-center">Saldo Akhir</th>
+                        <td class="nowrap"><?php echo e(formatNomorAkun($nomor_akun)); ?></td>
+                        <td><?php echo e($detail['nama_akun'] ?? '-'); ?></td>
+                        <td class="text-right"><?php echo e(number_format($detail['saldo_awal']['debit'], 0, ',', '.')); ?></td>
+                        <td class="text-right"><?php echo e(number_format($detail['saldo_awal']['credit'], 0, ',', '.')); ?></td>
+                        <td class="text-right"><?php echo e(number_format($detail['mutasi']['debit'], 0, ',', '.')); ?></td>
+                        <td class="text-right"><?php echo e(number_format($detail['mutasi']['credit'], 0, ',', '.')); ?></td>
+                        <td class="text-right"><?php echo e(number_format($detail['saldo_akhir']['debit'], 0, ',', '.')); ?></td>
+                        <td class="text-right"><?php echo e(number_format($detail['saldo_akhir']['credit'], 0, ',', '.')); ?></td>
                     </tr>
-                    <tr>
-                        <th class="text-center">Debit</th>
-                        <th class="text-center">Kredit</th>
-                        <th class="text-center">Debit</th>
-                        <th class="text-center">Kredit</th>
-                        <th class="text-center">Debit</th>
-                        <th class="text-center">Kredit</th>
-                    </tr>
-                </thead>
-                <tbody>
                     <?php
-                        $total_saldo_awal_debit = 0;
-                        $total_saldo_awal_credit = 0;
-                        $total_mutasi_debit = 0;
-                        $total_mutasi_credit = 0;
-                        $total_saldo_akhir_debit = 0;
-                        $total_saldo_akhir_credit = 0;
+                        $subtotal_saldo_awal_debit += $detail['saldo_awal']['debit'];
+                        $subtotal_saldo_awal_credit += $detail['saldo_awal']['credit'];
+                        $subtotal_mutasi_debit += $detail['mutasi']['debit'];
+                        $subtotal_mutasi_credit += $detail['mutasi']['credit'];
+                        $subtotal_saldo_akhir_debit += $detail['saldo_akhir']['debit'];
+                        $subtotal_saldo_akhir_credit += $detail['saldo_akhir']['credit'];
                     ?>
-                    <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $golongan => $golonganData): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <tr>
-                        <td colspan="8"><h2 style="text-align: left;"><?php echo e($golongan); ?></h2></td>
-                    </tr>
-                        <?php
-                            $subtotal_saldo_awal_debit = 0;
-                            $subtotal_saldo_awal_credit = 0;
-                            $subtotal_mutasi_debit = 0;
-                            $subtotal_mutasi_credit = 0;
-                            $subtotal_saldo_akhir_debit = 0;
-                            $subtotal_saldo_akhir_credit = 0;
-                        ?>
-                        <?php $__currentLoopData = $golonganData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $nomor_akun => $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <tr>
-                            <td><?php echo e(formatNomorAkun($nomor_akun)); ?></td>
-                            <td><?php echo e($detail['nama_akun'] ?? '-'); ?></td>
-                            <td class="text-right"><?php echo e(number_format($detail['saldo_awal']['debit'], 0, ',', '.')); ?></td>
-                            <td class="text-right"><?php echo e(number_format($detail['saldo_awal']['credit'], 0, ',', '.')); ?></td>
-                            <td class="text-right"><?php echo e(number_format($detail['mutasi']['debit'], 0, ',', '.')); ?></td>
-                            <td class="text-right"><?php echo e(number_format($detail['mutasi']['credit'], 0, ',', '.')); ?></td>
-                            <td class="text-right"><?php echo e(number_format($detail['saldo_akhir']['debit'], 0, ',', '.')); ?></td>
-                            <td class="text-right"><?php echo e(number_format($detail['saldo_akhir']['credit'], 0, ',', '.')); ?></td>
-                        </tr>
-                        <?php
-                            $subtotal_saldo_awal_debit += $detail['saldo_awal']['debit'];
-                            $subtotal_saldo_awal_credit += $detail['saldo_awal']['credit'];
-                            $subtotal_mutasi_debit += $detail['mutasi']['debit'];
-                            $subtotal_mutasi_credit += $detail['mutasi']['credit'];
-                            $subtotal_saldo_akhir_debit += $detail['saldo_akhir']['debit'];
-                            $subtotal_saldo_akhir_credit += $detail['saldo_akhir']['credit'];
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <tr style="border-top: 2px solid black;">
+                    <td colspan="2" class="text-right"><strong>Jumlah <?php echo e($golongan); ?> :</strong></td>
+                    <td class="text-right"><?php echo e(number_format($subtotal_saldo_awal_debit, 0, ',', '.')); ?></td>
+                    <td class="text-right"><?php echo e(number_format($subtotal_saldo_awal_credit, 0, ',', '.')); ?></td>
+                    <td class="text-right"><?php echo e(number_format($subtotal_mutasi_debit, 0, ',', '.')); ?></td>
+                    <td class="text-right"><?php echo e(number_format($subtotal_mutasi_credit, 0, ',', '.')); ?></td>
+                    <td class="text-right"><?php echo e(number_format($subtotal_saldo_akhir_debit, 0, ',', '.')); ?></td>
+                    <td class="text-right"><?php echo e(number_format($subtotal_saldo_akhir_credit, 0, ',', '.')); ?></td>
+                </tr>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </tbody>
+        </table>
 
-                            $total_saldo_awal_debit += $detail['saldo_awal']['debit'];
-                            $total_saldo_awal_credit += $detail['saldo_awal']['credit'];
-                            $total_mutasi_debit += $detail['mutasi']['debit'];
-                            $total_mutasi_credit += $detail['mutasi']['credit'];
-                            $total_saldo_akhir_debit += $detail['saldo_akhir']['debit'];
-                            $total_saldo_akhir_credit += $detail['saldo_akhir']['credit'];
-                        ?>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        <tr style="border-top: 2px solid black;">
-                            <td colspan="2" class="text-right"><strong>Jumlah <?php echo e($golongan); ?> :</strong></td>
-                            <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($subtotal_saldo_awal_debit, 0, ',', '.')); ?></td>
-                            <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($subtotal_saldo_awal_credit, 0, ',', '.')); ?></td>
-                            <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($subtotal_mutasi_debit, 0, ',', '.')); ?></td>
-                            <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($subtotal_mutasi_credit, 0, ',', '.')); ?></td>
-                            <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($subtotal_saldo_akhir_debit, 0, ',', '.')); ?></td>
-                            <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($subtotal_saldo_akhir_credit, 0, ',', '.')); ?></td>
-                        </tr>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    <tr style="border-top: 2px solid black;">
-                        <td colspan="2" class="text-right"><strong>Jumlah : </strong></td>
-                        <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($total_saldo_awal_debit, 0, ',', '.')); ?></td>
-                        <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($total_saldo_awal_credit, 0, ',', '.')); ?></td>
-                        <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($total_mutasi_debit, 0, ',', '.')); ?></td>
-                        <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($total_mutasi_credit, 0, ',', '.')); ?></td>
-                        <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($total_saldo_akhir_debit, 0, ',', '.')); ?></td>
-                        <td class="text-right" style="font-weight: bold;"><?php echo e(number_format($total_saldo_akhir_credit, 0, ',', '.')); ?></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Footer Nomor Halaman -->
+        
+
     </div>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+    <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+        <tbody>
+            <?php $__currentLoopData = $subTotal; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $subIndex => $subTotalValue): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <tr>
+                <td colspan="2" style="width: 100%;"><h2 style="text-align: left;"><?php echo e($subTotal['Jumlah']['nama_akun']); ?></h2></td>
+                <td class="jumlah" style="width: 0%; text-align: right;"><?php echo e(number_format($subTotal['Jumlah']['saldo_awal']['debit'], 0, ',', '.')); ?></td>
+                <td class="jumlah" style="width: 0%; text-align: right;"><?php echo e(number_format($subTotal['Jumlah']['saldo_awal']['kredit'], 0, ',', '.')); ?></td>
+                <td class="jumlah" style="width: 0%; text-align: right;"><?php echo e(number_format($subTotal['Jumlah']['mutasi']['debit'], 0, ',', '.')); ?></td>
+                <td class="jumlah" style="width: 0%; text-align: right;"><?php echo e(number_format($subTotal['Jumlah']['mutasi']['kredit'], 0, ',', '.')); ?></td>
+                <td class="jumlah" style="width: 0%; text-align: right;"><?php echo e(number_format($subTotal['Jumlah']['saldo_akhir']['debit'], 0, ',', '.')); ?></td>
+                <td class="jumlah" style="width: 0%; text-align: right;"><?php echo e(number_format($subTotal['Jumlah']['saldo_akhir']['kredit'], 0, ',', '.')); ?></td>
+            </tr>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        </tbody>
+    </table>
+
+
 </body>
 </html>
 <?php /**PATH /var/www/hisabuna/backend/resources/views/report/mutasi_saldo.blade.php ENDPATH**/ ?>

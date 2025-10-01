@@ -28,6 +28,10 @@ class User extends Authenticatable
         'no_telp',
         'roles',
         'is_active',
+        'is_deleted',
+        'trial_ends_at',
+        'is_subscribed',
+        'subscribed_until'
     ];
 
     /**
@@ -59,5 +63,10 @@ class User extends Authenticatable
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

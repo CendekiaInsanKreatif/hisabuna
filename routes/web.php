@@ -6,6 +6,8 @@ use App\Http\Controllers\JurnalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Report_Controller;
 use App\Http\Controllers\ArusKasController;
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\InvoiceController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +16,10 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Cache;
+use RealRashid\SweetAlert\Facades\Alert;
 
+use App\Http\Controllers\DashboardController;
 use App\Models\Coa;
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
@@ -22,37 +27,16 @@ use App\Imports\JurnalDetailImport;
 use App\Imports\MultipleJurnal;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    if(auth()->user()->is_active == 0){
-        Auth::guard('web')->logout();
-        return redirect()->route('login')->with('message', 'Akun anda tidak aktif')->with('color', 'red');
-    }
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
-    if(auth()->user()->profile == 'trial'){
-        $dP = JurnalDetail::where('created_by', auth()->user()->id)->first();
-
-        if ($dP) {
-            $z = Carbon::parse($dP->tanggal_bukti);
-            $h = $z->addMonths(2);
-
-            if (now()->lessThan($h)) {
-                return view('jurnal.index');
-            } else {
-                Alert::error('Oops!', 'Masa trial anda sudah expired');
-                User::where('id', auth()->user()->id)->update([
-                    'is_active' => 0
-                ]);
-                return view('jurnal.index');
-            }
-        }
-    }
-
-    return view('jurnal.index');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
 
@@ -60,9 +44,46 @@ Route::middleware('auth')->group(function () {
         return view('upgrade.index');
     })->name('upgrade.index');
 
+    Route::get('/subscription/upgrade', [SubscriptionController::class, 'showUpgradePage'])->name('subscription.upgrade');
+    Route::get('/subscription/token', [SubscriptionController::class, 'getSnapToken']);
+    Route::get('/subscription/success', [SubscriptionController::class, 'paymentSuccess']);
+    Route::get('/subscription/renew', [SubscriptionController::class, 'renew'])->name('subscription.renew');
+    Route::get('/payment/details/{order}', [SubscriptionController::class, 'show'])
+    ->name('payment.details');
+
+    //27 mei 2025
+    Route::get('/invoice/preview/{orderId}', [SubscriptionController::class, 'previewInvoice'])
+        ->name('invoice.preview')
+        ->middleware('auth');
+
+    Route::get('/invoices/{invoice}/download', function (App\Models\Invoice $invoice) {
+        $path = storage_path('app/' . $invoice->file_path);
+
+        if (!file_exists($path)) {
+            abort(404, 'Invoice tidak tersedia');
+        }
+
+        return response()->download($path, "invoice_{$invoice->order_id}.pdf");
+    })->name('invoice.download')->middleware('auth');
+
+    Route::get('/invoice', function () {
+        $invoices = Auth::user()->invoices()->latest()->get();
+        return view('invoices.index', compact('invoices'));
+    })->name('invoices.index')->middleware('auth');
+
+
+
     //  Main Route
     Route::resource('coas', CoaController::class);
+    Route::get('jurnal/data', [JurnalController::class, 'getData'])->name('jurnal.data');
     Route::resource('jurnal', JurnalController::class);
+
+    // AJAX Data Route untuk optimisasi frontend
+
+    // Export Routes untuk Jurnal
+    Route::get('jurnal/export/all', [JurnalController::class, 'exportAllJurnal'])->name('jurnal.export.all');
+    Route::get('jurnal/export/date/{startDate?}/{endDate?}', [JurnalController::class, 'exportJurnalByDate'])->name('jurnal.export.date');
+    Route::post('jurnal/export', [JurnalController::class, 'exportJurnal'])->name('jurnal.export');
     // Route::get('cekTrial')
 
     // Users
@@ -101,7 +122,7 @@ Route::middleware('auth')->group(function () {
             $filePath = 'profiles/' . $user->company_name;
             $fileName = $user->id . '.' . $lampiranFile->getClientOriginalExtension();
             $tempPath = $lampiranFile->getPathName();
-        
+
             try {
                 $imagick = new Imagick($tempPath);
                 $imagick->setImageCompressionQuality(30);
@@ -139,7 +160,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('users/{id}', function($id) {
         $user = User::findOrFail($id);
         $user->is_deleted = 1;
-        $user->save(); 
+        $user->save();
 
         return redirect()->route('users.index')->with('message', 'Berhasil Nonaktifkan Pengguna')->with('color', 'green');
     })->name('users.destroy');
@@ -157,14 +178,47 @@ Route::middleware('auth')->group(function () {
         return view('arus-kas.index');
     })->name('arus-kas.index');
 
-    Route::match(['put', 'patch'], 'arus-kas/{id}', function(Request $request, $id) {
-        Coa::where('id', $id)->update([
-            'arus_kas' => $request->input('value'),
-        ]);
+    Route::get('arus-kas/data', function() {
+        $arusKas = Coa::whereNull('is_deleted')
+                     ->where('created_by', Auth::user()->id)
+                     ->where('level', '=', 4)
+                     ->orderBy('nomor_akun', 'asc')
+                     ->get();
+        return response()->json($arusKas);
+    })->name('arus.kas.data');
 
-        return response()->json(['message' => 'Berhasil Update Aruskas'], 200);
+    Route::match(['put', 'patch'], 'arus-kas/{id}', function(Request $request, $id) {
+        try {
+            $coa = Coa::where('id', $id)
+                     ->where('created_by', Auth::user()->id)
+                     ->first();
+
+            if (!$coa) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun tidak ditemukan'
+                ], 404);
+            }
+
+            $coa->update([
+                'arus_kas' => $request->input(in_array($request->input('_method'), ['PUT', 'PATCH']) ? 'arus_kas' : 'value'),
+            ]);
+
+            Alert::success('Sukses!', 'Berhasil Update Arus Kas');
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil Update Arus Kas',
+                'title' => 'Sukses!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengupdate data',
+                'title' => 'Error!'
+            ], 500);
+        }
     })->name('arus-kas.update');
-    
+
     Route::get('saldo-awal', function(){
         return view('saldo-awal.index');
     })->name('saldo-awal.index');
@@ -179,7 +233,7 @@ Route::middleware('auth')->group(function () {
         $sumCredit = array_sum(array_map(function($value) {
             return (int) str_replace('.', '', $value);
         }, $creditValues));
-    
+
         DB::beginTransaction();
         // da($request->all());
         try {
@@ -193,13 +247,13 @@ Route::middleware('auth')->group(function () {
             foreach ($ids as $index => $id) {
                 $debit = (int) str_replace('.', '', $debitValues[$index]);
                 $credit = (int) str_replace('.', '', $creditValues[$index]);
-    
+
                 Coa::where('id', $id)->update([
                     'saldo_awal_debit' => $debit,
                     'saldo_awal_credit' => $credit,
                 ]);
             }
-    
+
             DB::commit();
             Alert::success('Sukses!', 'Berhasil Update Saldo Awal');
             return redirect()->route('saldo-awal.index');
@@ -235,7 +289,7 @@ Route::middleware('auth')->group(function () {
         // Report Controller
         Route::get('daftarjurnal', [ReportController::class, 'daftarJurnal'])->name('report.daftarjurnal');
         Route::get('transaksi/{id}', [ReportController::class, 'transaksi'])->name('report.transaksi');
-        
+
         // Report View
         Route::get('labarugi', [ReportController::class, 'labaRugi'])->name('report.views.labarugi');
         Route::get('labaRugiView', [ReportController::class, 'labaRugiView'])->name('labaRugiView');
@@ -246,18 +300,18 @@ Route::middleware('auth')->group(function () {
         Route::get('aruskas', [ReportController::class, 'arusKas'])->name('report.views.aruskas');
         Route::get('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.views.bukubesar');
         Route::get('mutasi-saldo', [ReportController::class, 'mutasiSaldo'])->name('report.views.mutasisaldo');
-        
+
         // Report PDF
         Route::post('labarugi', [ReportController::class, 'labaRugi'])->name('report.labarugi');
         Route::post('perubahanekuitas', [ReportController::class, 'perubahanEkuitas'])->name('report.perubahanekuitas');
-        Route::post('neraca', [ReportController::class, 'neraca'])->name('report.neraca');
+        Route::post('neraca-perbandingan', [ReportController::class, 'neraca'])->name('report.neraca');
         Route::post('neraca-saldo', [ReportController::class, 'neracaSaldo'])->name('report.neracasaldo');
         Route::post('aruskas', [ReportController::class, 'arusKas'])->name('report.aruskas');
         Route::post('bukubesar', [ReportController::class, 'bukuBesar'])->name('report.bukubesar');
         Route::post('mutasi-saldo', [ReportController::class, 'mutasiSaldo'])->name('report.mutasisaldo');
         // Route::post('labarugidownloadpdf', [ReportController::class, 'labaRugiDownloadPDF'])->name('report.labarugiprint');
-        Route::post('neraca-perbandingan', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
-        
+        Route::post('neraca', [ReportController::class, 'neracaPerbandingan'])->name('report.neracaperbandingan');
+
         Route::get('print-coa', [CoaController::class, 'printCoa'])->name('report.print-coa');
         Route::get('preview-coa', [CoaController::class, 'previewCoa'])->name('report.preview-coa');
     });
@@ -265,8 +319,8 @@ Route::middleware('auth')->group(function () {
     // API Rouye
     Route::prefix('api')->group(function () {
         Route::get('users', function(){
-            if(auth()->user()->roles == 'superadmin'){
-                $user = User::where('id', '!=', auth()->user()->id)->where('is_deleted', '!=', 1)->orderBy('name', 'asc')->get();
+            if(Auth::user()->roles == 'superadmin'){
+                $user = User::where('id', '!=', Auth::user()->id)->where('is_deleted', '!=', 1)->orderBy('name', 'asc')->get();
                 return response()->json($user);
             }else{
                 return response()->json([
@@ -276,6 +330,7 @@ Route::middleware('auth')->group(function () {
             }
         });
 
+        Route::get('/jurnalBy/{id}', [JurnalController::class, 'getByID'])->name('jurnal.byID');
         Route::get('labarugi', [Report_Controller::class, 'labaRugi'])->name('api.labarugi');
         Route::get('perubahanekuitas', [Report_Controller::class, 'perubahanEkuitas'])->name('api.perubahanekuitas');
         Route::get('neraca', [Report_Controller::class, 'neraca'])->name('api.neraca');
@@ -285,21 +340,21 @@ Route::middleware('auth')->group(function () {
 
         Route::get('coas', function () {
             $coa = Coa::whereNull('is_deleted')
-                    ->where('created_by', auth()->user()->id)
+                    ->where('created_by', Auth::user()->id)
                     ->orderBy('nomor_akun')
                       ->orderBy('level')
                       ->get();
 
             return response()->json($coa);
         });
-        
+
         Route::get('arus-kas', function () {
-            $arusKas = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->where('level', '=', 4)->orderBy('nomor_akun', 'asc')->get();
+            $arusKas = Coa::whereNull('is_deleted')->where('created_by', Auth::user()->id)->where('level', '=', 4)->orderBy('nomor_akun', 'asc')->get();
             return response()->json($arusKas);
         });
 
         Route::get('saldo-awal', function () {
-            $saldoAwal = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->where('level', '=', 5)->orderBy('nomor_akun', 'asc')->get();
+            $saldoAwal = Coa::whereNull('is_deleted')->where('created_by', Auth::user()->id)->where('level', '=', 5)->orderBy('nomor_akun', 'asc')->get();
             return response()->json($saldoAwal);
         });
 
@@ -320,15 +375,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/uploadsample', function(Request $request){
             DB::beginTransaction();
             try {
+                $periode        = Auth::user()->periode;
+                $tanggal_dibuat = $periode."-".date('m-d');
                 $dataJurnal = Jurnal::create([
                     'jenis' => 'JV',
                     'no_urut_transaksi' => 1,
                     'no_transaksi' => '1',
-                    'jurnal_tgl' => now(),
+                    'jurnal_tgl' => $tanggal_dibuat,
                     'subtotal' => 5360178622,
                     'keterangan' => 'Jurnal Umum Import Sample',
                     'created_by' => Auth::user()->id,
-                    'created_at' => now()
+                    'created_at' => $tanggal_dibuat
                 ]);
 
                 if($dataJurnal){
@@ -341,11 +398,12 @@ Route::middleware('auth')->group(function () {
                     foreach ($data[0] as $row) {
                         $no_akun = str_replace('-', '', $row['akun_coa']);
                         $coa = Coa::where('nomor_akun', $no_akun)->where('created_by', Auth::user()->id)->first();
-                        
+
                         if ($coa) {
                             $debit = (int) ($row['debit'] ?? 0);
                             $credit = (int) ($row['kredit'] ?? 0);
-                    
+                            $periode        = Auth::user()->periode;
+                            $tanggal_dibuat = $periode."-".date('m-d');
                             $dtal = JurnalDetail::create([
                                 'jurnal_id' => $dataJurnal->id,
                                 'coa_akun' => $coa->nomor_akun,
@@ -354,12 +412,12 @@ Route::middleware('auth')->group(function () {
                                 'keterangan' => $row['keterangan'],
                                 'tanggal_bukti' => Carbon::parse(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row['tanggal_bukti']))->format('Y-m-d H:i:s'),
                                 'created_by' => Auth::user()->id,
-                                'created_at' => now()
+                                'created_at' =>  $tanggal_dibuat
                             ]);
-                    
+
                             if ($dtal) {
                                 $saldo_normal = strtolower($coa->saldo_normal);
-                    
+
                                 if ($saldo_normal == 'debit' || $saldo_normal == 'd' || $saldo_normal == 'db') {
                                     if ($debit < 0) {
                                         $new_balance = $coa->saldo_awal_debit - abs($debit) - $credit;
@@ -388,7 +446,7 @@ Route::middleware('auth')->group(function () {
                         }
 
                         $rCount++;
-                    }                    
+                    }
                 }
 
                 DB::commit();
@@ -406,18 +464,36 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('coa-update', function () {
-            $coa = Coa::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get();
+            $coa = Coa::whereNull('is_deleted')->where('created_by', Auth::user()->id)->get();
             return response()->json($coa);
         });
 
         Route::get('jurnal', function () {
-            // da('fafa');
-            $jurnal = Jurnal::with(['details.coa'])
-                ->whereNull('is_deleted')
-                ->where('created_by', auth()->user()->id)
-                ->orderBy('created_at', 'desc')
-                ->get();
-            // da($jurnal);
+
+
+            // $jurnal = Cache::remember('jurnal_' . Auth::user()->id, now()->addMinutes(10), function () {
+                // return Jurnal::with('details.coa')
+                // ->whereNull('is_deleted')
+                // ->where('created_by', Auth::user()->id)
+                // ->orderByRaw('CAST(no_urut_transaksi AS UNSIGNED) DESC')
+                // ->get();
+            // });
+
+
+            // Fixed Error view Jurnal (dede)
+            $jurnal = Jurnal::with([
+                            'details' => function($query) {
+                                $query->select('id', 'jurnal_id', 'coa_akun', 'debit', 'credit', 'tanggal_bukti', 'lampiran', 'created_by');
+                            },
+                            'details.coa' => function($query) {
+                                $query->select('nomor_akun', 'nama_akun', 'created_by');
+                            }
+                        ])
+                        ->whereNull('is_deleted')
+                        ->where('created_by', Auth::user()->id)
+                        ->orderByRaw('CAST(no_urut_transaksi AS UNSIGNED) DESC')
+                        ->get();
+
             return response()->json($jurnal);
         });
 
@@ -430,8 +506,8 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('view')->group(function () {
         Route::get('daftarjurnal', function () {
-            $jurnal = Jurnal::with('details')->where('created_by', auth()->user()->id)->get();
-
+            $jurnal = Jurnal::with('details')->where('created_by', Auth::user()->id)->get();
+            // da($jurnal);
             return view('report.daftarjurnal', compact('jurnal'));
         });
 
@@ -443,20 +519,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('all-report', function(){
 
-        $coa = Coa::whereNull('is_deleted')->where('level', 5)->where('created_by', auth()->user()->id)->get();
+        $coa = Coa::whereNull('is_deleted')->where('level', 5)->where('created_by', Auth::user()->id)->get();
 
         return view('report.template', compact('coa'));
     })->name('report.template');
-
-    // Route::post('checkout', function(){
-    //     $params = array(
-    //         'transaction_details' => array(
-    //             'order_id' => rand(),
-    //             'gross_amount' => 10000,
-    //         ),
-            
-    //     );
-    // });
 
 });
 

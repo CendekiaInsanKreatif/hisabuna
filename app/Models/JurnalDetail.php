@@ -14,6 +14,8 @@ class JurnalDetail extends Model
 
     protected $fillable = ['id', 'jurnal_id', 'coa_akun', 'debit', 'credit', 'keterangan','tanggal_bukti','lampiran','created_by','updated_by','deleted_by'];
 
+    public $timestamps = false;
+
     public function jurnal()
     {
         return $this->belongsTo(Jurnal::class, 'jurnal_id', 'id')->whereYear('created_at', '=', auth()->user()->periode);

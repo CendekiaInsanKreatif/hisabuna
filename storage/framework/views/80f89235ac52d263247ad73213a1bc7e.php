@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Perubahan Ekuitas</title>
+    <link rel="icon" href="<?php echo e(asset('images/icons/hisabuna-favicon.png')); ?>" type="image/x-icon">
     <style>
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
             max-width: 800px;
-            margin: 0 auto;
+            margin: 0 35px;
         }
         table {
             width: 100%;
@@ -34,10 +35,10 @@
 
         .company-logo {
             position: absolute;
-            top: 50%;
+            top: 5%;
+            left: 0;
             transform: translateY(-50%);
             width: 100px;
-
         }
 
         @page {
@@ -50,8 +51,13 @@
         }
     </style>
     <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
+    <script>
+        setTimeout(() => {
+                window.print()
+            }, 5000);
+    </script>
 </head>
-<body onload="window.print()">
+<body>
     <header class="new-header">
         <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
         <div class="header" style="text-align: center;">
@@ -65,9 +71,9 @@
         <thead>
             <tr>
                 <th style="text-align: center; width: 40%;">Keterangan</th>
-                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;"><?php echo e(date('Y')); ?></th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;"><?php echo e($tahun); ?></th>
                 <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;">Penambahan / <br> (Pengurangan)</th>
-                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;"><?php echo e(date('Y') - 1); ?></th>
+                <th style="text-align: right; border-bottom: 1px solid #000; width: 20%;"><?php echo e($tahun - 1); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -76,7 +82,7 @@
                 $totalEkuitasTahunLalu = 0;
             ?>
             <?php $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $year => $values): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <?php if($year == date('Y')): ?>
+                <?php if($year == $tahun): ?>
                     <?php $__currentLoopData = $values; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <?php
                             $totalEkuitasTahunIni += $value;
@@ -85,8 +91,8 @@
                         <tr>
                             <td style="text-align: left;"><?php echo e($key); ?></td>
                             <td style="text-align: right;"><?php echo e(number_format($value)); ?></td>
-                            <td style="text-align: right;"><?php echo e(number_format($value - ($data[date('Y') - 1][$key] ?? 0))); ?></td>
-                            <td style="text-align: right;"><?php echo e(number_format($data[date('Y') - 1][$key] ?? 0)); ?></td>
+                            <td style="text-align: right;"><?php echo e(number_format($value - ($data[$tahun - 1][$key] ?? 0))); ?></td>
+                            <td style="text-align: right;"><?php echo e(number_format($data[$tahun - 1][$key] ?? 0)); ?></td>
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 <?php endif; ?>

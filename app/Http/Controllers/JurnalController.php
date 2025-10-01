@@ -16,6 +16,7 @@ use App\Models\Coa;
 use App\Models\Saldo;
 use App\Imports\JurnalDetailImport;
 use App\Exports\JurnalSampleExport;
+use App\Exports\JurnalExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class JurnalController extends Controller
@@ -25,13 +26,138 @@ class JurnalController extends Controller
      */
     public function index()
     {
-        $jurnal = Jurnal::with('details')->whereNull('is_deleted')->where('created_by', auth()->user()->id)->get()->toArray();
+        // Optimized query with better performance
+        $jurnal = Jurnal::select([
+                'id',
+                'no_urut_transaksi',
+                'jenis',
+                'keterangan',
+                'jurnal_tgl',
+                'subtotal',
+                'created_at'
+            ])
+            ->whereNull('is_deleted')
+            ->where('created_by', auth()->id())
+            ->where('periode', auth()->user()->periode)
+            ->orderBy('id', 'desc')
+            ->paginate(15);
+        // dd($jurnal);
 
         return view('jurnal.index', compact('jurnal'));
     }
 
+    /**
+     * Get jurnal data for AJAX requests (for better frontend performance)
+     */
+    public function getData(Request $request)
+    {
+        // Debug authentication
+        if (!auth()->check()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not authenticated',
+                'data' => [],
+                'total' => 0
+            ], 401);
+        }
+
+        $query = Jurnal::select([
+                'id',
+                'no_urut_transaksi',
+                'jenis',
+                'keterangan',
+                'jurnal_tgl',
+                'subtotal',
+                'created_at',
+                'tgl_dibuat'
+            ])
+            ->whereNull('is_deleted')
+            ->where('created_by', auth()->id())
+            ->where('periode', auth()->user()->periode);
+
+        // dd($request->all());
+
+        // Apply filters
+        if ($request->filled('jenis') && $request->jenis !== 'all') {
+            $query->where('jenis', strtoupper($request->jenis));
+        }
+
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('no_urut_transaksi', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('keterangan', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('jenis', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('jurnal_tgl', [
+                $request->start_date,
+                $request->end_date
+            ]);
+        }
+
+        $jurnal = $query->orderBy('id', 'desc')->get();
+
+        // dd($jurnal);
+        // Debug logging
+        \Log::info('Jurnal getData response', [
+            'user_id' => auth()->id(),
+            'total_records' => $jurnal->count(),
+            'filters' => $request->all()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $jurnal,
+            'total' => $jurnal->count()
+        ]);
+    }
+
+    public function show($id)
+    {
+        try {
+            $jurnal = Jurnal::with(['details.coa'])->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $jurnal->id,
+                    'no_bukti' => $jurnal->no_bukti,
+                    'no_urut_transaksi' => $jurnal->no_urut_transaksi,
+                    'tanggal' => $jurnal->jurnal_tgl ? \Carbon\Carbon::parse($jurnal->jurnal_tgl)->format('Y-m-d') : null,
+                    'jenis' => $jurnal->jenis,
+                    'keterangan' => $jurnal->keterangan,
+                    'total_debit' => $jurnal->total_debit,
+                    'total_kredit' => $jurnal->total_kredit,
+                    'details' => $jurnal->details->map(function ($detail) {
+                        return [
+                            'id' => $detail->id,
+                            'coa_akun' => $detail->coa->nomor_akun ?? '',
+                            'coa' => [
+                                'nama_akun' => $detail->coa->nama_akun ?? '',
+                                'nomor_akun' => $detail->coa->nomor_akun ?? ''
+                            ],
+                            'debit' => $detail->debit ?? 0,
+                            'credit' => $detail->credit ?? 0,
+                            'tanggal_bukti' => $detail->tanggal_bukti ? \Carbon\Carbon::parse($detail->tanggal_bukti)->format('Y-m-d') : ($jurnal->jurnal_tgl ? \Carbon\Carbon::parse($jurnal->jurnal_tgl)->format('Y-m-d') : null),
+                            'lampiran' => $detail->lampiran ?? 'no-file.pdf',
+                            'keterangan' => $detail->keterangan ?? ''
+                        ];
+                    })
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data jurnal tidak ditemukan'
+            ], 404);
+        }
+    }
+
     public function lampiran(Jurnal $jurnal)
-    {   
+    {
         $lampiran = Storage::disk('public')->files('lampiran/' . $jurnal->id);
 
         return view('report.views.lampiran', compact('jurnal', 'lampiran'));
@@ -57,7 +183,7 @@ class JurnalController extends Controller
 
     public function store(Request $request)
     {
-
+        // dd($request->all());
         if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0){
             Alert::error('Oops!', 'Masa trial anda sudah expired, Anda Tidak Bisa Membuat Jurnal');
             return redirect()->route('jurnal.index');
@@ -76,12 +202,28 @@ class JurnalController extends Controller
             $sumDebit = array_sum($debit);
             $sumKredit = array_sum($kredit);
 
-            if($sumDebit != $sumKredit || $sumDebit - $sumKredit != 0){
+            if($sumDebit != $sumKredit || ($sumDebit - $sumKredit) != 0){
                 Alert::error('Oops!', 'Debit tidak sama dengan kredit.');
                 return redirect()->back();
             }
 
+            #membuat angka dibelakang jenis
+            $angka          = "1";
+            $jenis          = $input['jenis'];
+            $periode        = auth()->user()->periode;
+            $tanggal_dibuat = $periode."-".date('m-d');
+            $created_by     = Auth::user()->id;
+            $query = DB::select("
+                        SELECT COUNT(id) AS count
+                        FROM jurnal_headers
+                        WHERE is_deleted IS NULL
+                        AND created_by = ?
+                        AND jenis LIKE ?", [$created_by, $jenis. '%']);
+            $count = ($query[0]->count)+$angka;
+
             $jurnal = Jurnal::whereNull('is_deleted')->where('created_by', auth()->user()->id)->get();
+
+            // da($jurnal);
 
             if ($jurnal->isNotEmpty()) {
                 $countJenis = $jurnal->where('jenis', strtoupper($input['jenis']))->count();
@@ -93,13 +235,18 @@ class JurnalController extends Controller
             $dataJurnal = Jurnal::create([
                 'jenis' => strtoupper($input['jenis']),
                 'no_urut_transaksi' => $jurnal->count() + 1,
-                'no_transaksi' => $input['no_transaksi'],
-                'jurnal_tgl' => now(),
-                'subtotal' => $sumDebit,
-                'keterangan' => $input['keterangan_header'],
-                'created_by' => Auth::user()->id,
-                'created_at' => now()
+                // 'no_transaksi' => $input['no_transaksi'],
+                'no_transaksi'      => $count,
+                'jurnal_tgl'        => $tanggal_dibuat,
+                'subtotal'          => $sumDebit,
+                'keterangan'        => $input['keterangan_header'],
+                'created_by'        => Auth::user()->id,
+                'created_at'        => $tanggal_dibuat,
+                'tgl_dibuat'        => now(),
+                'periode'           => $periode
             ]);
+
+            // dd($dataJurnal);
 
             $details = [];
             foreach ($input['no_akun'] as $index => $noAkun) {
@@ -124,14 +271,16 @@ class JurnalController extends Controller
                 $tgl_bukti = \Carbon\Carbon::createFromFormat('d-m-Y', $input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
 
                 $details[] = [
-                    'jurnal_id' => $dataJurnal->id,
-                    'coa_akun' => $coaAkun,
-                    'debit' => $debit,
-                    'credit' => $kredit,
-                    'keterangan' => $input['keterangan'][$index] ?: $input['keterangan_header'],
-                    'tanggal_bukti' => $tgl_bukti,
-                    'created_by' => Auth::user()->id,
-                    'created_at' => now()
+                    'jurnal_id'         => $dataJurnal->id,
+                    'coa_akun'          => $coaAkun,
+                    'debit'             => $debit,
+                    'credit'            => $kredit,
+                    'keterangan'        => $input['keterangan'][$index] ?: $input['keterangan_header'],
+                    'tanggal_bukti'     => $tgl_bukti,
+                    'created_by'        => Auth::user()->id,
+                    'created_at'        => $tanggal_dibuat,
+                    'tgl_dibuat'        => now(),
+                    'periode'           => $periode
                 ];
             }
 
@@ -150,6 +299,7 @@ class JurnalController extends Controller
             }
 
             DB::commit();
+            // da($input);
             Log::info('Jurnal berhasil dibuat.', ['jurnal_id' => $dataJurnal->id]);
             Alert::success('Sukses!', 'Jurnal berhasil dibuat.');
             return redirect()->back();
@@ -161,17 +311,21 @@ class JurnalController extends Controller
         }
     }
 
-    public function show(Jurnal $jurnal){
-        // da($jurnal);
-
+    public function getByID($id)
+    {
+        echo "Lukman";
     }
 
     public function edit(Jurnal $jurnal)
     {
+
         $jurnal = Jurnal::with(['details.coa'])
                 ->whereNull('is_deleted')
                 ->where('created_by', auth()->user()->id)
-                ->orderBy('jurnal_tgl', 'desc')
+                ->where('periode', auth()->user()->periode)
+                ->orderBy('tgl_dibuat', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->orderBy('no_urut_transaksi', 'desc')
                 ->find($jurnal->id);
 
         if ($jurnal) {
@@ -223,6 +377,8 @@ class JurnalController extends Controller
         try {
             $input = $request->all();
 
+            $periode        = auth()->user()->periode;
+            $tanggal_dibuat = $periode."-".date('m-d');
             // da($input);
 
             $existingJournals = Jurnal::whereNull('is_deleted')
@@ -236,10 +392,11 @@ class JurnalController extends Controller
             } else {
                 $input['no_transaksi'] = 1;
             }
-
+            $periode        = auth()->user()->periode;
+            $tanggal_dibuat = $periode."-".date('m-d');
             $jurnal->jenis = strtoupper($input['jenis']);
             $jurnal->no_transaksi = $input['no_transaksi'];
-            $jurnal->jurnal_tgl = now();
+            $jurnal->jurnal_tgl = $tanggal_dibuat;
             $jurnal->subtotal = $sumDebit;
             $jurnal->keterangan = $input['keterangan_header'];
             $jurnal->updated_by = Auth::user()->id;
@@ -258,13 +415,15 @@ class JurnalController extends Controller
             JurnalDetail::where('jurnal_id', $jurnal->id)->delete();
 
             $details = [];
+
             foreach ($input['no_akun'] as $index => $noAkun) {
                 $coaAkun = str_replace('-', '', $noAkun);
                 $debit = (int) str_replace('.', '', $input['debit'][$index]);
                 $kredit = (int) str_replace('.', '', $input['kredit'][$index]);
 
                 $tgl_bukti = \Carbon\Carbon::createFromFormat('d-m-Y', $input['tanggal_bukti'][$index])->format('Y-m-d H:i:s');
-
+                $periode        = auth()->user()->periode;
+                $tanggal_dibuat = $periode."-".date('m-d');
                 $details[] = [
                     'jurnal_id' => $jurnal->id,
                     'coa_akun' => $coaAkun,
@@ -273,13 +432,15 @@ class JurnalController extends Controller
                     'keterangan' => $input['keterangan'][$index] ?: $input['keterangan_header'],
                     'tanggal_bukti' => $tgl_bukti,
                     'created_by' => Auth::user()->id,
-                    'created_at' => now()
+                    'created_at' => $tanggal_dibuat,
+                    'tgl_diupdate' => $tanggal_dibuat,
+                    'periode'       => $periode
                 ];
             }
 
             foreach ($details as $index => $detail) {
-                $da = JurnalDetail::create($detail);
-        
+                $da = JurnalDetail::insert($detail);
+
                 if ($request->hasFile('lampiran')) {
                     $lampiranFiles = $request->file('lampiran');
                     if (isset($lampiranFiles[$index])) {
@@ -296,11 +457,11 @@ class JurnalController extends Controller
             DB::commit();
 
             Alert::success('Sukses!', 'Jurnal berhasil diperbarui.');
-            return redirect()->back();
+            return redirect()->route('dashboard');
         } catch (\Exception $e) {
             DB::rollback();
             Alert::error('Oops!', 'Gagal memperbarui jurnal: ' . $e->getMessage());
-            return redirect()->back();
+            return redirect();
         }
     }
 
@@ -375,8 +536,9 @@ class JurnalController extends Controller
     {
         $file = $request->file('file');
         $importedData = $this->import($request);
-        
-        $countImport = 0;
+
+        $countImport = 500;
+
         if(auth()->user()->profile == 'trial'){
             $countImport = 50;
         }elseif(auth()->user()->profile == 'standard'){
@@ -387,9 +549,16 @@ class JurnalController extends Controller
             $countImport = 500;
         }
 
-        if(isset($importedData['success']) && !$importedData['success']){
-            return response()->json(['html' => 0, 'message' => $importedData['message']]);
-        } else {
+        // da($importedData['success']);
+
+        if ($importedData instanceof \Illuminate\Http\JsonResponse) {
+            $responseData = $importedData->getData(true);
+            if (isset($responseData['success']) && !$responseData['success']) {
+                return response()->json(['html' => 0, 'message' => $responseData['message']]);
+            }
+        } elseif (empty($importedData)) {
+            return response()->json(['html' => 0, 'message' => 'Data impor kosong']);
+        }else {
             $cek = "";
             if (count($importedData) > $countImport) {
                 $cek = "Hanya " . $countImport . " data pertama yang di import.";
@@ -399,7 +568,6 @@ class JurnalController extends Controller
             }
             return response()->json(['html' => $importedData, 'message' => $cek]);
         }
-
     }
 
     public function sampleExport()
@@ -407,16 +575,113 @@ class JurnalController extends Controller
         return Excel::download(new JurnalSampleExport(), 'jurnal_sample.xlsx');
     }
 
+    /**
+     * Export jurnal ke Excel dengan berbagai opsi filter
+     *
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportJurnal(Request $request)
+    {
+        try {
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            $jurnalType = $request->input('jurnal_type');
+            $includeDetails = $request->input('include_details', true);
+            $exportType = $request->input('export_type', 'excel'); // excel atau csv
+
+            // Validasi tanggal jika disediakan
+            if ($startDate && $endDate) {
+                if (strtotime($startDate) > strtotime($endDate)) {
+                    Alert::error('Error!', 'Tanggal mulai tidak boleh lebih besar dari tanggal selesai.');
+                    return redirect()->back();
+                }
+            }
+
+            // Buat nama file dengan timestamp
+            $timestamp = now()->format('YmdHis');
+            $fileName = 'jurnal_export_' . $timestamp;
+
+            // Tambahkan info filter ke nama file
+            if ($startDate && $endDate) {
+                $fileName .= '_' . date('Ymd', strtotime($startDate)) . '_' . date('Ymd', strtotime($endDate));
+            }
+            if ($jurnalType) {
+                $fileName .= '_' . strtolower($jurnalType);
+            }
+            $fileName .= $includeDetails ? '_detail' : '_header';
+
+            // Buat export instance
+            $export = new JurnalExport($startDate, $endDate, $jurnalType, $includeDetails);
+
+            // Download berdasarkan tipe export
+            if ($exportType === 'csv') {
+                return Excel::download($export, $fileName . '.csv', \Maatwebsite\Excel\Excel::CSV);
+            } else {
+                return Excel::download($export, $fileName . '.xlsx');
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error saat export jurnal: ' . $e->getMessage());
+            Alert::error('Error!', 'Terjadi kesalahan saat export jurnal: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    /**
+     * Export jurnal dengan filter tanggal (method sederhana)
+     *
+     * @param string|null $startDate
+     * @param string|null $endDate
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportJurnalByDate($startDate = null, $endDate = null)
+    {
+        try {
+            $timestamp = now()->format('YmdHis');
+            $fileName = 'jurnal_' . $timestamp . '.xlsx';
+
+            $export = new JurnalExport($startDate, $endDate, null, true);
+            return Excel::download($export, $fileName);
+
+        } catch (\Exception $e) {
+            Log::error('Error saat export jurnal by date: ' . $e->getMessage());
+            Alert::error('Error!', 'Terjadi kesalahan saat export jurnal.');
+            return redirect()->back();
+        }
+    }
+
+    /**
+     * Export semua jurnal (tanpa filter)
+     *
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportAllJurnal()
+    {
+        try {
+            $timestamp = now()->format('YmdHis');
+            $fileName = 'semua_jurnal_' . $timestamp . '.xlsx';
+
+            $export = new JurnalExport(null, null, null, true);
+            return Excel::download($export, $fileName);
+
+        } catch (\Exception $e) {
+            Log::error('Error saat export semua jurnal: ' . $e->getMessage());
+            Alert::error('Error!', 'Terjadi kesalahan saat export jurnal.');
+            return redirect()->back();
+        }
+    }
+
     public function totalJurnal()
     {
-        $a      = auth()->user()->id; 
+        $a      = auth()->user()->id;
         $users  = DB::select("
-            SELECT 
+            SELECT
             COUNT(jh.id) as total
             FROM jurnal_headers jh
-            
-            WHERE 
-            jh.is_deleted IS NULL AND 
+
+            WHERE
+            jh.is_deleted IS NULL AND
             jh.created_by = ?
         ",[$a]);
 
@@ -430,33 +695,38 @@ class JurnalController extends Controller
     public function cekTrial()
     {
         $users = DB::select("
-                SELECT 
-                    id, 
-                    created_at
-                FROM users
-                WHERE
-                profile = ? AND
-                is_active = ? AND 
-                created_at <= DATE_SUB(NOW(), INTERVAL 2 MONTH)
-            ", ['trial', 1]);
-        
-        foreach($users as $key => $value) {
+            SELECT id, trial_ends_at
+            FROM users
+            WHERE profile = ? AND is_active = ? AND trial_ends_at <= NOW()
+        ", ['trial', 1]);
+
+        $successCount = 0;
+
+        foreach ($users as $value) {
             $data = [
-                'is_active' => "0"
+                'is_active' => 0
             ];
-            $update = DB::table('users')->where('id', $value->id)->update($data);
+            $updated = DB::table('users')->where('id', $value->id)->update($data);
+            if ($updated) {
+                $successCount++;
+            }
         }
 
-        if($update){
+        if ($successCount > 0) {
             return response()->json([
-                'status'     => 200,
-                'message'    => 'Update data berhasil'
+                'status'  => 200,
+                'message' => "{$successCount} data berhasil diupdate"
             ]);
         }
+
         return response()->json([
-            'status'     => 400,
-            'message'    => 'Update data gagal'
+            'status'  => 400,
+            'message' => 'Tidak ada data yang diupdate'
         ]);
-        
+    }
+
+    public function view()
+    {
+        echo "Lukman";
     }
 }

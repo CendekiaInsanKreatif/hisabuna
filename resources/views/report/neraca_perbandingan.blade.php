@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="icon" href="{{ asset('images/icons/hisabuna-favicon.png') }}" type="image/x-icon">
     <title>Neraca Perbandingan</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            font-size: 10px;
+            font-size: 12px;
             background-color: #f4f4f4;
         }
         table {
@@ -44,7 +45,7 @@
 </head>
 <body>
     <table>
-        <caption><strong><h1>Neraca Perbandingan</h1></strong></caption>
+        <caption><strong><h1>Neraca Perbandingans</h1></strong></caption>
         <caption>{{ auth()->user()->company_name }}</caption>
         <thead>
             <tr>

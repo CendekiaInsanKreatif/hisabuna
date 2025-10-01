@@ -6,53 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Laba Rugi</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }
-
-        .report-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-
-        table.main-data tr:nth-child(odd) {
-            background-color: #f4f4f5;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        table.main-data tr td {
-            padding: 4px 4px 4px 32px;
-        }
-
-        table.main-data tr:nth-last-child(2) td.data-num {
-            border-bottom: solid 1px black;
-        }
-
-        .data-desc {
-            width: 80%;
-        }
-
-        .data-num {
-            text-align: right;
-        }
-
-
-        .total {
-            font-size: 14px;
-            font-weight: bold;
-        }
-
+        @import url('{{ asset('css/rpt.css') }}');
     </style>
 </head>
 <body>
@@ -62,7 +16,7 @@
             <div style="overflow: hidden;">
                 <h1 style="text-align:center; font-size: 20px;">{{ auth()->user()->company_name }}</h1>
                 <p style="text-align:center;">Laporan Laba Rugi</p>
-                <p style="text-align:center;">Periode {{$start}} - {{$end}}</p>
+                <p style="text-align:center;">Periode {{ date('d/m/Y', strtotime($start)) }} s/d {{ date('d/m/Y', strtotime($end)) }}</p>
             </div>
         </header>
         @foreach ($data as $category => $details)
@@ -70,13 +24,13 @@
             <h3 style="font-size: 20px; padding-bottom: 16px;">{{ $category }}</h3>
             @foreach ($details['Detail'] as $item => $amount)
                 <tr>
-                    <td class="data-desc">{{ $item }}</td>
+                    <td class="data-desc; font-size: 12px;">{{ $item }}</td>
                     <td class="data-num">{{ number_format($amount, 0, ',', '.') }}</td>
                 </tr>
             @endforeach
             <tr class="total" style="border-bottom: 2px solid black;             background-color: #f4f4f5;">
-                <td style="padding: 8px 4px 8px 12px;">Total {{ $category }}</td>
-                <td style="text-align: right;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
+                <td style="padding: 8px 4px 8px 12px; font-size: 16px; font-weight: bold;">Total {{ $category }}</td>
+                <td style="text-align: right; font-size: 16px; font-weight: bold;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
             </tr>
         </table>
         @endforeach
@@ -84,7 +38,7 @@
             <table>
                 <tr class="total" style=" font-size: 20px; ">
                     <td>Saldo Laba (Rugi) Tahun Berjalan</td>
-                    <td style="text-align: right;">{{ number_format($labaRugiBersih, 0, ',', '.') }}</td>
+                    <td style="text-align: right; font-size: 16px; font-weight: bold;">{{ number_format($labaRugiBersih, 0, ',', '.') }}</td>
                 </tr>
             </table>
         </div>

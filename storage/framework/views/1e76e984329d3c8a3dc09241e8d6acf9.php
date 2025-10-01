@@ -21,7 +21,8 @@
                     <img src="/images/brand/logo-hisabuna-color.svg" class="w-40" alt="Official Logo of Hisabuna" />
                 </div>
             </div>
-            <div class="h-5 flex items-center w-full max-w-md">
+            
+            <div class="flex flex-col p-5 gap-5 w-full max-w-md">
                 <?php if(session('message')): ?>
                     <div
                         class="flex gap-2 border border-<?php echo e(session('color')); ?>-400 bg-<?php echo e(session('color')); ?>-100 p-2 rounded w-full">
@@ -30,9 +31,12 @@
                             !</div>
                         <p class="text-sm text-<?php echo e(session('color')); ?>-400"><?php echo e(session('message')); ?></p>
                     </div>
+                    <script>
+                        setTimeout(function() {
+                            $('.border-<?php echo e(session('color')); ?>-400').fadeOut('fast');
+                        }, 3000);
+                    </script>
                 <?php endif; ?>
-            </div>
-            <div class="flex flex-col p-5 gap-5 w-full max-w-md">
                 <form method="POST" action="<?php echo e(route('login')); ?>" class="flex flex-col">
                     <?php echo csrf_field(); ?>
 

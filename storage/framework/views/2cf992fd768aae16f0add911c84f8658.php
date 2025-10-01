@@ -10,7 +10,7 @@
 <?php $component->withAttributes([]); ?>
     <?php $__env->startSection('content'); ?>
     <?php
-        $field = ['no_transaksi', 'jenis', 'keterangan'];
+        $field = ['no_urut_transaksi', 'jenis', 'keterangan'];
         $fieldSelect = [
                 [
                     'name' => 'nomor_akun',
@@ -58,23 +58,26 @@
             <form action="<?php echo e(route('jurnal.update', $jurnal->id)); ?>" @submit.prevent="submitForm" method="post" enctype="multipart/form-data" id="jurnalForm">
                 <?php echo csrf_field(); ?>
                 <?php echo method_field('PUT'); ?>
-            <div class="mb-6 flex justify-between items-center">
-                <p class="text-2xl font-semibold text-emerald-500">Edit Jurnal</p>
-                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
-                        Simpan Jurnal
-                    </button>
-
-            </div>
+                <div class="mb-6 flex justify-between items-center">
+                    <p class="text-2xl font-semibold text-emerald-500">Edit Jurnal</p>
+                    <div class="flex items-center space-x-2">
+                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
+                            Simpan Jurnal
+                        </button>
+                        <a href="<?php echo e(route('jurnal.index')); ?>" class="inline-flex items-center justify-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
+                            Batal
+                        </a>
+                    </div>
+                </div>
             <div class="card bg-white shadow-lg rounded-xl border border-gray-200 p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2">
                     <?php $__currentLoopData = $field; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <div class="col-span-1">
                         <label for="<?php echo e($item); ?>" class="block text-sm font-medium text-gray-700"><?php echo e(ucwords(str_replace('_', ' ', $item))); ?> <?php if($item != 'no_transaksi'): ?><span class="text-red-500">*</span><?php endif; ?></label>
-                        <?php if($item == 'keterangan'): ?>                        
+                        <?php if($item == 'keterangan'): ?>
                         <textarea name="<?php echo e($item); ?>_header" id="<?php echo e($item); ?>" x-ref="<?php echo e($item); ?>"
-                                  class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" 
-                                  value="<?php echo e($jurnal->$item); ?>"
-                                  x-model="keteranganHeader"><?php echo e($jurnal->$item); ?></textarea>
+                                  class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                  value="<?php echo e($jurnal->$item); ?>"><?php echo e($jurnal->$item); ?></textarea>
                         <?php elseif($item == 'jenis'): ?>
                             <select name="<?php echo e($item); ?>" id="<?php echo e($item); ?>" x-ref="<?php echo e($item); ?>"
                                 class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">
@@ -83,11 +86,15 @@
                                 <option value="pv" <?php echo e($jurnal->$item == 'PV' ? 'selected' : ''); ?>>Voucher Pembayaran | PV</option>
                                 <option value="jv" <?php echo e($jurnal->$item == 'JV' ? 'selected' : ''); ?>>Voucher Jurnal | JV</option>
                             </select>
-                        <?php elseif($item == 'no_transaksi'): ?>
+                        <?php elseif($item == 'no_urut_transaksi'): ?>
                             <input type="text" name="<?php echo e($item); ?>" id="<?php echo e($item); ?>" readonly value="<?php echo e($jurnal->$item); ?>" placeholder="Generate By System" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">
                         <?php endif; ?>
                     </div>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    <div class="col-span-1">
+                        <label for="tanggal_transaksi" class="block text-sm font-medium text-gray-700 mt-5">Tanggal Transaksi<span class="text-red-500">*</span></label>
+                        <input type="text" id="tanggal_transaksi" x-model="tanggal_transaksi" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker" x-on:dblclick="setToday()">
+                    </div>
                     <div class="col-span-1">
                         <div class="flex flex-col space-y-2 w-full">
                             <label for="lampiran" class="block text-sm font-medium text-gray-700 mt-5">Import Transaksi (File: .xlsx)</label>
@@ -117,11 +124,11 @@
                                 <th class="py-2 px-4">Debit</th>
                                 <th class="py-2 px-4">Kredit</th>
                                 <th class="py-2 px-4 text-right">
-                                    <?php if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 1): ?>
+                                    
                                         <button type="button" class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" x-on:click="rows.push({ no_akun: '', coa_akun: '', coa: {nama_akun: ''}, debit: '', kredit: '', keterangan: '' })">
                                             Tambah
                                         </button>
-                                    <?php endif; ?>
+                                    
                                 </th>
                             </tr>
                             <tr>
@@ -161,14 +168,14 @@
                                 <tr>
                                     <td class="py-1 px-2" colspan="2">
                                         <label for="keterangan" class="block text-sm font-medium text-gray-700">Keterangan<span class="text-red-500">*</span></label>
-                                        <textarea :name="'keterangan[' + index + ']'" 
-                                                    class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" 
-                                                    x-model="row.keterangan" 
+                                        <textarea :name="'keterangan[' + index + ']'" value="<?php echo e(old('keterangan')); ?>"
+                                                    class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                                    x-model="row.keterangan"
                                                     x-on:dblclick="setKeteranganToRow(index)"></textarea>
                                     </td>
                                     <td class="py-1 px-2">
                                         <label class="block text-sm font-medium text-gray-700">Tanggal Bukti<span class="text-red-500">*</span></label>
-                                        <input type="text" :name="'tanggal_bukti[' + index + ']'" 
+                                        <input type="text" :name="'tanggal_bukti[' + index + ']'"
                                                         class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-5000 focus:ring-opacity-50 datepicker"
                                                         <?php if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0): ?>
                                                         disabled
@@ -202,9 +209,14 @@
                 <?php echo method_field('POST'); ?>
             <div class="mb-6 flex justify-between items-center">
                 <p class="text-2xl font-semibold text-emerald-500">Buat Jurnal</p>
+                <div class="flex items-center space-x-2">
                     <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong">
                         Simpan Jurnal
                     </button>
+                    <a href="<?php echo e(route('jurnal.index')); ?>" class="inline-flex items-center justify-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong ml-2">
+                        Batal
+                    </a>
+                </div>
             </div>
             <div class="card bg-white shadow-lg rounded-xl border border-gray-200 p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2">
@@ -223,11 +235,15 @@
                                 <option value="pv">Voucher Pembayaran | PV</option>
                                 <option value="jv">Voucher Jurnal | JV</option>
                             </select>
-                        <?php elseif($item == 'no_transaksi'): ?>
+                        <?php elseif($item == 'no_urut_transaksi'): ?>
                             <input type="text" name="<?php echo e($item); ?>" id="<?php echo e($item); ?>" value="<?php echo e(old($item)); ?>" readonly placeholder="Generate By System" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50">
                         <?php endif; ?>
                     </div>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    <div class="col-span-1">
+                        <label for="tanggal_transaksi" class="block text-sm font-medium text-gray-700 mt-5">Tanggal Transaksi<span class="text-red-500">*</span></label>
+                        <input type="text" id="tanggal_transaksi" x-model="tanggal_transaksi" x-ref="tanggal_transaksi" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker" x-on:dblclick="setToday()">
+                    </div>
                     <div class="col-span-1">
                         <div class="flex flex-col space-y-2 w-full">
                             <label class="block text-sm font-medium text-gray-700 mt-5">Import Transaksi (File: .xlsx)</label>
@@ -253,8 +269,8 @@
                                 <th class="py-2 px-4">Debit</th>
                                 <th class="py-2 px-4">Kredit</th>
                                 <th class="py-2 px-4 text-right">
-                                    <button type="button" 
-                                            class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong" 
+                                    <button type="button"
+                                            class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong"
                                             x-on:click="addRow">
                                         Tambah
                                     </button>
@@ -297,16 +313,17 @@
                                     <tr>
                                         <td class="py-1 px-2" colspan="2">
                                             <label for="keterangan" class="block text-sm font-medium text-gray-700">Keterangan&nbsp;<span class="text-red-500">*</span></label>
-                                            <textarea :name="'keterangan[' + index + ']'" 
-                                                    class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50" 
-                                                    x-model="row.keterangan" 
+                                            <textarea :name="'keterangan[' + index + ']'"
+                                                    class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
+                                                    x-model="row.keterangan"
                                                     x-on:dblclick="setKeteranganToRow(index)"></textarea>
                                         </td>
                                         <td class="py-1 px-2">
                                             <label class="block text-sm font-medium text-gray-700">Tanggal Bukti&nbsp;<span class="text-red-500">*</span></label>
-                                            <input type="text" :name="'tanggal_bukti[' + index + ']'" 
+                                            
+                                            <input type="text" :name="'tanggal_bukti[' + index + ']'"
                                                     class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker" x-on:dblclick="setToday(index)" :x-ref="'tanggal_bukti_' + index"
-                                                    x-model="row.tanggal_bukti" x-datepicker readonly required>                                            
+                                                    x-model="row.tanggal_bukti" x-datepicker readonly required>
                                         </td>
                                         <td class="py-1 px-1">
                                             <label for="lampiran" class="block text-sm font-medium text-gray-700">Lampiran</label>
@@ -339,8 +356,6 @@
             row.kredit = row.kredit.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
         });
 
-        console.log(jurnal)
-
         return {
             keteranganHeader: '',
             rows: Array.isArray(jurnal) ? jurnal : [],
@@ -350,6 +365,7 @@
             errorMessage: '',
             isValid: true,
             isImport: false,
+            tanggal_transaksi: '',
 
             init() {
                 this.$errorElement = document.querySelector('[x-ref="alertError"]');
@@ -368,7 +384,7 @@
                         onClose: function(selectedDates, dateStr, instance) {
                             instance.setDate(dateStr, true);
                             el.dispatchEvent(new Event('input'));
-                        }
+                        }.bind(this)
                     });
 
                     effect(() => {
@@ -390,6 +406,20 @@
             },
 
             initializeDatePickers() {
+                // Inisialisasi datepicker untuk input tanggal transaksi
+                const datepickerTransaksi = this.$refs.tanggal_transaksi;
+                if (datepickerTransaksi) {
+                    flatpickr(datepickerTransaksi, {
+                        dateFormat: 'd-m-Y',
+                        allowInput: true,
+                        minDate: '01-01-' + periode,
+                        maxDate: '31-12-' + periode,
+                        onClose: function(selectedDates, dateStr, instance) {
+                            instance.setDate(dateStr, true);
+                            datepickerTransaksi.dispatchEvent(new Event('input'));
+                        }
+                    });
+                }
                 this.rows.forEach((row, index) => {
                     if (row.tanggal_bukti) {
                         this.$nextTick(() => {
@@ -461,7 +491,7 @@
                 const year = today.getFullYear();
                 const todayFormatted = `${day}-${month}-${year}`;
 
-                this.rows[index].tanggal_bukti = todayFormatted;
+                //this.rows[index].tanggal_bukti = todayFormatted;
 
                 this.$nextTick(() => {
                     const datepicker = this.$refs[`tanggal_bukti_${index}`];
@@ -476,18 +506,33 @@
                 this.rows[index][field] = value;
             },
 
+             // Tambahkan fungsi untuk mengupdate tanggal transaksi
+             updateTanggalBukti(index) {
+                if (this.tanggalTransaksi) {
+                    this.rows[index].tanggal_bukti = this.tanggalTransaksi;
+                    this.$nextTick(() => {
+                        const datepicker = this.$refs[`tanggal_bukti_${index}`];
+                        if (datepicker) {
+                            datepicker._flatpickr.setDate(this.tanggalTransaksi, true);
+                        }
+                    });
+                }
+            },
+
             addRow() {
                 this.rows.push({
                     keterangan: this.keteranganHeader,
-                    tanggal_bukti: '',
+                    tanggal_bukti: this.tanggal_transaksi,
                     lampiran: '',
-                    no_akun: '', 
-                    nama_akun: '', 
-                    debit: '', 
+                    no_akun: '',
+                    nama_akun: '',
+                    debit: '',
                     kredit: ''
                 });
 
+
                 this.updateTotals();
+                this.updateTanggalBukti(this.rows.length - 1);
             },
 
 
@@ -501,7 +546,7 @@
                 this.rows[index].keterangan = this.keteranganHeader;;
             },
 
-            
+
             updateTotals() {
                 this.totalDebit = this.rows.reduce((sum, row) => {
                     let debit = parseFloat((row.debit || '0').toString().replace(/\./g, '').replace(',', '.')) || 0;
@@ -530,7 +575,7 @@
                 const formattedValue = parsedValue.toLocaleString('id-ID');
                 this.rows[index][field] = formattedValue;
             },
-            
+
             importJurnal() {
                 const overlay = document.getElementById('overlay');
                 overlay.style.display = 'flex';
@@ -564,6 +609,7 @@
                             this.isImport = true;
                             this.updateTotals();
                             this.importUpdate();
+                            // console.log(this.rows)
                         } else {
                             alert('Terjadi kesalahan saat mengimpor jurnal.');
                         }
@@ -601,24 +647,6 @@
                 this.selisih = this.selisih.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
             },
 
-            processImportedData(rows) {
-                const chunkSize = 1000;
-                let index = 0;
-
-                const processChunk = () => {
-                    const chunk = rows.slice(index, index + chunkSize);
-                    this.rows = this.rows.concat(chunk);
-                    this.updateTotals();
-                    index += chunkSize;
-
-                    if (index < rows.length) {
-                        setTimeout(processChunk, 0);
-                    }
-                };
-
-                processChunk();
-            },
-            
             downloadSample() {
                 fetch('<?php echo e(route('jurnal.sample.export')); ?>', {
                     method: 'POST',
@@ -656,7 +684,7 @@
 
                 if(this.isImport){
                     const tbody = document.querySelectorAll('#tBody tr').length / 2;
-                    
+
                     for(let i = 0; i < tbody; i++){
                         let no_akun = document.getElementsByName('no_akun[' + i + ']')[0].value;
                         let nama_akun = document.getElementsByName('nama_akun[' + i + ']')[0].value;
@@ -682,9 +710,9 @@
                     this.rows.forEach((row, index) => {
                         let no_akun = document.getElementsByName('no_akun[' + index + ']')[0].value;
                         let nama_akun = document.getElementsByName('nama_akun[' + index + ']')[0].value;
-    
+
                         console.log(row.tanggal_bukti)
-    
+
                         if ((parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) || row.debit === '' || row.kredit === '') {
                             this.isValid = false;
                             // if (row.tanggal_bukti.trim() === '') this.errorMessage += `Tanggal bukti pada baris ${index + 1} harus diisi.<br>`;
@@ -692,15 +720,18 @@
                             if (row.debit === '') this.errorMessage += `Debit pada baris ${index + 1} harus diisi.<br>`;
                             if (row.kredit === '') this.errorMessage += `Kredit pada baris ${index + 1} harus diisi.<br>`;
                         }
-    
+
                         if(no_akun === '' || nama_akun === ''){
                             this.isValid = false;
                             this.errorMessage += `No Akun atau Nama Akun pada baris ${index + 1} harus diisi.<br>`;
                         }
-    
+
                         totalDebit += parseFloat(row.debit) || 0;
                         totalCredit += parseFloat(row.kredit) || 0;
                     });
+
+                    // console.log(totalDebit, totalCredit)
+                    // return false;
 
                 }
 

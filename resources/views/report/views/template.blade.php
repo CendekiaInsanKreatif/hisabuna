@@ -92,7 +92,7 @@
 
     @push('script')
         <script type="module">
-            
+
             let route = @js($route[2]);
             let periode = @js(auth()->user()->periode);
 
@@ -139,7 +139,8 @@
                     form.appendTo('body').submit();
                 });
 
-                
+
+
                 flatpickr('#start_date', {
                     dateFormat: 'd-m-Y',
                     allowInput: true,

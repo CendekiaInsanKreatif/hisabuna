@@ -11,6 +11,7 @@
 --}}
 
 @php
+// dd($location);
     $location = $location ?? (auth()->user()->company_address ?? 'Jakarta');
     $date = $date ?? \Carbon\Carbon::now()->locale('id')->isoFormat('D MMMM YYYY');
     $preparedBy = $preparedBy ?? 'Dibuat Oleh';

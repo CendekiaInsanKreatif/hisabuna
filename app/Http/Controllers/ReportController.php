@@ -6,7 +6,6 @@ use App\Exports\NeracaExport;
 use App\Models\Coa;
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
-use App\Services\SnappyPdfConfiguration;
 use Barryvdh\DomPDF\Facade\Pdf as Dompdf;
 use Barryvdh\Snappy\Facades\SnappyPdf as SnappyPDF;
 use Carbon\Carbon;
@@ -20,8 +19,6 @@ use RealRashid\SweetAlert\Facades\Alert;
 
 class ReportController extends Controller
 {
-    use SnappyPdfConfiguration;
-
     public function printJurnalFilter(Request $request)
     {
         $dari = $request->a;
@@ -30,6 +27,7 @@ class ReportController extends Controller
         $offset = $dari - 1;
 
         $a = Auth::user()->id;
+
 
         $users = DB::select('
             SELECT *
@@ -71,6 +69,7 @@ class ReportController extends Controller
         $jurnal = Jurnal::with('details')->where('created_by', Auth::user()->id)->get();
         $tgl_awal = $jurnal->min('jurnal_tgl');
         $tgl_akhir = $jurnal->max('jurnal_tgl');
+
 
         if ($jurnal->isEmpty()) {
             Alert::error('Oops!', 'Data tidak ditemukan');
@@ -139,6 +138,8 @@ class ReportController extends Controller
         return view('report.transaksi', ['jurnal' => $jurnal]);
 
     }
+
+
 
     public function bukuBesar(Request $request)
     {
@@ -287,7 +288,7 @@ class ReportController extends Controller
         @set_time_limit(900);
         @ini_set('memory_limit', '1536M');
 
-        SnappyPDF::setBinary(config('snappy.pdf.binary'));
+        SnappyPDF::setBinary('/usr/local/bin/wkhtmltopdf');
 
         $pdf = SnappyPDF::loadView('report.bukubesar_download', [
             'ledgers' => $ledgers,
@@ -889,6 +890,7 @@ class ReportController extends Controller
                     $result[$tahun] = array_merge($values, $saldo);
                 }
             }
+
 
             $pdf = Dompdf::loadView('report.perubahanekuitas', [
                 'data' => $result,
@@ -1520,6 +1522,7 @@ class ReportController extends Controller
             unset($data[Auth::user()->periode - 1]);
         }
 
+
         if ((int) $request->query('excel', 0) === 0) {
             $pdf = Dompdf::loadView('report.neraca', [
                 'data' => $data,
@@ -1713,19 +1716,12 @@ class ReportController extends Controller
     private function neracaFuncPerbandingan($tanggal, $labaRugi, $year, $tanggalMulai = null)
     {
         $userId = Auth::user()->id;
-        $userPeriode = Auth::user()->periode;
 
-        // FIXED: Use provided start date or default to start of year
-        // For accurate balance sheet, we need to calculate from beginning of period
-        $periodStart = $tanggalMulai
-            ? Carbon::parse($tanggalMulai)->startOfDay()->format('Y-m-d 00:00:00')
-            : Carbon::parse($tanggal)->copy()->startOfYear()->format('Y-m-d 00:00:00');
+        $ytdStart = Carbon::parse($tanggal)->copy()->startOfYear()->format('Y-m-d 00:00:00');
 
-        // CRITICAL FIX: Use user's active periode, not year from date
-        // This ensures we get the correct COA with proper saldo_awal values
         $coas = Coa::whereNull('is_deleted')
             ->where('created_by', $userId)
-            ->where('periode', $userPeriode)  // Use auth user periode
+            ->where('periode', $year)
             ->where(function ($q) {
                 $q->where('nomor_akun', 'like', '1%')
                     ->orWhere('nomor_akun', 'like', '2%')
@@ -1743,30 +1739,19 @@ class ReportController extends Controller
             return $coas->get(substr($acc, 0, $len));
         };
 
-        // Query jurnal details from start of year to end date for YTD calculation
-        // This ensures we capture all transactions up to the balance sheet date
-        // CRITICAL FIX: Filter by jurnal_headers.jurnal_tgl instead of jurnal_details.tanggal_bukti
-        // to preserve jurnal atomicity and prevent imbalanced reports when jurnals have mixed dates
-        $ytdStart = Carbon::parse($tanggal)->copy()->startOfYear()->format('Y-m-d 00:00:00');
-
-        $jurnalYTD = DB::table('jurnal_details as jd')
-            ->join('jurnal_headers as jh', 'jd.jurnal_id', '=', 'jh.id')
-            ->selectRaw('jd.coa_akun, COALESCE(SUM(jd.debit),0) AS sum_debit, COALESCE(SUM(jd.credit),0) AS sum_credit')
-            ->where('jd.created_by', $userId)
-            ->where('jh.created_by', $userId)
+        $jurnalYTD = DB::table('jurnal_details')
+            ->selectRaw('coa_akun, COALESCE(SUM(debit),0) AS sum_debit, COALESCE(SUM(credit),0) AS sum_credit')
+            ->where('created_by', $userId)
             ->where(function ($q) {
-                $q->whereNull('jh.is_deleted')->orWhere('jh.is_deleted', 0);
+                $q->whereNull('is_deleted')->orWhere('is_deleted', 0);
             })
             ->where(function ($q) {
-                $q->whereNull('jd.is_deleted')->orWhere('jd.is_deleted', 0);
+                $q->where('coa_akun', 'like', '1%')
+                    ->orWhere('coa_akun', 'like', '2%')
+                    ->orWhere('coa_akun', 'like', '3%');
             })
-            ->where(function ($q) {
-                $q->where('jd.coa_akun', 'like', '1%')
-                    ->orWhere('jd.coa_akun', 'like', '2%')
-                    ->orWhere('jd.coa_akun', 'like', '3%');
-            })
-            ->whereBetween('jh.jurnal_tgl', [$ytdStart, $tanggal])
-            ->groupBy('jd.coa_akun')
+            ->whereBetween('tanggal_bukti', [$ytdStart, $tanggal])
+            ->groupBy('coa_akun')
             ->get()
             ->keyBy('coa_akun');
 
@@ -1857,6 +1842,7 @@ class ReportController extends Controller
             }
         }
 
+
         return $data;
     }
 
@@ -1897,6 +1883,7 @@ class ReportController extends Controller
             ->groupBy('coa_akun')
             ->get()
             ->keyBy('coa_akun');
+
 
         $mutasiAwal = collect();
         $awalTahun = (clone $start)->startOfYear();

@@ -93,37 +93,6 @@
             text-align: center;
         }
 
-        .new-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .company-logo {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            transform: translateY(-50%);
-            width: 80px;
-            max-height: 80px;
-            object-fit: contain;
-        }
-
-        .header-content {
-            width: calc(100% - 100px);
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .header-divider {
-            border: none;
-            border-top: 2px solid #333;
-            margin: 10px 0 15px 0;
-        }
-
         .saldo-normal-info {
             font-size: 9px;
             font-style: italic;

@@ -187,7 +187,8 @@
                                                     </th>
                                                 </tr>
                                             </thead>
-                                            <template x-for="(row, index) in rows" :key="index">
+                                            <template x-for="(row, index) in paginatedRows"
+                                                :key="((currentPage - 1) * itemsPerPage) + index">
                                                 <tbody class="bg-white border-b border-gray-200 hover:bg-gray-50"
                                                     id="tBody">
                                                     <tr>
@@ -195,35 +196,43 @@
                                                             <div class="flex items-center gap-2">
                                                                 <button type="button"
                                                                     class="inline-flex items-center justify-center px-2 py-1.5 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition shadow-custom-strong flex-shrink-0"
-                                                                    x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('coas.index')); ?>', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: index })">
+                                                                    x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('coas.index')); ?>', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: ((currentPage - 1) * itemsPerPage) + index })">
                                                                     Pilih
                                                                 </button>
-                                                                <input type="text" :name="'no_akun[' + index + ']'"
+                                                                <input type="text"
+                                                                    :name="'no_akun[' + (((currentPage - 1) * itemsPerPage) +
+                                                                        index) + ']'"
                                                                     readonly required
                                                                     class="w-24 px-2 py-1.5 rounded-md shadow-sm bg-gray-100 border-gray-300 text-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                                                     x-model="formattedAkun" x-init="$watch('row.coa_akun', value => row.coa_akun = formatNomorAkun(value))">
-                                                                <input type="text" :name="'nama_akun[' + index + ']'"
+                                                                <input type="text"
+                                                                    :name="'nama_akun[' + (((currentPage - 1) * itemsPerPage) +
+                                                                        index) + ']'"
                                                                     readonly required
                                                                     class="flex-1 px-2 py-1.5 rounded-md shadow-sm bg-gray-100 border-gray-300 text-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                                                     x-model="row.coa.nama_akun">
                                                             </div>
                                                         </td>
                                                         <td class="py-3 px-4">
-                                                            <input type="text" :name="'debit[' + index + ']'"
+                                                            <input type="text"
+                                                                :name="'debit[' + (((currentPage - 1) * itemsPerPage) +
+                                                                    index) + ']'"
                                                                 class="w-full px-3 py-1.5 rounded-md shadow-sm border-gray-300 text-sm text-right focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                                                 x-model="row.debit"
-                                                                x-on:input="formatCurrency($event, 'debit', index), updateTotals()">
+                                                                x-on:input="formatCurrency($event, 'debit', ((currentPage - 1) * itemsPerPage) + index), updateTotals()">
                                                         </td>
                                                         <td class="py-3 px-4">
-                                                            <input type="text" :name="'kredit[' + index + ']'"
+                                                            <input type="text"
+                                                                :name="'kredit[' + (((currentPage - 1) * itemsPerPage) +
+                                                                    index) + ']'"
                                                                 class="w-full px-3 py-1.5 rounded-md shadow-sm border-gray-300 text-sm text-right focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                                                 x-model="row.kredit"
-                                                                x-on:input="formatCurrency($event, 'kredit', index), updateTotals()">
+                                                                x-on:input="formatCurrency($event, 'kredit', ((currentPage - 1) * itemsPerPage) + index), updateTotals()">
                                                         </td>
                                                         <td class="py-3 px-4 text-right">
                                                             <button type="button"
                                                                 class="inline-flex items-center justify-center px-3 py-1.5 bg-red-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition shadow-custom-strong"
-                                                                x-on:click="rows.splice(index, 1), updateTotals()">
+                                                                x-on:click="removeRow(index)">
                                                                 <svg class="w-4 h-4 mr-1" fill="none"
                                                                     stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -240,36 +249,112 @@
                                                             <label class="block text-xs font-medium text-gray-700 mb-1">
                                                                 Keterangan <span class="text-red-500">*</span>
                                                             </label>
-                                                            <textarea :name="'keterangan[' + index + ']'"
+                                                            <textarea
+                                                                :name="'keterangan[' + (((currentPage - 1) * itemsPerPage) +
+                                                                    index) + ']'"
                                                                 class="w-full px-3 py-2 rounded-md shadow-sm border-gray-300 text-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
-                                                                rows="2" x-model="row.keterangan" x-on:dblclick="setKeteranganToRow(index)"
+                                                                rows="2" x-model="row.keterangan"
+                                                                x-on:dblclick="setKeteranganToRow(((currentPage - 1) * itemsPerPage) + index)"
                                                                 placeholder="Double-click untuk gunakan keterangan header"></textarea>
                                                         </td>
                                                         <td class="py-2 px-4">
                                                             <label class="block text-xs font-medium text-gray-700 mb-1">
                                                                 Tanggal Bukti <span class="text-red-500">*</span>
                                                             </label>
-                                                            <input type="text" :name="'tanggal_bukti[' + index + ']'"
+                                                            <input type="text"
+                                                                :name="'tanggal_bukti[' + (((currentPage - 1) * itemsPerPage) +
+                                                                    index) + ']'"
                                                                 class="w-full px-3 py-1.5 rounded-md shadow-sm border-gray-300 text-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker"
                                                                 <?php if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0): ?> disabled <?php endif; ?>
                                                                 x-model="row.tanggal_bukti"
-                                                                :x-ref="'tanggal_bukti_' + index" x-datepicker required>
+                                                                :x-ref="'tanggal_bukti_' + (((currentPage - 1) * itemsPerPage) +
+                                                                    index)"
+                                                                x-datepicker required>
                                                         </td>
                                                         <td class="py-2 px-4">
                                                             <label class="block text-xs font-medium text-gray-700 mb-1">
                                                                 Lampiran
                                                             </label>
-                                                            <input type="file" :name="'lampiran[' + index + ']'"
+                                                            <input type="file"
+                                                                :name="'lampiran[' + (((currentPage - 1) * itemsPerPage) +
+                                                                    index) + ']'"
                                                                 accept=".pdf,.jpg,.png,.jpeg"
                                                                 class="w-full text-xs file:bg-emerald-500 file:border-none file:rounded-md file:px-2 file:py-1 file:text-xs file:font-semibold file:text-white file:tracking-widest hover:file:bg-emerald-700 file:transition"
                                                                 multiple <?php if(auth()->user()->profile == 'trial' && auth()->user()->is_active == 0): ?> disabled <?php endif; ?>>
-                                                            <input type="hidden" :name="'lampiran_path[' + index + ']'"
+                                                            <input type="hidden"
+                                                                :name="'lampiran_path[' + (((currentPage - 1) * itemsPerPage) +
+                                                                    index) + ']'"
                                                                 x-model="row.lampiran">
                                                         </td>
                                                     </tr>
                                                 </tbody>
                                             </template>
                                         </table>
+
+                                        <!-- Pagination Controls for Edit Page -->
+                                        <div x-show="rows.length > itemsPerPage"
+                                            class="mt-4 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex-1 flex justify-between sm:hidden">
+                                                    <button @click="previousPage()" :disabled="currentPage === 1"
+                                                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        Previous
+                                                    </button>
+                                                    <button @click="nextPage()" :disabled="currentPage === totalPages"
+                                                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        Next
+                                                    </button>
+                                                </div>
+                                                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                                    <div>
+                                                        <p class="text-sm text-gray-700">
+                                                            Menampilkan
+                                                            <span class="font-medium" x-text="showingFrom"></span>
+                                                            sampai
+                                                            <span class="font-medium" x-text="showingTo"></span>
+                                                            dari
+                                                            <span class="font-medium" x-text="rows.length"></span>
+                                                            baris
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                                            aria-label="Pagination">
+                                                            <button @click="previousPage()" :disabled="currentPage === 1"
+                                                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg"
+                                                                    viewBox="0 0 20 20" fill="currentColor">
+                                                                    <path fill-rule="evenodd"
+                                                                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                                                        clip-rule="evenodd" />
+                                                                </svg>
+                                                            </button>
+
+                                                            <template x-for="page in visiblePages" :key="page">
+                                                                <button @click="goToPage(page)"
+                                                                    :class="page === currentPage ?
+                                                                        'z-10 bg-emerald-50 border-emerald-500 text-emerald-600' :
+                                                                        'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'"
+                                                                    class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+                                                                    x-text="page">
+                                                                </button>
+                                                            </template>
+
+                                                            <button @click="nextPage()"
+                                                                :disabled="currentPage === totalPages"
+                                                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg"
+                                                                    viewBox="0 0 20 20" fill="currentColor">
+                                                                    <path fill-rule="evenodd"
+                                                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                                                        clip-rule="evenodd" />
+                                                                </svg>
+                                                            </button>
+                                                        </nav>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                     </form>
@@ -386,34 +471,40 @@
                                             </th>
                                         </tr>
                                     </thead>
-                                    <template x-for="(row, index) in rows" :key="index" id="myTemplate">
+                                    <template x-for="(row, index) in paginatedRows"
+                                        :key="((currentPage - 1) * itemsPerPage) + index" id="myTemplate">
                                         <tbody class="bg-gray-100 text-center" id="tBody">
                                             <tr class="border-b">
                                                 <td class="py-2 px-4 flex items-center space-x-2">
                                                     <button type="button"
                                                         class="inline-flex items-center justify-center px-2 py-1 bg-emerald-500 border border-transparent rounded-md font-semibold text-xs text-white tracking-widest hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-custom-strong"
-                                                        x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('coas.index')); ?>', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: index })">
+                                                        x-on:click.prevent="$dispatch('open-modal', { route: '<?php echo e(route('coas.index')); ?>', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: ((currentPage - 1) * itemsPerPage) + index })">
                                                         Pilih
                                                     </button>
-                                                    <input type="text" :name="'no_akun[' + index + ']'"
+                                                    <input type="text"
+                                                        :name="'no_akun[' + (((currentPage - 1) * itemsPerPage) + index) + ']'"
                                                         class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                                         x-model="row.no_akun" readonly required>
-                                                    <input type="text" :name="'nama_akun[' + index + ']'"
+                                                    <input type="text"
+                                                        :name="'nama_akun[' + (((currentPage - 1) * itemsPerPage) + index) +
+                                                        ']'"
                                                         class="w-full px-2 py-1 rounded-lg shadow-sm bg-gray-200 border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
                                                         x-model="row.nama_akun" readonly required>
                                                 </td>
                                                 <td class="py-2 px-4">
-                                                    <input type="text" :name="'debit[' + index + ']'"
+                                                    <input type="text"
+                                                        :name="'debit[' + (((currentPage - 1) * itemsPerPage) + index) + ']'"
                                                         class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-right"
                                                         x-model="row.debit"
-                                                        x-on:input="formatCurrency($event, 'debit', index), updateTotals()"
+                                                        x-on:input="formatCurrency($event, 'debit', ((currentPage - 1) * itemsPerPage) + index), updateTotals()"
                                                         required>
                                                 </td>
                                                 <td class="py-2 px-4">
-                                                    <input type="text" :name="'kredit[' + index + ']'"
+                                                    <input type="text"
+                                                        :name="'kredit[' + (((currentPage - 1) * itemsPerPage) + index) + ']'"
                                                         class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-right"
                                                         x-model="row.kredit"
-                                                        x-on:input="formatCurrency($event, 'kredit', index), updateTotals()"
+                                                        x-on:input="formatCurrency($event, 'kredit', ((currentPage - 1) * itemsPerPage) + index), updateTotals()"
                                                         required>
                                                 </td>
                                                 <td class="py-2 px-4">
@@ -429,17 +520,20 @@
                                                     <label for="keterangan"
                                                         class="block text-sm font-medium text-gray-700">Keterangan&nbsp;<span
                                                             class="text-red-500">*</span></label>
-                                                    <textarea :name="'keterangan[' + index + ']'"
+                                                    <textarea :name="'keterangan[' + (((currentPage - 1) * itemsPerPage) + index) + ']'"
                                                         class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
-                                                        x-model="row.keterangan" x-on:dblclick="setKeteranganToRow(index)"></textarea>
+                                                        x-model="row.keterangan" x-on:dblclick="setKeteranganToRow(((currentPage - 1) * itemsPerPage) + index)"></textarea>
                                                 </td>
                                                 <td class="py-1 px-2">
                                                     <label class="block text-sm font-medium text-gray-700">Tanggal
                                                         Bukti&nbsp;<span class="text-red-500">*</span></label>
                                                     
-                                                    <input type="text" :name="'tanggal_bukti[' + index + ']'"
+                                                    <input type="text"
+                                                        :name="'tanggal_bukti[' + (((currentPage - 1) * itemsPerPage) +
+                                                            index) + ']'"
                                                         class="w-full px-2 py-1 rounded-lg shadow-sm border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker"
-                                                        x-on:dblclick="setToday(index)" :x-ref="'tanggal_bukti_' + index"
+                                                        x-on:dblclick="setToday(((currentPage - 1) * itemsPerPage) + index)"
+                                                        :x-ref="'tanggal_bukti_' + (((currentPage - 1) * itemsPerPage) + index)"
                                                         x-model="row.tanggal_bukti" x-datepicker readonly required>
                                                 </td>
                                                 <td class="py-1 px-1">
@@ -454,6 +548,70 @@
                                         </tbody>
                                     </template>
                                 </table>
+
+                                <!-- Pagination Controls -->
+                                <div x-show="rows.length > itemsPerPage"
+                                    class="mt-4 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1 flex justify-between sm:hidden">
+                                            <button @click="previousPage()" :disabled="currentPage === 1"
+                                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                Previous
+                                            </button>
+                                            <button @click="nextPage()" :disabled="currentPage === totalPages"
+                                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                Next
+                                            </button>
+                                        </div>
+                                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                            <div>
+                                                <p class="text-sm text-gray-700">
+                                                    Menampilkan
+                                                    <span class="font-medium" x-text="showingFrom"></span>
+                                                    sampai
+                                                    <span class="font-medium" x-text="showingTo"></span>
+                                                    dari
+                                                    <span class="font-medium" x-text="rows.length"></span>
+                                                    baris
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                                    aria-label="Pagination">
+                                                    <button @click="previousPage()" :disabled="currentPage === 1"
+                                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+                                                    </button>
+
+                                                    <template x-for="page in visiblePages" :key="page">
+                                                        <button @click="goToPage(page)"
+                                                            :class="page === currentPage ?
+                                                                'z-10 bg-emerald-50 border-emerald-500 text-emerald-600' :
+                                                                'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'"
+                                                            class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+                                                            x-text="page">
+                                                        </button>
+                                                    </template>
+
+                                                    <button @click="nextPage()" :disabled="currentPage === totalPages"
+                                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </nav>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -499,6 +657,74 @@
                     isValid: true,
                     isImport: false,
                     tanggal_transaksi: jurnalTgl,
+
+                    // Pagination properties
+                    currentPage: 1,
+                    itemsPerPage: 50,
+                    totalPages: 1,
+
+                    get paginatedRows() {
+                        const start = (this.currentPage - 1) * this.itemsPerPage;
+                        const end = start + this.itemsPerPage;
+                        return this.rows.slice(start, end);
+                    },
+
+                    get showingFrom() {
+                        if (this.rows.length === 0) return 0;
+                        return ((this.currentPage - 1) * this.itemsPerPage) + 1;
+                    },
+
+                    get showingTo() {
+                        const to = this.currentPage * this.itemsPerPage;
+                        return to > this.rows.length ? this.rows.length : to;
+                    },
+
+                    updatePagination() {
+                        this.totalPages = Math.ceil(this.rows.length / this.itemsPerPage);
+                        if (this.currentPage > this.totalPages) {
+                            this.currentPage = this.totalPages || 1;
+                        }
+                    },
+
+                    goToPage(page) {
+                        if (page >= 1 && page <= this.totalPages) {
+                            this.currentPage = page;
+                            // Scroll to top of table
+                            document.getElementById('jurnalDetail')?.scrollIntoView({
+                                behavior: 'smooth'
+                            });
+                        }
+                    },
+
+                    previousPage() {
+                        if (this.currentPage > 1) {
+                            this.goToPage(this.currentPage - 1);
+                        }
+                    },
+
+                    nextPage() {
+                        if (this.currentPage < this.totalPages) {
+                            this.goToPage(this.currentPage + 1);
+                        }
+                    },
+
+                    get visiblePages() {
+                        const pages = [];
+                        const maxVisible = 5;
+
+                        let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
+                        let end = Math.min(this.totalPages, start + maxVisible - 1);
+
+                        if (end - start + 1 < maxVisible) {
+                            start = Math.max(1, end - maxVisible + 1);
+                        }
+
+                        for (let i = start; i <= end; i++) {
+                            pages.push(i);
+                        }
+
+                        return pages;
+                    },
 
                     init() {
                         this.$errorElement = document.querySelector('[x-ref="alertError"]');
@@ -684,14 +910,17 @@
                             kredit: ''
                         });
 
-
+                        this.updatePagination();
                         this.updateTotals();
                         this.updateTanggalBukti(this.rows.length - 1);
                     },
 
 
                     removeRow(index) {
-                        this.rows.splice(index, 1);
+                        // Calculate actual index considering pagination
+                        const actualIndex = ((this.currentPage - 1) * this.itemsPerPage) + index;
+                        this.rows.splice(actualIndex, 1);
+                        this.updatePagination();
                         this.updateTotals();
                     },
 
@@ -743,7 +972,20 @@
 
                     importJurnal() {
                         const overlay = document.getElementById('overlay');
+                        if (!overlay) {
+                            alert('Loading overlay tidak ditemukan');
+                            return;
+                        }
+
+                        // Get the loading text elements
+                        const overlayTitle = overlay.querySelector('h3');
+                        const overlaySubtext = overlay.querySelector('p');
+
                         overlay.style.display = 'flex';
+
+                        // Update loading text
+                        if (overlayTitle) overlayTitle.textContent = 'Memproses Import Jurnal';
+                        if (overlaySubtext) overlaySubtext.textContent = 'Mohon tunggu, sedang membaca file...';
 
                         let getFile = document.getElementById('importFile').files;
                         if (getFile.length === 0) {
@@ -752,17 +994,27 @@
                             overlay.style.display = 'none';
                             return;
                         }
+
                         let formData = new FormData();
                         formData.append('file', getFile[0]);
+
+                        // Add timeout for large files
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+
                         fetch('<?php echo e(route('jurnal.import.html')); ?>', {
                                 method: 'POST',
                                 body: formData,
                                 headers: {
                                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
                                         'content')
-                                }
+                                },
+                                signal: controller.signal
                             })
-                            .then(response => response.json())
+                            .then(response => {
+                                clearTimeout(timeoutId);
+                                return response.json();
+                            })
                             .then(data => {
                                 if (data.html === 0) {
                                     alert(data.message);
@@ -770,28 +1022,93 @@
                                     return;
                                 } else {
                                     if (data.html && data.html.length > 0) {
-                                        alert(data.message);
-                                        this.rows = data.html;
-                                        this.isImport = true;
-                                        this.updateTotals();
-                                        this.importUpdate();
-                                        // console.log(this.rows)
+                                        if (overlayTitle) overlayTitle.textContent = 'Memproses Data';
+                                        if (overlaySubtext) overlaySubtext.textContent = 'Memproses ' + data.html.length +
+                                            ' baris data...';
+
+                                        // Process in batches to prevent UI freeze
+                                        const batchSize = 50;
+                                        let currentBatch = 0;
+
+                                        const processBatch = () => {
+                                            const start = currentBatch * batchSize;
+                                            const end = Math.min(start + batchSize, data.html.length);
+
+                                            // Add batch to rows
+                                            for (let i = start; i < end; i++) {
+                                                this.rows.push(data.html[i]);
+                                            }
+
+                                            currentBatch++;
+
+                                            // Update progress
+                                            const progress = Math.round((end / data.html.length) * 100);
+                                            if (overlayTitle) overlayTitle.textContent = 'Memproses Data (' + progress +
+                                                '%)';
+                                            if (overlaySubtext) overlaySubtext.textContent = end + ' dari ' + data.html
+                                                .length + ' baris telah diproses';
+
+                                            if (end < data.html.length) {
+                                                // Process next batch asynchronously
+                                                setTimeout(processBatch, 10);
+                                            } else {
+                                                // All batches processed
+                                                if (overlayTitle) overlayTitle.textContent = 'Menyelesaikan Import';
+                                                if (overlaySubtext) overlaySubtext.textContent =
+                                                    'Sedang menghitung total...';
+
+                                                // Small delay to show completion message
+                                                setTimeout(() => {
+                                                    this.isImport = true;
+                                                    this.updatePagination();
+                                                    this.updateTotals();
+                                                    this.importUpdate();
+                                                    alert(data.message);
+                                                    overlay.style.display = 'none';
+
+                                                    // Reset text for next use
+                                                    if (overlayTitle) overlayTitle.textContent = 'Memuat Data';
+                                                    if (overlaySubtext) overlaySubtext.textContent =
+                                                        'Harap tunggu sebentar...';
+                                                }, 300);
+                                            }
+                                        };
+
+                                        // Start batch processing
+                                        processBatch();
+
                                     } else {
                                         alert('Terjadi kesalahan saat mengimpor jurnal.');
+                                        overlay.style.display = 'none';
                                     }
-                                    overlay.style.display = 'none';
                                 }
                             })
                             .catch(error => {
+                                clearTimeout(timeoutId);
                                 this.isValid = false;
-                                this.errorMessage = 'Terjadi kesalahan saat mengimpor jurnal.';
+
+                                if (error.name === 'AbortError') {
+                                    this.errorMessage = 'Import timeout. File terlalu besar atau koneksi lambat.';
+                                    alert(
+                                        'Import timeout. File terlalu besar atau koneksi lambat. Silakan coba dengan file yang lebih kecil.'
+                                    );
+                                } else {
+                                    this.errorMessage = 'Terjadi kesalahan saat mengimpor jurnal: ' + error.message;
+                                    alert('Terjadi kesalahan saat mengimpor jurnal.');
+                                }
+
                                 if (this.$refs.errorElement) {
                                     this.$refs.errorElement.removeAttribute('hidden');
                                     setTimeout(() => {
                                         this.$refs.errorElement.setAttribute('hidden', true);
                                     }, 3000);
                                 }
+
                                 overlay.style.display = 'none';
+
+                                // Reset text for next use
+                                if (overlayTitle) overlayTitle.textContent = 'Memuat Data';
+                                if (overlaySubtext) overlaySubtext.textContent = 'Harap tunggu sebentar...';
                             });
                     },
 
@@ -847,83 +1164,73 @@
                         this.isValid = true;
                         this.errorMessage = '';
 
-                        if (this.$refs.jenis.value.trim() === '') {
+                        if (this.$refs.jenis && this.$refs.jenis.value.trim() === '') {
                             this.isValid = false;
                             this.errorMessage += 'Jenis harus diisi.<br>';
                         }
 
-                        if (this.$refs.keterangan.value.trim() === '') {
+                        if (this.$refs.keterangan && this.$refs.keterangan.value.trim() === '') {
                             this.isValid = false;
                             this.errorMessage += 'Keterangan Header harus diisi.<br>';
                         }
 
-                        if (this.isImport) {
-                            const tbody = document.querySelectorAll('#tBody tr').length / 2;
-
-                            for (let i = 0; i < tbody; i++) {
-                                let no_akun = document.getElementsByName('no_akun[' + i + ']')[0].value;
-                                let nama_akun = document.getElementsByName('nama_akun[' + i + ']')[0].value;
-                                let debit = document.getElementsByName('debit[' + i + ']')[0].value;
-                                let kredit = document.getElementsByName('kredit[' + i + ']')[0].value;
-                                let tanggal_bukti = document.getElementsByName('tanggal_bukti[' + i + ']')[0].value;
-                            }
-
-                        } else {
-                            if (this.rows.length === 0) {
-                                this.isValid = false;
-                                this.errorMessage += 'Detail jurnal tidak boleh kosong.<br>';
-                            }
-
-                            if (this.rows.length === 1) {
-                                this.isValid = false;
-                                this.errorMessage += 'Masukan Detail Pembanding.<br>';
-                            }
-
-                            let totalDebit = 0;
-                            let totalCredit = 0;
-
-                            this.rows.forEach((row, index) => {
-                                let no_akun = document.getElementsByName('no_akun[' + index + ']')[0].value;
-                                let nama_akun = document.getElementsByName('nama_akun[' + index + ']')[0].value;
-
-                                console.log(row.tanggal_bukti)
-
-                                if ((parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) || row.debit === '' ||
-                                    row.kredit === '') {
-                                    this.isValid = false;
-                                    // if (row.tanggal_bukti.trim() === '') this.errorMessage += `Tanggal bukti pada baris ${index + 1} harus diisi.<br>`;
-                                    if (parseFloat(row.debit) === 0 && parseFloat(row.kredit) === 0) this
-                                        .errorMessage += `Debit atau kredit pada baris ${index + 1} harus diisi.<br>`;
-                                    if (row.debit === '') this.errorMessage +=
-                                        `Debit pada baris ${index + 1} harus diisi.<br>`;
-                                    if (row.kredit === '') this.errorMessage +=
-                                        `Kredit pada baris ${index + 1} harus diisi.<br>`;
-                                }
-
-                                if (no_akun === '' || nama_akun === '') {
-                                    this.isValid = false;
-                                    this.errorMessage +=
-                                        `No Akun atau Nama Akun pada baris ${index + 1} harus diisi.<br>`;
-                                }
-
-                                totalDebit += parseFloat(row.debit) || 0;
-                                totalCredit += parseFloat(row.kredit) || 0;
-                            });
-
-                            // console.log(totalDebit, totalCredit)
-                            // return false;
-
+                        if (this.rows.length === 0) {
+                            this.isValid = false;
+                            this.errorMessage += 'Detail jurnal tidak boleh kosong.<br>';
                         }
 
+                        if (this.rows.length === 1) {
+                            this.isValid = false;
+                            this.errorMessage += 'Masukan Detail Pembanding.<br>';
+                        }
 
-                        console.log(this.rows)
+                        let totalDebit = 0;
+                        let totalCredit = 0;
 
-                        // if(this.rows.length === 1){
-                        //     this.isValid = false;
-                        //     this.errorMessage += 'Masukan Detail Pembanding.<br>';
-                        // }
+                        // Validate ALL rows (not just paginated ones)
+                        this.rows.forEach((row, actualIndex) => {
+                            // Use row data directly instead of DOM elements
+                            let no_akun = row.no_akun || '';
+                            let nama_akun = row.nama_akun || row.coa?.nama_akun || '';
 
-                        if (parseFloat(this.selisih) !== 0) {
+                            // Convert formatted numbers to float
+                            let debitValue = typeof row.debit === 'string' ?
+                                parseFloat(row.debit.replace(/\./g, '').replace(',', '.')) :
+                                parseFloat(row.debit);
+                            let kreditValue = typeof row.kredit === 'string' ?
+                                parseFloat(row.kredit.replace(/\./g, '').replace(',', '.')) :
+                                parseFloat(row.kredit);
+
+                            if (isNaN(debitValue)) debitValue = 0;
+                            if (isNaN(kreditValue)) kreditValue = 0;
+
+                            if ((debitValue === 0 && kreditValue === 0) || row.debit === '' || row.kredit === '') {
+                                this.isValid = false;
+                                if (debitValue === 0 && kreditValue === 0) {
+                                    this.errorMessage +=
+                                        `Debit atau kredit pada baris ${actualIndex + 1} harus diisi.<br>`;
+                                }
+                                if (row.debit === '') {
+                                    this.errorMessage += `Debit pada baris ${actualIndex + 1} harus diisi.<br>`;
+                                }
+                                if (row.kredit === '') {
+                                    this.errorMessage += `Kredit pada baris ${actualIndex + 1} harus diisi.<br>`;
+                                }
+                            }
+
+                            if (no_akun === '' || nama_akun === '') {
+                                this.isValid = false;
+                                this.errorMessage +=
+                                    `No Akun atau Nama Akun pada baris ${actualIndex + 1} harus diisi.<br>`;
+                            }
+
+                            totalDebit += debitValue;
+                            totalCredit += kreditValue;
+                        });
+
+                        // Check balance
+                        const selisih = Math.abs(totalDebit - totalCredit);
+                        if (selisih > 0.01) { // Allow small floating point differences
                             this.isValid = false;
                             this.errorMessage += 'Total debit dan kredit harus seimbang.<br>';
                         }
@@ -933,7 +1240,7 @@
                             this.$errorElement.classList.remove('hidden');
                             setTimeout(() => {
                                 this.$errorElement.classList.add('hidden');
-                            }, 3000);
+                            }, 5000);
                         }
 
                         return this.isValid;

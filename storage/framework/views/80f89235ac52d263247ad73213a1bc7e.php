@@ -6,56 +6,8 @@
     <title>Laporan Perubahan Ekuitas</title>
     <link rel="icon" href="<?php echo e(asset('images/icons/hisabuna-favicon.png')); ?>" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            max-width: 800px;
-            margin: 0 35px;
-        }
-        table {
-            width: 100%;
-        }
-        th, td {
-            text-align: center;
-            padding: 2px;
-        }
-        h2, h3 {
-            margin: 0;
-            padding: 0;
-        }
-
-        .footer.content {
-            display: flex;
-            align-items: center;
-        }
-
-        .new-header {
-            position: relative;
-        }
-
-        .company-logo {
-            position: absolute;
-            top: 5%;
-            left: 0;
-            transform: translateY(-50%);
-            width: 100px;
-        }
-
-        @page {
-            size: A4;
-            margin: 30px;
-            padding: 0;
-            @bottom-center {
-                content: counter(page);
-            }
-        }
+        @import url('<?php echo e(asset('css/rpt.css')); ?>');
     </style>
-    <script src="<?php echo e(asset('js/paged_old.js')); ?>"></script>
-    <script>
-        setTimeout(() => {
-                window.print()
-            }, 5000);
-    </script>
 </head>
 <body>
     <?php echo $__env->make('report.partials.header', [

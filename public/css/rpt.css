@@ -3,24 +3,19 @@ body {
     font-size: 12px;
     max-width: 650px;
     margin: 0 auto;
+    padding: 20px;
 }
 
 .report-container {
     max-width: 800px;
     margin: 0 auto;
-    padding: 3px;
     padding: 20px;
     background-color: #fff;
-
 }
 
 .text-left {
     text-align: left;
     font-size: 12px;
-}
-
-table.main-data tr:nth-child(odd) {
-    /* background-color: #f4f4f5;? */
 }
 
 
@@ -70,26 +65,30 @@ p {
     font-size: 12px;
 }
 
+/* Header styles - Updated for new layout with logo in top-left corner */
 .new-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     position: relative;
     text-align: center;
+    min-height: 150px;
+    padding: 10px 0;
+    margin-bottom: 20px;
 }
 
 .company-logo {
     position: absolute;
-    top: 5%;
-    left: 0;
-    transform: translateY(-50%);
-    width: 100px;
+    top: 10px;
+    left: 10px;
+    max-width: 250px;
+    max-height: 250px;
+    object-fit: contain;
+    z-index: 10;
 }
 
 .header-content {
-    width: calc(100% - 120px);
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    text-align: center;
+    padding-top: 20px;
 }
 
 
@@ -118,6 +117,43 @@ p {
     padding: 0;
     @bottom-center {
         content: counter(page);
+    }
+}
+
+/* Print-specific styles */
+@media print {
+    body {
+        padding: 10px;
+    }
+
+    .new-header {
+        min-height: 120px;
+    }
+
+    .company-logo {
+        max-width: 150px;
+        max-height: 150px;
+    }
+}
+
+/* Responsive styles for smaller screens */
+@media screen and (max-width: 768px) {
+    body {
+        max-width: 100%;
+        padding: 10px;
+    }
+
+    .new-header {
+        min-height: 100px;
+    }
+
+    .company-logo {
+        max-width: 120px;
+        max-height: 120px;
+    }
+
+    .header-content {
+        padding-top: 10px;
     }
 }
 

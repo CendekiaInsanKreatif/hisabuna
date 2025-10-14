@@ -204,10 +204,19 @@
                                 <div>
                                     <label for="tanggal_{{ $loop->index }}"
                                         class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                                    <input type="text" id="tanggal_{{ $loop->index }}"
-                                        oninput="funcState(this.value, 'tanggal', {{ $loop->index }})"
-                                        name="tanggal_{{ $loop->index }}" placeholder="Pilih tanggal"
-                                        class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                    <div class="relative">
+                                        <input type="text" id="tanggal_{{ $loop->index }}"
+                                            oninput="funcState(this.value, 'tanggal', {{ $loop->index }})"
+                                            name="tanggal_{{ $loop->index }}" placeholder="Pilih tanggal"
+                                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div>
                                     <label for="dibuat_{{ $loop->index }}"
@@ -251,46 +260,9 @@
             let defaultDateStart = new Date(new Date(periode, 0, 1).setHours(0, 0, 0, 0));
             let defaultDateEnd = new Date(new Date(periode, 11, 31).setHours(23, 59, 59, 999));
 
-            // Function to show report options
-            showReport = (index, route) => {
-                if (route === '/report/neraca-perbandingan' || route === '/report/neraca' || route ===
-                    '/report/labarugi' || route === '/report/aruskas' || route === '/report/perubahanekuitas') {
-                    $('#showReport' + index).slideToggle(300);
-                }
-            }
-
             // Function to sync input fields across reports
             funcState = (value, field, index) => {
                 const containers = document.querySelectorAll('.container-card-report');
-
-                // Initialize flatpickr for tanggal fields
-                if (field === 'tanggal') {
-                    flatpickr(`#tanggal_${index}`, {
-                        dateFormat: 'd-m-Y',
-                        allowInput: true,
-                        minDate: `01-01-${periode}`,
-                        maxDate: `31-12-${periode}`,
-                        defaultDate: new Date(),
-                        locale: {
-                            firstDayOfWeek: 1,
-                            weekdays: {
-                                shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-                                longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat',
-                                    'Sabtu'
-                                ]
-                            },
-                            months: {
-                                shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu',
-                                    'Sep', 'Okt', 'Nov', 'Des'
-                                ],
-                                longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                                    'Juli', 'Agustus', 'September', 'Oktober', 'November',
-                                    'Desember'
-                                ]
-                            }
-                        }
-                    });
-                }
 
                 // Sync values across similar fields
                 containers.forEach((container) => {
@@ -304,6 +276,63 @@
                     }
                 });
             }
+
+            // Initialize flatpickr for all tanggal fields in report options
+            initializeTanggalPickers = () => {
+                const tanggalInputs = document.querySelectorAll('input[id^="tanggal_"]');
+                tanggalInputs.forEach((input) => {
+                    if (!input._flatpickr) { // Check if flatpickr is not already initialized
+                        flatpickr(input, {
+                            dateFormat: 'd-m-Y',
+                            allowInput: true,
+                            minDate: `01-01-${periode}`,
+                            maxDate: `31-12-${periode}`,
+                            defaultDate: new Date(),
+                            locale: {
+                                firstDayOfWeek: 1,
+                                weekdays: {
+                                    shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum',
+                                        'Sab'],
+                                    longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis',
+                                        'Jumat', 'Sabtu'
+                                    ]
+                                },
+                                months: {
+                                    shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul',
+                                        'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+                                    ],
+                                    longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei',
+                                        'Juni', 'Juli', 'Agustus', 'September', 'Oktober',
+                                        'November', 'Desember'
+                                    ]
+                                }
+                            },
+                            onChange: function(selectedDates, dateStr, instance) {
+                                // Sync value to all other tanggal fields
+                                const inputId = instance.input.id;
+                                const index = inputId.split('_')[1];
+                                funcState(dateStr, 'tanggal', index);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Function to show report options
+            showReport = (index, route) => {
+                if (route === '/report/neraca-perbandingan' || route === '/report/neraca' || route ===
+                    '/report/labarugi' || route === '/report/aruskas' || route === '/report/perubahanekuitas') {
+                    $('#showReport' + index).slideToggle(300, function() {
+                        // Initialize flatpickr for newly visible tanggal fields
+                        if ($(this).is(':visible')) {
+                            initializeTanggalPickers();
+                        }
+                    });
+                }
+            }
+
+            // Initialize tanggal pickers on page load (for any visible fields)
+            initializeTanggalPickers();
 
             // Initialize start date picker
             const startDatePicker = flatpickr('#start_date', {

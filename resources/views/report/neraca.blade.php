@@ -11,11 +11,6 @@
     <style>
         @import url('{{ asset('css/rpt.css') }}');
     </style>
-    <script>
-        setTimeout(() => {
-            window.print()
-        }, 5000);
-    </script>
 </head>
 
 <body>

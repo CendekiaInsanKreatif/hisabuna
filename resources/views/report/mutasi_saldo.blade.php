@@ -32,6 +32,7 @@
         }
 
         table tbody {
+            padding: 2px;
             page-break-inside: avoid;
             /* Hindari pemisahan tabel */
         }

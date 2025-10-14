@@ -652,6 +652,21 @@ class JurnalController extends Controller
             $data = Excel::toCollection($import, $path);
             unset($data[1]);
 
+            // OPTIMIZATION: Batch COA lookup to eliminate N+1 queries
+            $coaNumbers = [];
+            foreach ($data[0] as $row) {
+                if ($row['akun_coa'] !== null && strpos($row['akun_coa'], '|') === false) {
+                    $akun_coa = str_replace('-', '', $row['akun_coa']);
+                    $coaNumbers[] = $akun_coa;
+                }
+            }
+
+            // Single query to fetch all COAs at once
+            $coas = Coa::where('created_by', auth()->user()->id)
+                ->whereIn('nomor_akun', array_unique($coaNumbers))
+                ->get()
+                ->keyBy('nomor_akun');
+
             $detail = [];
             foreach ($data[0] as $row) {
                 if ($row['akun_coa'] !== null) {
@@ -659,19 +674,25 @@ class JurnalController extends Controller
                         $akun = explode('|', $row['akun_coa']);
                     } else {
                         $akun_coa = str_replace('-', '', $row['akun_coa']);
-                        $coa = Coa::where(['nomor_akun' => $akun_coa, 'created_by' => auth()->user()->id])->first();
-                        if (! $coa) {
+
+                        // Use pre-fetched COA from batch query
+                        if (! isset($coas[$akun_coa])) {
                             return response()->json([
                                 'success' => false,
                                 'message' => 'Akun COA: '.$row['akun_coa'].' tidak ditemukan.',
                             ], 500);
                         }
+
+                        $coa = $coas[$akun_coa];
                         $akun[0] = $coa->nomor_akun;
                         $akun[1] = $coa->nama_akun;
                     }
-                    // da($row);
+
+                    // Format nomor akun dengan dash menggunakan helper (111-01-002)
+                    $formattedNomorAkun = formatNomorAkun($akun[0]);
+
                     $detail[] = [
-                        'no_akun' => $akun[0],
+                        'no_akun' => $formattedNomorAkun,
                         'nama_akun' => $akun[1],
                         'debit' => (int) $row['debit'],
                         'kredit' => (int) $row['kredit'],
@@ -681,9 +702,17 @@ class JurnalController extends Controller
                 }
             }
 
+            // Clean up temporary file
+            \Storage::delete($path);
+
             return $detail;
 
         } catch (\Exception $e) {
+            // Clean up temporary file on error
+            if (isset($path) && \Storage::exists($path)) {
+                \Storage::delete($path);
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error importing data: '.$e->getMessage(),
@@ -696,19 +725,8 @@ class JurnalController extends Controller
         $file = $request->file('file');
         $importedData = $this->import($request);
 
-        $countImport = 500;
-
-        if (auth()->user()->profile == 'trial') {
-            $countImport = 50;
-        } elseif (auth()->user()->profile == 'standard') {
-            $countImport = 100;
-        } elseif (auth()->user()->profile == 'pro') {
-            $countImport = 250;
-        } else {
-            $countImport = 500;
-        }
-
-        // da($importedData['success']);
+        // UNLIMITED IMPORT - No more limits based on profile
+        // Pagination will be handled on frontend for better UX
 
         if ($importedData instanceof \Illuminate\Http\JsonResponse) {
             $responseData = $importedData->getData(true);
@@ -718,15 +736,14 @@ class JurnalController extends Controller
         } elseif (empty($importedData)) {
             return response()->json(['html' => 0, 'message' => 'Data impor kosong']);
         } else {
-            $cek = '';
-            if (count($importedData) > $countImport) {
-                $cek = 'Hanya '.$countImport.' data pertama yang di import.';
-                $importedData = array_slice($importedData, 0, $countImport);
-            } else {
-                $cek = 'Data berhasil diimport, Silahkan Tunggu.';
-            }
+            $totalRows = count($importedData);
+            $message = "Berhasil mengimport {$totalRows} baris data. Gunakan pagination untuk navigasi.";
 
-            return response()->json(['html' => $importedData, 'message' => $cek]);
+            return response()->json([
+                'html' => $importedData,
+                'message' => $message,
+                'total' => $totalRows,
+            ]);
         }
     }
 

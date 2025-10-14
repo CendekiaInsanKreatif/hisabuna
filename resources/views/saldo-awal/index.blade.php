@@ -276,34 +276,56 @@
                     this.filter = category;
                     this.updateTotals();
                 },
-                filteredData() {
+                get filteredData() {
                     let data = this.allData;
+                    const filter = this.filter;
+                    const searchQuery = this.searchQuery;
 
-                    // Filter by category
-                    if (this.filter === 'neraca') {
-                        data = data.filter(coa => ['1', '2', '3'].includes(coa.nomor_akun.charAt(0)));
-                    } else if (this.filter === 'labarugi') {
-                        data = data.filter(coa => ['4', '5', '6'].includes(coa.nomor_akun.charAt(0)));
+                    // Return early if no filters
+                    if (filter === 'all' && !searchQuery) {
+                        return data;
                     }
 
-                    // Filter by search query
-                    if (this.searchQuery) {
-                        const query = this.searchQuery.toLowerCase();
-                        data = data.filter(coa =>
-                            coa.nomor_akun.toString().toLowerCase().includes(query) ||
-                            coa.nama_akun.toLowerCase().includes(query)
-                        );
-                    }
+                    // Combined filter for better performance
+                    return data.filter(coa => {
+                        const firstChar = coa.nomor_akun.charAt(0);
 
-                    return data;
+                        // Category filter
+                        if (filter === 'neraca' && !['1', '2', '3'].includes(firstChar)) {
+                            return false;
+                        }
+                        if (filter === 'labarugi' && !['4', '5', '6'].includes(firstChar)) {
+                            return false;
+                        }
+
+                        // Search filter
+                        if (searchQuery) {
+                            const query = searchQuery.toLowerCase();
+                            const matchesNomor = coa.nomor_akun_lower.includes(query);
+                            const matchesNama = coa.nama_akun_lower.includes(query);
+                            return matchesNomor || matchesNama;
+                        }
+
+                        return true;
+                    });
                 },
                 updateTotals() {
-                    const filteredData = this.filteredData();
-                    const totalDebit = filteredData.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_debit || 0), 0);
-                    const totalKredit = filteredData.reduce((acc, coa) => acc + parseFloat(coa.saldo_awal_credit || 0), 0);
-                    this.totalSaldoAwalDebit = 'Rp ' + this.formatCurrency(totalDebit);
-                    this.totalSaldoAwalKredit = 'Rp ' + this.formatCurrency(totalKredit);
-                    this.selisihSaldoAwal = 'Rp ' + this.formatCurrency(totalDebit - totalKredit);
+                    // Use requestAnimationFrame for smooth UI updates
+                    requestAnimationFrame(() => {
+                        const filteredData = this.filteredData;
+                        let totalDebit = 0;
+                        let totalKredit = 0;
+
+                        // Single loop optimization
+                        for (let i = 0; i < filteredData.length; i++) {
+                            totalDebit += parseFloat(filteredData[i].saldo_awal_debit || 0);
+                            totalKredit += parseFloat(filteredData[i].saldo_awal_credit || 0);
+                        }
+
+                        this.totalSaldoAwalDebit = 'Rp ' + this.formatCurrency(totalDebit);
+                        this.totalSaldoAwalKredit = 'Rp ' + this.formatCurrency(totalKredit);
+                        this.selisihSaldoAwal = 'Rp ' + this.formatCurrency(totalDebit - totalKredit);
+                    });
                 },
                 validateAndSubmit() {
                     if (this.filter === 'neraca' && parseFloat(this.selisihSaldoAwal) !== 0) {
@@ -326,22 +348,41 @@
                     }
                 },
                 async fetchCoaData() {
-                    const overlay = document.getElementById('overlay');
+                    // const overlay = document.getElementById('overlay');
                     // overlay.style.display = 'flex';
+
                     try {
                         const response = await fetch('/api/saldo-awal');
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
                         const data = await response.json();
-                        if (Array.isArray(data)) {
-                            this.allData = data.map(coa => ({
-                                ...coa,
-                                formatted_saldo_awal_debit: this.formatCurrency(coa.saldo_awal_debit),
-                                formatted_saldo_awal_credit: this.formatCurrency(coa.saldo_awal_credit)
-                            }));
-                            this.updateTotals();
-                        } else {
+
+                        if (!Array.isArray(data)) {
                             console.error('Unexpected data format:', data);
                             alert('Error: Unexpected data format. Please check the data returned from the server.');
+                            return;
                         }
+
+                        // Pre-process data for performance
+                        this.allData = data.map(coa => {
+                            const debit = parseFloat(coa.saldo_awal_debit || 0);
+                            const credit = parseFloat(coa.saldo_awal_credit || 0);
+
+                            return {
+                                ...coa,
+                                saldo_awal_debit: debit,
+                                saldo_awal_credit: credit,
+                                formatted_saldo_awal_debit: this.formatCurrency(debit),
+                                formatted_saldo_awal_credit: this.formatCurrency(credit),
+                                // Pre-compute lowercase for search optimization
+                                nomor_akun_lower: coa.nomor_akun.toString().toLowerCase(),
+                                nama_akun_lower: coa.nama_akun.toLowerCase()
+                            };
+                        });
+
+                        this.updateTotals();
                     } catch (error) {
                         console.error('Error fetching COA data:', error);
                         alert('Error fetching COA data. Please try again later.');
@@ -356,29 +397,48 @@
                     this.filter = 'all';
                 },
                 formatCurrency(value) {
-                    let parsedValue = parseFloat(value.toString().replace(/\./g, '').replace(/,/g, '.'));
-                    if (isNaN(parsedValue)) {
-                        return '0';
-                    }
-                    return parsedValue.toLocaleString('id-ID');
+                    // Fast path for zero or empty values
+                    if (!value || value === 0) return '0';
+
+                    // Parse value once
+                    const numValue = typeof value === 'number' ? value :
+                        parseFloat(value.toString().replace(/\./g, '').replace(/,/g, '.'));
+
+                    if (isNaN(numValue)) return '0';
+
+                    return numValue.toLocaleString('id-ID');
                 },
                 formatCurrencyInput(event, type, coa) {
-                    let value = event.target.value.replace(/[^0-9,-]/g, '').replace(/\./g, '').replace(/,/g, '.');
-                    value = parseFloat(value);
-                    if (isNaN(value)) {
-                        value = 0;
+                    const input = event.target;
+                    let value = input.value.replace(/[^0-9,-]/g, '').replace(/\./g, '').replace(/,/g, '.');
+
+                    // Parse and validate
+                    let numValue = parseFloat(value);
+                    if (isNaN(numValue) || numValue < 0) {
+                        numValue = 0;
                     }
-                    value = value.toLocaleString('id-ID');
-                    event.target.value = value;
+
+                    // Format for display
+                    const formatted = this.formatCurrency(numValue);
+                    input.value = formatted;
+
+                    // Update model
                     if (type === 'debit') {
-                        coa.saldo_awal_debit = parseFloat(value.replace(/[^0-9,-]/g, '').replace(/\./g, '').replace(/,/g, '.'));
-                        coa.formatted_saldo_awal_debit = value;
+                        coa.saldo_awal_debit = numValue;
+                        coa.formatted_saldo_awal_debit = formatted;
                     } else {
-                        coa.saldo_awal_credit = parseFloat(value.replace(/[^0-9,-]/g, '').replace(/\./g, '').replace(/,/g, '.'));
-                        coa.formatted_saldo_awal_credit = value;
+                        coa.saldo_awal_credit = numValue;
+                        coa.formatted_saldo_awal_credit = formatted;
                     }
+
+                    // Track changes
                     this.changedData[coa.id] = coa;
-                    this.updateTotals();
+
+                    // Debounce total updates
+                    if (this.updateTimeout) {
+                        clearTimeout(this.updateTimeout);
+                    }
+                    this.updateTimeout = setTimeout(() => this.updateTotals(), 150);
                 },
                 formatNomorAkun(nomor_akun) {
                     let formatted = nomor_akun.toString().padEnd(8, '0');

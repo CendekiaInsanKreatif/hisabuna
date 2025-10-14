@@ -12,11 +12,11 @@
     $showLogo = $showLogo ?? true;
     $companyName = $companyName ?? auth()->user()->company_name;
     $companyLogo = auth()->user()->company_logo;
-    
+
     // Use absolute file path for wkhtmltopdf PDF generation
     // This ensures logo displays correctly in generated PDFs
     $logoPath = $companyLogo ? public_path('storage/' . $companyLogo) : null;
-    
+
     // Check if file exists to avoid broken images
     if ($logoPath && !file_exists($logoPath)) {
         $logoPath = null;
@@ -26,7 +26,7 @@
 <header class="report-header">
     <div class="header-container">
         @if ($showLogo && $logoPath)
-            <div class="logo-container">
+            <div class="logo-container" style="background: none !important;">
                 <img src="{{ $logoPath }}" alt="Logo Perusahaan" class="company-logo">
             </div>
         @endif
@@ -47,29 +47,33 @@
     .report-header {
         margin-bottom: 20px;
         page-break-inside: avoid;
+        position: relative;
     }
 
     .header-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 20px;
+        display: block;
+        position: relative;
         padding: 10px 0;
+        min-height: 150px;
     }
 
     .logo-container {
-        flex-shrink: 0;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
     }
 
     .company-logo {
-        max-width: 80px;
-        max-height: 80px;
+        max-width: 250px;
+        max-height: 250px;
         object-fit: contain;
+        display: block;
     }
 
     .header-content {
         text-align: center;
-        flex: 1;
+        padding-top: 20px;
     }
 
     .company-name {
@@ -107,9 +111,18 @@
             margin-bottom: 15px;
         }
 
+        .header-container {
+            min-height: 120px;
+        }
+
+        .logo-container {
+            top: 10px;
+            left: 10px;
+        }
+
         .company-logo {
-            max-width: 70px;
-            max-height: 70px;
+            max-width: 150px;
+            max-height: 150px;
         }
 
         .company-name {
@@ -128,13 +141,21 @@
     /* Responsive for smaller screens */
     @media screen and (max-width: 768px) {
         .header-container {
-            flex-direction: column;
-            gap: 10px;
+            min-height: 100px;
+        }
+
+        .logo-container {
+            top: 10px;
+            left: 10px;
         }
 
         .company-logo {
-            max-width: 60px;
-            max-height: 60px;
+            max-width: 120px;
+            max-height: 120px;
+        }
+
+        .header-content {
+            padding-top: 10px;
         }
 
         .company-name {

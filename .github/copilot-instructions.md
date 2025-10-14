@@ -249,81 +249,85 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
 - Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test` with a specific filename or filter.
 
-=== hisabuna project rules ===
 
-## Hisabuna Project Context
+=== hisabuna domain rules ===
 
-This is a Laravel-based accounting/financial management system called "Hisabuna" with specific domain requirements and performance considerations.
+## Business Domain: Indonesian Accounting SaaS
 
-### Business Domain
-- Multi-tenant accounting system with Chart of Accounts (COA) management
-- Journal entries following double-entry bookkeeping principles  
-- Financial reporting (General Ledger, Trial Balance, Balance Sheet, Income Statement, Cash Flow)
-- User subscription management with tiers: trial, standard, pro, enterprise
-- Invoice generation with PDF exports and payment processing via Midtrans
+Hisabuna is a multi-tenant Indonesian accounting application. Each user has their own company books isolated by `created_by` and `periode` (accounting year).
 
-### Core Models & Relationships
-- `Coa` - Hierarchical chart of accounts with parent/child relationships
-- `Jurnal` - Journal headers with transaction metadata
-- `JurnalDetail` - Journal line items (debits/credits) linked to COA
-- `Saldo` - Account balances and running totals
-- `User` - Multi-tenant users with subscription tiers and company associations
-- `Company` - Tenant information for data isolation
-- `Invoice`/`Transaction` - Subscription billing and payment records
+### Core Models & Architecture
+- **COA (Chart of Accounts)**: Hierarchical 5-level account structure (1=Assets, 2=Liabilities, 3=Equity, 4=Revenue, 5=Expenses, 6=General Expenses)
+- **Jurnal/JurnalDetail**: Double-entry bookkeeping system with header-detail structure  
+- **User**: Multi-tenant isolation with `periode` field for accounting year
+- **Saldo**: Account balances (opening/running debit/credit balances)
 
-### Financial Data Rules
-- Always use `decimal(15,2)` for monetary amounts, never float/double
-- Enforce double-entry bookkeeping: Total Debits = Total Credits in journal entries
-- Maintain audit trails for all financial transactions
-- Validate accounting equation: Assets = Liabilities + Equity
-- Use database transactions for multi-table financial operations
+### Account Number Format
+- Level 1: 1 digit (e.g., "1" for Assets)
+- Level 2: 2 digits (e.g., "11" for Current Assets) 
+- Level 3: 3 digits (e.g., "111" for Cash)
+- Level 4: 5 digits (e.g., "11101" for Petty Cash)
+- Level 5: 8 digits with dashes (e.g., "111-01-001" for Bank BCA)
+- Use `formatNomorAkun()` helper for display formatting
 
-### Performance-Critical Reporting
-The `ReportController` contains optimized financial reports that process large datasets:
-- Use chunking (`chunk(1000)`) for large data processing to prevent memory exhaustion
-- Implement eager loading with `with()` to prevent N+1 query problems
-- Use raw SQL aggregates for complex financial calculations
-- Add database indexes on date ranges and account IDs for query performance
-- Stream large exports to prevent 504 timeout errors
+### Data Isolation Patterns
+- **Always filter by `created_by = auth()->user()->id`**
+- **Always scope by `periode = auth()->user()->periode`** for year-based accounting
+- Use global scopes on Coa/Jurnal models for automatic periode filtering
+- Soft deletes using `is_deleted` field, not Laravel's built-in soft deletes
 
-### Database Schema Conventions
-- Follow accounting-specific naming: `jurnal_headers`, `jurnal_details`, `coas`
-- Use foreign key constraints with proper cascade rules
-- Index frequently queried columns: dates, account IDs, user/company IDs
-- Implement soft deletes for audit trail preservation
+### Key Controllers & Responsibilities
+- **CoaController**: Account management, hierarchical operations, Excel import/export
+- **JurnalController**: Journal entries, double-entry validation, batch operations
+- **ReportController/Report_Controller**: Financial reports (Profit/Loss, Balance Sheet, Cash Flow, Trial Balance)
+- **SubscriptionController**: Midtrans payment integration for SaaS billing
 
-### Multi-Tenant Data Isolation
-- All financial data must be scoped by user/company to prevent data leakage
-- Check user permissions before allowing access to financial data
-- Implement proper authorization for subscription-based feature access
+### Helper Functions (app/Http/Helper/helper.php)
+- `da($data)`: Debug dump and die
+- `terbilang($number)`: Convert number to Indonesian words
+- `formatNomorAkun($nomor)`: Format account numbers with dashes
+- `buildTree()/flattenTree()`: Handle hierarchical COA structures
+- `pruneZerosPairYears()`: Remove zero balance accounts from comparative reports
 
-### Import/Export Patterns
-- Use Maatwebsite Excel for financial data imports/exports
-- Store import classes in `app/Imports/` and export classes in `app/Exports/`
-- Implement chunked processing for large Excel files
-- Validate imported financial data against accounting rules
+### Financial Report Specifics
+- Reports compare current year vs previous year
+- Account classification by first digit: 1=Assets, 2=Liabilities, 3=Equity, 4=Revenue, 5=COGS, 6=Expenses
+- Indonesian accounting standards compliance
+- PDF generation using dompdf/snappy
+- Excel exports using maatwebsite/excel
 
-### Error Handling & Logging
-- Log all financial operations for audit purposes
-- Use meaningful error messages for accounting-specific validation failures
-- Implement comprehensive try-catch blocks for financial calculations
-- Monitor memory usage in reporting functions
+### Frontend Patterns
+- Alpine.js for reactive components with pagination (`paginatedData`, `currentPage`)
+- jQuery for legacy interactions and AJAX
+- Tailwind CSS with custom utility classes
+- SweetAlert2 for notifications and confirmations
+- Flatpickr for date pickers
 
-### Testing Financial Logic
-- Test with realistic data volumes (10k+ journal entries)
-- Validate accounting calculations match standard accounting principles
-- Test edge cases: period-end processing, year-end closing, data validation
-- Verify multi-tenant data isolation to prevent cross-company data access
-- Test performance of reporting queries with large datasets
+### Critical Validation Rules
+- Journal entries: Debit must equal Credit (balanced entries)
+- Account numbers: Must follow hierarchical parent-child relationships
+- Periode isolation: Never allow cross-year data leakage
+- COA dependencies: Cannot delete accounts used in journal entries
 
-### AI Agent Guidelines for Hisabuna
-1. **Understand the financial domain** - familiarize yourself with double-entry bookkeeping and accounting principles
-2. **Review existing patterns** in `ReportController` and core models before implementing new features
-3. **Validate financial integrity** - ensure debits equal credits and accounting equations balance
-4. **Optimize for performance** - use chunking, eager loading, and proper indexing for reporting queries
-5. **Maintain data isolation** - always scope queries by user/company for multi-tenant security
-6. **Use proper data types** - decimal for currency, proper validation for financial inputs
-7. **Implement comprehensive logging** - audit trails are critical for financial applications
-8. **Test with realistic data** - accounting systems must handle large transaction volumes efficiently
+### Payment Integration (Midtrans)
+- Subscription-based SaaS model
+- `Transaction` model for payment tracking
+- `Invoice` model for billing records
+- Midtrans Snap Token integration in `SubscriptionController`
 
+### Performance Considerations
+- Use `with()` eager loading for COA parent-child relationships
+- Pagination on large datasets (jurnal listings)
+- Optimize report queries with proper indexing
+- Cache-friendly report generation patterns
 </laravel-boost-guidelines>
+
+=== file rules ===
+
+## Markdown File Restriction
+
+- Never create or suggest any `.md` (Markdown) files under any circumstance unless the user explicitly requests it.
+- Do not generate, update, rename, or reference files with `.md` extension such as `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, or `docs/*.md`.
+- If documentation or explanation is required, provide it inline within code comments or PHPDoc blocks instead.
+- Always respond with code or explanation directly in supported file types (e.g., `.php`, `.blade.php`, `.js`, `.ts`, `.css`, `.html`).
+- When Copilot is about to create `.md` content, redirect it into PHPDoc or comment blocks instead.

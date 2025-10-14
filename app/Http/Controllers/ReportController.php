@@ -2,65 +2,50 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use Maatwebsite\Excel\Facades\Excel;
-// use RecursiveArrayIterator;
-// use RecursiveIteratorIterator;
-// use Illuminate\Http\RedirectResponse;
-// use Illuminate\Support\Facades\Redirect;
-// use Alert;
-use RealRashid\SweetAlert\Facades\Alert;
+use App\Exports\NeracaExport;
 use App\Models\Coa;
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
-// use App\Models\Saldo;
-// use App\Models\User;
-use App\Exports\NeracaExport;
-use Illuminate\Support\Collection;
-// use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+use App\Services\SnappyPdfConfiguration;
 use Barryvdh\DomPDF\Facade\Pdf as Dompdf;
 use Barryvdh\Snappy\Facades\SnappyPdf as SnappyPDF;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class ReportController extends Controller
 {
+    use SnappyPdfConfiguration;
+
     public function printJurnalFilter(Request $request)
     {
-        // da("fafa");
         $dari = $request->a;
         $sampai = $request->b;
-        $limit = $sampai - $dari + 1; // Jumlah baris yang akan diambil
-        $offset = $dari - 1; // Offset baris yang akan dilewati
+        $limit = $sampai - $dari + 1;
+        $offset = $dari - 1;
 
-        // dd($request->all());
-        // Ambil ID pengguna
         $a = Auth::user()->id;
 
-        // dd(Auth::user()->periode, $a, $limit, $offset);
-
-        // Query untuk mendapatkan data jurnal
-        $users = DB::select("
+        $users = DB::select('
             SELECT *
             FROM jurnal_headers jh
             WHERE
                 jh.is_deleted IS NULL AND jh.periode = ? AND
                 jh.created_by = ?
             ORDER BY jh.id ASC
-            LIMIT ? OFFSET ?", [Auth::user()->periode, $a, $limit, $offset]);
+            LIMIT ? OFFSET ?', [Auth::user()->periode, $a, $limit, $offset]);
 
-        // dd($users);
-        // Periksa jika data kosong
         if (empty($users)) {
             return response()->json(['error' => 'Data tidak ditemukan'], 404);
         }
 
-        // Inisialisasi tanggal awal dan akhir
         $tgl_awal = $tgl_akhir = null;
 
-        // Iterasi untuk menemukan tanggal awal dan akhir
         foreach ($users as $user) {
             if ($tgl_awal === null || $user->jurnal_tgl < $tgl_awal) {
                 $tgl_awal = $user->jurnal_tgl;
@@ -70,16 +55,15 @@ class ReportController extends Controller
             }
         }
 
-        // Render view untuk PDF
         $view = view('report.daftarjurnal', [
             'jurnal' => $users,
             'tgl_awal' => $dari,
-            'tgl_akhir' => $sampai
+            'tgl_akhir' => $sampai,
         ])->render();
 
-        // Buat dan unduh PDF
         $pdf = Dompdf::loadHTML($view);
-        return $pdf->download('daftar_jurnal_' . Carbon::now()->format('YmdHis') . '.pdf');
+
+        return $pdf->download('daftar_jurnal_'.Carbon::now()->format('YmdHis').'.pdf');
     }
 
     public function daftarJurnal()
@@ -88,20 +72,21 @@ class ReportController extends Controller
         $tgl_awal = $jurnal->min('jurnal_tgl');
         $tgl_akhir = $jurnal->max('jurnal_tgl');
 
-        // da("faa");
-
-        if($jurnal->isEmpty()){
+        if ($jurnal->isEmpty()) {
             Alert::error('Oops!', 'Data tidak ditemukan');
+
             return redirect()->back();
         }
 
         $view = view('report.daftarjurnal', ['jurnal' => $jurnal, 'tgl_awal' => $tgl_awal, 'tgl_akhir' => $tgl_akhir])->render();
         $pdf = Dompdf::loadHTML($view);
+
         return $pdf->download('daftar_jurnal_'.Carbon::now()->format('YmdHis').'.pdf');
     }
 
-    public function transaksi($id) {
-        $jurnal = Jurnal::with(['details' => function($query) {
+    public function transaksi($id)
+    {
+        $jurnal = Jurnal::with(['details' => function ($query) {
             $query->orderBy('coa_akun');
         }])->where(['id' => $id, 'created_by' => Auth::user()->id])->first();
 
@@ -111,7 +96,7 @@ class ReportController extends Controller
             $jurnalDetails = JurnalDetail::where('jurnal_id', $id)
                 ->where('created_by', Auth::user()->id)
                 ->get()
-                ->groupBy(function($detail) {
+                ->groupBy(function ($detail) {
                     return substr($detail->coa_akun, 0, 5);
                 });
 
@@ -133,17 +118,17 @@ class ReportController extends Controller
 
                     $total = 0;
                     if ($coa->saldo_normal == 'db' || $coa->saldo_normal == 'debit') {
-                        $total = $jurnalDetails->get($deNo)->sum(function($detail) {
+                        $total = $jurnalDetails->get($deNo)->sum(function ($detail) {
                             return $detail->debit - $detail->credit;
                         });
                     } else {
-                        $total = $jurnalDetails->get($deNo)->sum(function($detail) {
+                        $total = $jurnalDetails->get($deNo)->sum(function ($detail) {
                             return $detail->credit - $detail->debit;
                         });
                     }
 
                     $jurnal['details'][$key]['parent'] = [
-                        'nomor_akun' => $get[0] . '-' . $get[1],
+                        'nomor_akun' => $get[0].'-'.$get[1],
                         'nama_akun' => $coa['nama_akun'],
                         'total' => $total ?: 0,
                     ];
@@ -151,22 +136,13 @@ class ReportController extends Controller
             }
         }
 
-        // da($jur)
         return view('report.transaksi', ['jurnal' => $jurnal]);
 
-        // da($jurnal);
-        // $pdf = Dompdf::loadView('report.transaksi', ['jurnal' => $jurnal]);
-        // return $pdf->download('transaksi_jurnal_' . $id . '_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
-
-
-    // public function downloadBukuBesar(Request $request){
-
-    // }
 
     public function bukuBesar(Request $request)
     {
-        if (!$request->isMethod('post')) {
+        if (! $request->isMethod('post')) {
             $coa = Coa::whereNull('is_deleted')
                 ->where('level', 5)
                 ->where('created_by', Auth::id())
@@ -180,7 +156,7 @@ class ReportController extends Controller
         $userId = Auth::id();
 
         $defaultDates = null;
-        if (!$request->filled('start_date') || !$request->filled('end_date')) {
+        if (! $request->filled('start_date') || ! $request->filled('end_date')) {
             $defaultDates = JurnalDetail::where('created_by', $userId)
                 ->selectRaw('MIN(tanggal_bukti) as min_date, MAX(tanggal_bukti) as max_date')
                 ->first();
@@ -204,17 +180,17 @@ class ReportController extends Controller
             $akun = str_replace('-', '', $akun);
         }
 
-        $baseRange = JurnalDetail::withoutGlobalScopes()
-            ->from('jurnal_details as jd')
+        $baseQuery = DB::table('jurnal_details as jd')
             ->join('jurnal_headers as jh', 'jd.jurnal_id', '=', 'jh.id')
-            ->where('jh.created_by', $userId)
-            ->whereBetween('jd.tanggal_bukti', [$tanggalMulai.' 00:00:00', $tanggalSelesai.' 23:59:59']);
+            ->where('jd.created_by', $userId)
+            ->where('jh.created_by', $userId);
 
         if ($akun !== '') {
-            $baseRange->where('jd.coa_akun', 'like', '%'.$akun.'%');
+            $baseQuery->where('jd.coa_akun', 'like', '%'.$akun.'%');
         }
 
-        $accounts = (clone $baseRange)
+        $accounts = (clone $baseQuery)
+            ->whereBetween('jd.tanggal_bukti', [$tanggalMulai.' 00:00:00', $tanggalSelesai.' 23:59:59'])
             ->select('jd.coa_akun')
             ->distinct()
             ->orderBy('jd.coa_akun')
@@ -243,44 +219,56 @@ class ReportController extends Controller
             ->get()
             ->keyBy('coa_akun');
 
+        $allTransactions = DB::table('jurnal_details as jd')
+            ->join('jurnal_headers as jh', 'jd.jurnal_id', '=', 'jh.id')
+            ->where('jd.created_by', $userId)
+            ->where('jh.created_by', $userId)
+            ->whereIn('jd.coa_akun', $accounts)
+            ->whereBetween('jd.tanggal_bukti', [$tanggalMulai.' 00:00:00', $tanggalSelesai.' 23:59:59'])
+            ->select(
+                'jd.id',
+                'jd.coa_akun',
+                'jd.debit',
+                'jd.credit',
+                'jd.keterangan',
+                'jd.tanggal_bukti',
+                'jh.jenis',
+                'jh.no_urut_transaksi'
+            )
+            ->orderBy('jd.coa_akun')
+            ->orderBy('jd.tanggal_bukti')
+            ->orderBy('jd.id')
+            ->get()
+            ->groupBy('coa_akun');
+
         $ledgers = [];
 
         foreach ($accounts as $acc) {
             $coaRow = $coas->get($acc);
-            if (!$coaRow) {
+            if (! $coaRow) {
                 continue;
             }
 
             $isDebitNormal = in_array($coaRow->saldo_normal, ['db', 'debit'], true);
             $awalAgg = $aggAwal->get($acc);
-            $sumD = (float)($awalAgg->sum_debit ?? 0);
-            $sumC = (float)($awalAgg->sum_credit ?? 0);
-            $saldoStatik = $isDebitNormal ? (float)($coaRow->saldo_awal_debit ?? 0) : (float)($coaRow->saldo_awal_credit ?? 0);
+            $sumD = (float) ($awalAgg->sum_debit ?? 0);
+            $sumC = (float) ($awalAgg->sum_credit ?? 0);
+            $saldoStatik = $isDebitNormal ? (float) ($coaRow->saldo_awal_debit ?? 0) : (float) ($coaRow->saldo_awal_credit ?? 0);
             $saldoPer = $saldoStatik + ($isDebitNormal ? ($sumD - $sumC) : ($sumC - $sumD));
             $running = $saldoPer;
 
-            $accountTx = new Collection();
+            $accountTx = new Collection;
 
-            // da($accountTx)
+            $transactions = $allTransactions->get($acc, collect());
 
-            $cursor = JurnalDetail::withoutGlobalScopes()
-                ->from('jurnal_details as jd')
-                ->join('jurnal_headers as jh', 'jd.jurnal_id', '=', 'jh.id')
-                ->where('jh.created_by', $userId)
-                ->where('jd.coa_akun', $acc)
-                ->whereBetween('jd.tanggal_bukti', [$tanggalMulai.' 00:00:00', $tanggalSelesai.' 23:59:59'])
-                ->orderBy('jd.tanggal_bukti')
-                ->orderBy('jd.id')
-                ->cursor();
-
-            foreach ($cursor as $r) {
+            foreach ($transactions as $r) {
                 $debit = (float) $r->debit;
                 $credit = (float) $r->credit;
                 $running += $isDebitNormal ? ($debit - $credit) : ($credit - $debit);
 
-                $r->coa = (object)[
-                    'nama_akun'   => $coaRow->nama_akun,
-                    'saldo_normal'=> ($coaRow->saldo_normal === 'db') ? 'debit' :
+                $r->coa = (object) [
+                    'nama_akun' => $coaRow->nama_akun,
+                    'saldo_normal' => ($coaRow->saldo_normal === 'db') ? 'debit' :
                                      (($coaRow->saldo_normal === 'cr') ? 'credit' : $coaRow->saldo_normal),
                 ];
                 $r->saldo = $running;
@@ -299,27 +287,25 @@ class ReportController extends Controller
         @set_time_limit(900);
         @ini_set('memory_limit', '1536M');
 
-        SnappyPDF::setBinary('/usr/bin/wkhtmltopdf');
-
-        // da($ledgers);
-        // da($akun);
-        // da($tanggalSelesai);
-        // da($tanggalMulai);
+        SnappyPDF::setBinary(config('snappy.pdf.binary'));
 
         $pdf = SnappyPDF::loadView('report.bukubesar_download', [
-                'ledgers'        => $ledgers,
-                'tanggalMulai'   => $tanggalMulai,
-                'tanggalSelesai' => $tanggalSelesai,
-                'akun'           => $akun,
-            ])
-            ->setPaper('A4')
+            'ledgers' => $ledgers,
+            'tanggalMulai' => $tanggalMulai,
+            'tanggalSelesai' => $tanggalSelesai,
+            'akun' => $akun,
+        ]);
+
+        $pdf->setPaper('A4')
+            ->setOption('margin-top', 15)
+            ->setOption('margin-right', 10)
+            ->setOption('margin-bottom', 20)
+            ->setOption('margin-left', 10)
             ->setOption('encoding', 'UTF-8')
-            ->setOption('margin-top', 10)
-            ->setOption('margin-right', 8)
-            ->setOption('margin-bottom', 12)
-            ->setOption('margin-left', 8)
-            ->setOption('print-media-type', true)
-            ->setOption('enable-local-file-access', true);
+            ->setOption('enable-local-file-access', true)
+            ->setOption('footer-right', '[page] dari [toPage]')
+            ->setOption('footer-font-size', 9)
+            ->setOption('footer-spacing', 10);
 
         $relOut = 'pdf/buku-besar-'.now()->format('Ymd-His').'.pdf';
         Storage::put($relOut, $pdf->output());
@@ -334,25 +320,11 @@ class ReportController extends Controller
         return response()->file(
             Storage::path($relOut),
             [
-                'Content-Type'        => 'application/pdf',
+                'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="buku-besar.pdf"',
             ]
         );
 
-    }
-
-    private function array_keys_to_lowercase_recursive($array)
-    {
-        $lowercasedArray = [];
-        foreach ($array as $key => $value) {
-            $lowerKey = strtolower($key);
-            if (is_array($value)) {
-                $lowercasedArray[$lowerKey] = $this->array_keys_to_lowercase_recursive($value);
-            } else {
-                $lowercasedArray[$lowerKey] = $value;
-            }
-        }
-        return $lowercasedArray;
     }
 
     public function array_change_key_case_recursive($array, $case = CASE_LOWER)
@@ -368,148 +340,45 @@ class ReportController extends Controller
         return $array;
     }
 
-    //ini skrip arus kas tanggal 01-12-2024
-    // public function arusKas(Request $request)
-    // {
-    //     if ($request->isMethod('post')) {
-    //         $validated = $request->validate([
-    //             'start_date' => 'required|date',
-    //             'end_date' => 'required|date',
-    //             'dibuat' => 'required|string|max:255',
-    //             'alamat' => 'nullable|string|max:255',
-    //             'tanggal' => 'nullable|date',
-    //             'jabatan' => 'nullable|string|max:255',
-    //             'jumlahLaman' => 'nullable|integer|min:1',
-    //         ]);
-
-    //         $start_date = Carbon::parse($validated['start_date'])->startOfDay()->format('Y-m-d H:i:s');
-    //         $end_date = Carbon::parse($validated['end_date'])->endOfDay()->format('Y-m-d H:i:s');
-
-    //         $jurnal = Jurnal::whereNull('is_deleted')
-    //             ->with(['details' => function($query) use ($start_date, $end_date) {
-    //                 $query->where('coa_akun', '>', '1')
-    //                     ->whereBetween('tanggal_bukti', [$start_date, $end_date])
-    //                     ->orderBy('coa_akun');
-    //             }])
-    //             ->where('created_by', Auth::user()->id)
-    //             ->get();
-
-    //         if ($jurnal->isEmpty()) {
-    //             Alert::error('Oops!', 'Data tidak ditemukan');
-    //             return redirect()->back();
-    //         }
-
-    //         $coas = Coa::where('created_by', Auth::user()->id)
-    //             ->where('nomor_akun', 'not like', '111%')
-    //             ->orderBy('nomor_akun')
-    //             ->get()
-    //             ->keyBy('nomor_akun');
-
-    //         $data = [];
-    //         $totalKas = 0;
-    //         foreach ($jurnal as $entry) {
-    //             foreach ($entry->details as $detail) {
-    //                 $lv5 = $coas->get(substr($detail->coa_akun, 0, 8));
-    //                 $aruskas = $coas->get(substr($detail->coa_akun, 0, 5));
-
-    //                 if ($lv5) {
-    //                     $nilai = (in_array(strtolower($lv5->saldo_normal), ['db', 'debit']))
-    //                         ? $detail->debit - $detail->credit
-    //                         : $detail->credit - $detail->debit;
-
-    //                     $kategori = $aruskas->arus_kas ?? null;
-
-    //                     if ($kategori) {
-    //                         $data[$kategori][$aruskas->nama_akun] = ($data[$kategori][$aruskas->nama_akun] ?? 0) + $nilai;
-    //                     }
-    //                 }
-    //                 if (strpos($detail->coa_akun, '1110') === 0) {
-    //                     $totalKas += $detail->debit - $detail->credit;
-    //                 }
-    //             }
-    //         }
-
-    //         $getKas = $this->array_change_key_case_recursive($this->neracaFunc($end_date), CASE_LOWER);
-    //         $kasAwal = $getKas[date('Y') - 1][1]['aset lancar']['kas dan setara kas'] ?? 0;
-    //         $kasAkhir = $getKas[date('Y')][1]['aset lancar']['kas dan setara kas'] ?? 0;
-
-    //         foreach ($data as $key => $value) {
-    //             $data[$key]['Total'] = array_sum($value);
-    //         }
-    //         $data['Total']['Kenaikan (Penurunan) Kas dan Setara Kas'] = $totalKas;
-    //         $data['Total']['Kas dan Setara Kas Awal'] = $kasAwal;
-    //         $data['Total']['Kas dan Setara Kas Akhir'] = $kasAkhir;
-
-    //         $dataChunked = collect($data)->chunk(4);
-
-    //         $pdf = Dompdf::loadView('report.aruskas', [
-    //             'dataChunked' => $dataChunked,
-    //             'start_date' => Carbon::parse($start_date)->format('d/m/Y'),
-    //             'end_date' => Carbon::parse($end_date)->format('d/m/Y'),
-    //             'paged' => [
-    //                 'dibuat' => $validated['dibuat'],
-    //                 'alamat' => $validated['alamat'],
-    //                 'tanggal' => $validated['tanggal'],
-    //                 'jabatan' => $validated['jabatan'],
-    //                 'jumlahLaman' => $validated['jumlahLaman'],
-    //             ],
-    //         ]);
-    //         $pdf->setPaper('A4', 'portrait');
-
-    //         return $pdf->stream('aruskas.pdf');
-    //     }
-
-    //     return view('report.views.template');
-    // }
-
-    //ini skrip awal tanggal 30-11-2024
     public function arusKas(Request $request)
     {
-        if (!$request->isMethod('post')) {
+        if (! $request->isMethod('post')) {
             return view('report.views.template');
         }
 
         $start_date_input = $request->input('start_date');
-        $end_date_input   = $request->input('end_date');
+        $end_date_input = $request->input('end_date');
 
-        if (!$start_date_input || !$end_date_input) {
-            // Alert::error('Oops!', 'Data tidak ditemukan');
+        if (! $start_date_input || ! $end_date_input) {
             return redirect()->back()->with('error', 'Data tidak ditemukan');
         }
 
-        // Parse tanggal aman
         try {
             $start = Carbon::parse($start_date_input)->startOfDay();
-            $end   = Carbon::parse($end_date_input)->endOfDay();
+            $end = Carbon::parse($end_date_input)->endOfDay();
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', 'Format tanggal tidak valid');
         }
 
         $userId = Auth::id();
-        $year   = (int) $start->format('Y');
+        $year = (int) $start->format('Y');
 
-        // ========== 1) Prefetch COA level 4 (prefix 5 digit) & level 5 ==========
-        // Level-4 (5 digit) dipakai untuk ambil 'arus_kas' & nama kelompok
         $coasLv4 = Coa::where('created_by', $userId)
             ->where('level', 4)
             ->whereNull('is_deleted')
-            ->get(['nomor_akun','nama_akun','arus_kas'])
+            ->get(['nomor_akun', 'nama_akun', 'arus_kas'])
             ->keyBy('nomor_akun');
 
-        // Level-5 (akun detail) dipakai untuk cek saldo_normal
         $coasLv5 = Coa::where('created_by', $userId)
             ->where('level', 5)
             ->whereNull('is_deleted')
-            ->get(['nomor_akun','nama_akun','saldo_normal'])
+            ->get(['nomor_akun', 'nama_akun', 'saldo_normal'])
             ->keyBy('nomor_akun');
 
-        // Jika COA kosong, hentikan
         if ($coasLv5->isEmpty()) {
             return redirect()->back()->with('error', 'COA level 5 tidak ditemukan');
         }
 
-        // ========== 2) Agregat transaksi periode dari jurnal_details ==========
-        // Ambil total debit/credit per coa_akun dalam rentang waktu
         $aggPeriode = JurnalDetail::withoutGlobalScopes()
             ->select('coa_akun',
                 DB::raw('SUM(debit)  AS sum_debit'),
@@ -524,8 +393,6 @@ class ReportController extends Controller
             return redirect()->back()->with('error', 'Data tidak ditemukan');
         }
 
-        // ========== 3) Hitung total kas (perubahan kas) langsung di DB ==========
-        // Asumsi semua akun kas mulai dengan '1110' (seperti kode kamu)
         $totalKas = (float) JurnalDetail::withoutGlobalScopes()
             ->where('created_by', $userId)
             ->whereBetween('tanggal_bukti', [$start->toDateTimeString(), $end->toDateTimeString()])
@@ -533,246 +400,197 @@ class ReportController extends Controller
             ->select(DB::raw('COALESCE(SUM(debit - credit),0) as delta_kas'))
             ->value('delta_kas');
 
-        // ========== 4) Bentuk $data: kelompok per arus_kas (dari COA lv4) ==========
-        // Struktur: $data[$kategori][$nama_kelompok_lv4] = total nilai
         $data = [];
 
         foreach ($aggPeriode as $row) {
             $coa = (string) $row->coa_akun;
 
-            // skip akun kas (opsional), kode lama memfilter coas: not like '111%'
             if (strpos($coa, '111') === 0) {
                 continue;
             }
 
-            // cari info lv5 (saldo_normal)
             $lv5 = $coasLv5->get($coa);
-            if (!$lv5) {
-                // kalau nomornya disimpan dengan format ber-strip, coba bersihkan
+            if (! $lv5) {
                 $lv5 = $coasLv5->get(str_replace('-', '', $coa));
-                if (!$lv5) continue;
+                if (! $lv5) {
+                    continue;
+                }
             }
 
-            $isDebitNormal = in_array(strtolower((string)$lv5->saldo_normal), ['db','debit'], true);
+            $isDebitNormal = in_array(strtolower((string) $lv5->saldo_normal), ['db', 'debit'], true);
 
-            // cari lv4 (prefix 5 digit)
             $prefix5 = substr($coa, 0, 5);
             $lv4 = $coasLv4->get($prefix5);
-            if (!$lv4) {
-                // jika COA lv4 tidak ada, lewati
+            if (! $lv4) {
                 continue;
             }
 
-            // kategori arus kas & label nama kelompok (lv4)
-            $kategori = $lv4->arus_kas;        // mis: "Operasional", "Investasi", "Pendanaan"
-            $labelKelompok = $lv4->nama_akun;  // nama akun lv4 untuk tampilan
+            $kategori = $lv4->arus_kas;
+            $labelKelompok = $lv4->nama_akun;
 
-            if (!$kategori) {
-                // kalau belum diklasifikasikan, lewati
+            if (! $kategori) {
                 continue;
             }
 
-            // Perhitungan arus kas berdasarkan standar akuntansi
-            $debit  = (float) $row->sum_debit;
+            $debit = (float) $row->sum_debit;
             $credit = (float) $row->sum_credit;
-            
-            // Untuk arus kas, yang penting adalah dampak terhadap kas, bukan saldo akun
+
             $nilai = $this->calculateCashFlowImpact($coa, $debit, $credit, $kategori, $isDebitNormal);
 
-            // akumulasikan ke kategori + label lv4
-            if (!isset($data[$kategori])) {
+            if (! isset($data[$kategori])) {
                 $data[$kategori] = [];
             }
             $data[$kategori][$labelKelompok] = ($data[$kategori][$labelKelompok] ?? 0) + $nilai;
         }
 
-        // ========== 5) Ambil Kas Awal/Akhir dengan perhitungan yang lebih akurat ==========
         $kasAwal = $this->calculateCashBalance($start->subDay()->endOfDay()->toDateTimeString(), $userId);
         $kasAkhir = $this->calculateCashBalance($end->toDateTimeString(), $userId);
-        
-        // Verifikasi dengan perhitungan alternatif dari neracaFunc jika diperlukan
+
         $getKas = $this->neracaFunc($end->toDateTimeString());
         $getKas = $this->array_change_key_case_recursive($getKas, CASE_LOWER);
 
-        // Gunakan kas dari neracaFunc sebagai fallback jika perhitungan langsung gagal
         if ($kasAwal == 0 && $kasAkhir == 0) {
-            $kasAwal  = $getKas[$year - 1][1]['aset lancar']['kas dan setara kas'] ?? 0;
+            $kasAwal = $getKas[$year - 1][1]['aset lancar']['kas dan setara kas'] ?? 0;
             $kasAkhir = $getKas[$year][1]['aset lancar']['kas dan setara kas'] ?? 0;
         }
 
-        // Tambahkan total per kategori & ringkasan total
         foreach ($data as $kategori => $rows) {
             $data[$kategori]['Total'] = array_sum($rows);
         }
-        
-        // Hitung perubahan kas yang sebenarnya
+
         $perubahanKas = $kasAkhir - $kasAwal;
-        
+
         $data['Total']['Kenaikan (Penurunan) Kas dan Setara Kas'] = $perubahanKas;
-        $data['Total']['Kas dan Setara Kas Awal']  = $kasAwal;
+        $data['Total']['Kas dan Setara Kas Awal'] = $kasAwal;
         $data['Total']['Kas dan Setara Kas Akhir'] = $kasAkhir;
 
-        // Validasi keseimbangan arus kas
         $totalArusKas = 0;
         foreach (['Operasional', 'Investasi', 'Pendanaan'] as $kategori) {
             if (isset($data[$kategori]['Total'])) {
                 $totalArusKas += $data[$kategori]['Total'];
             }
         }
-        
-        // Peringatan jika ada ketidakseimbangan signifikan (toleransi 1 rupiah untuk pembulatan)
+
         if (abs($totalArusKas - $perubahanKas) > 1) {
-            // Log untuk debugging - bisa dihapus di production
             error_log("Cash flow imbalance detected: Total flows = {$totalArusKas}, Actual change = {$perubahanKas}");
         }
 
         if (empty($data)) {
             echo "<script>alert('Oops! Data tidak ditemukan'); window.close();</script>";
+
             return;
         }
 
-        // Paging meta (tanpa perubahan)
         $paged = [
-            'dibuat'      => $request->input('dibuat'),
-            'alamat'      => $request->input('alamat'),
-            'tanggal'     => $request->input('tanggal'),
-            'jabatan'     => $request->input('jabatan'),
+            'dibuat' => $request->input('dibuat'),
+            'alamat' => $request->input('alamat'),
+            'tanggal' => $request->input('tanggal'),
+            'jabatan' => $request->input('jabatan'),
             'jumlahLaman' => (int) $request->input('jumlahLaman'),
         ];
 
-        // (opsional) chunk untuk layout
         $dataChunked = collect($data)->chunk(4);
 
-        // Render Dompdf (bukan Snappy)
         $pdf = Dompdf::loadView('report.aruskas', [
-                'dataChunked' => $dataChunked,
-                'start_date'  => $start->format('d/m/Y'),
-                'end_date'    => $end->format('d/m/Y'),
-                'paged'       => $paged,
-            ])
+            'dataChunked' => $dataChunked,
+            'start_date' => $start->format('d/m/Y'),
+            'end_date' => $end->format('d/m/Y'),
+            'paged' => $paged,
+        ])
             ->setPaper('A4', 'portrait');
 
         return $pdf->stream('aruskas.pdf');
     }
 
-    /**
-     * Calculate cash flow impact based on accounting standards
-     * 
-     * @param string $coaAccount
-     * @param float $debit
-     * @param float $credit
-     * @param string $category
-     * @param bool $isDebitNormal
-     * @return float
-     */
     private function calculateCashFlowImpact($coaAccount, $debit, $credit, $category, $isDebitNormal)
     {
-        // Untuk arus kas, yang penting adalah dampak terhadap kas
-        // Berdasarkan standar akuntansi:
-        
+
         $firstDigit = substr($coaAccount, 0, 1);
-        
+
         switch ($category) {
             case 'Operasional':
-                // Aktivitas operasional: pendapatan (+), beban (-), perubahan modal kerja
-                if ($firstDigit == '4') { // Pendapatan
-                    return $credit - $debit; // Credit meningkatkan kas
-                } elseif ($firstDigit == '5' || $firstDigit == '6') { // HPP & Beban
-                    return $debit - $credit; // Debit mengurangi kas (negatif)
-                } elseif ($firstDigit == '1' && !str_starts_with($coaAccount, '111')) { // Aset lancar non-kas
-                    // Peningkatan aset lancar mengurangi kas
+                if ($firstDigit == '4') {
+                    return $credit - $debit;
+                } elseif ($firstDigit == '5' || $firstDigit == '6') {
+                    return $debit - $credit;
+                } elseif ($firstDigit == '1' && ! str_starts_with($coaAccount, '111')) {
                     return $isDebitNormal ? ($credit - $debit) : ($debit - $credit);
-                } elseif ($firstDigit == '2') { // Liabilitas
-                    // Peningkatan liabilitas meningkatkan kas
+                } elseif ($firstDigit == '2') {
                     return $isDebitNormal ? ($debit - $credit) : ($credit - $debit);
                 }
                 break;
-                
+
             case 'Investasi':
-                // Aktivitas investasi: pembelian aset tetap (-), penjualan aset tetap (+)
                 if ($firstDigit == '1' && (str_starts_with($coaAccount, '12') || str_starts_with($coaAccount, '13'))) {
-                    // Aset tetap: pembelian mengurangi kas, penjualan meningkatkan kas
                     return $isDebitNormal ? ($credit - $debit) : ($debit - $credit);
                 }
                 break;
-                
+
             case 'Pendanaan':
-                // Aktivitas pendanaan: pinjaman (+), pembayaran pinjaman (-), modal (+), dividen (-)
                 if ($firstDigit == '2' && (str_starts_with($coaAccount, '21') || str_starts_with($coaAccount, '22'))) {
-                    // Liabilitas jangka panjang: peningkatan menambah kas
                     return $isDebitNormal ? ($debit - $credit) : ($credit - $debit);
-                } elseif ($firstDigit == '3') { // Modal
-                    // Peningkatan modal menambah kas, pengurangan modal mengurangi kas
+                } elseif ($firstDigit == '3') {
                     return $isDebitNormal ? ($debit - $credit) : ($credit - $debit);
                 }
                 break;
         }
-        
-        // Default calculation jika tidak masuk kategori khusus
-         return $isDebitNormal ? ($debit - $credit) : ($credit - $debit);
-     }
 
-     /**
-      * Calculate cash balance at specific date
-      * 
-      * @param string $date
-      * @param int $userId
-      * @return float
-      */
-     private function calculateCashBalance($date, $userId)
-     {
-         // Ambil saldo awal kas dari COA
-         $saldoAwalKas = Coa::where('created_by', $userId)
-             ->where('nomor_akun', 'like', '1110%')
-             ->whereNull('is_deleted')
-             ->sum('saldo_awal_debit');
+        return $isDebitNormal ? ($debit - $credit) : ($credit - $debit);
+    }
 
-         // Ambil total transaksi kas sampai tanggal tertentu
-         $totalTransaksiKas = JurnalDetail::withoutGlobalScopes()
-             ->where('created_by', $userId)
-             ->where('coa_akun', 'like', '1110%')
-             ->where('tanggal_bukti', '<=', $date)
-             ->select(DB::raw('COALESCE(SUM(debit - credit), 0) as total_kas'))
-             ->value('total_kas');
-
-         return (float) ($saldoAwalKas + $totalTransaksiKas);
-     }
-
-    public function labaRugiView(Request $request , $n = 0)
+    private function calculateCashBalance($date, $userId)
     {
-        if($_SERVER['REQUEST_METHOD'] != 'GET'){
-              return view('report.views.template');
+        $saldoAwalKas = Coa::where('created_by', $userId)
+            ->where('nomor_akun', 'like', '1110%')
+            ->whereNull('is_deleted')
+            ->sum('saldo_awal_debit');
+
+        $totalTransaksiKas = JurnalDetail::withoutGlobalScopes()
+            ->where('created_by', $userId)
+            ->where('coa_akun', 'like', '1110%')
+            ->where('tanggal_bukti', '<=', $date)
+            ->select(DB::raw('COALESCE(SUM(debit - credit), 0) as total_kas'))
+            ->value('total_kas');
+
+        return (float) ($saldoAwalKas + $totalTransaksiKas);
+    }
+
+    public function labaRugiView(Request $request, $n = 0)
+    {
+        if ($_SERVER['REQUEST_METHOD'] != 'GET') {
+            return view('report.views.template');
         }
         $start_date = Carbon::parse($request->input('start'))->format('Y-m-d H:i:s');
-        $start      = $request->input('start');
+        $start = $request->input('start');
         $end_date = Carbon::parse($request->input('end'))->format('Y-m-d H:i:s');
-        $end      = $request->input('end_date');
+        $end = $request->input('end_date');
         $ttd1 = $request->input('text_input1');
         $ttd2 = $request->input('text_input2');
 
         $tahunSebelumnya = date('Y');
-        if($n == 1){
+        if ($n == 1) {
             $jurnal = Jurnal::whereNull('is_deleted')
-                    ->with(['details' => function($query) use ($end_date) {
-                        $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
-                        ->where('tanggal_bukti', '<=' , $end_date);
-                    }])
-                    ->whereYear('jurnal_tgl', $tahunSebelumnya)
-                    ->where('created_by', Auth::user()->id)
-                    ->get();
-        }else{
+                ->with(['details' => function ($query) use ($end_date) {
+                    $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                        ->where('tanggal_bukti', '<=', $end_date);
+                }])
+                ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                ->where('created_by', Auth::user()->id)
+                ->get();
+        } else {
             $jurnal = Jurnal::whereNull('is_deleted')
-                    ->with(['details' => function($query) use ($start_date, $end_date) {
-                        $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+                ->with(['details' => function ($query) use ($start_date, $end_date) {
+                    $query->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
                         ->whereBetween('tanggal_bukti', [$start_date, $end_date]);
-                    }])
-                    ->whereYear('jurnal_tgl', $tahunSebelumnya)
-                    ->where('created_by', Auth::user()->id)
-                    ->get();
+                }])
+                ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                ->where('created_by', Auth::user()->id)
+                ->get();
         }
 
-        if($jurnal->isEmpty()){
+        if ($jurnal->isEmpty()) {
             Alert::error('Oops!', 'Data tidak ditemukan');
+
             return redirect()->back();
         }
 
@@ -801,10 +619,11 @@ class ReportController extends Controller
             }
         }
 
-        uksort($data, function($a, $b) use ($kategori) {
-            $order = array_flip(array_map(function($item) {
+        uksort($data, function ($a, $b) use ($kategori) {
+            $order = array_flip(array_map(function ($item) {
                 return $item['nama_akun'];
             }, $kategori));
+
             return ($order[$a] ?? PHP_INT_MAX) <=> ($order[$b] ?? PHP_INT_MAX);
         });
 
@@ -819,46 +638,41 @@ class ReportController extends Controller
             }
         }
 
-
         $labaRugiBersih = $totalPendapatan - $totalBiaya;
-        // da($labaRugiBersih);
-        if($n == 1){
+        if ($n == 1) {
             return $labaRugiBersih;
         }
 
-        // da($data);
         return view('report.labarugi', [
-                'data' => $data,
-                'tahunSebelumnya' => $tahunSebelumnya,
-                'kategori' => $kategori,
-                'labaRugiBersih' => $labaRugiBersih,
-                'ttd1' => $ttd1,
-                'ttd2' => $ttd2,
-                'start' => $start,
-                'end'   => $end,
-            ]);
+            'data' => $data,
+            'tahunSebelumnya' => $tahunSebelumnya,
+            'kategori' => $kategori,
+            'labaRugiBersih' => $labaRugiBersih,
+            'ttd1' => $ttd1,
+            'ttd2' => $ttd2,
+            'start' => $start,
+            'end' => $end,
+        ]);
 
     }
 
-
     public function labaRugi(Request $request, $n = 0)
     {
-        if (!$request->isMethod('post')) {
+        if (! $request->isMethod('post')) {
             return view('report.views.template');
         }
 
-        // Parse tanggal
         try {
             $start_date = Carbon::parse($request->input('start_date'))->startOfDay()->toDateTimeString();
-            $end_date   = Carbon::parse($request->input('end_date'))->endOfDay()->toDateTimeString();
+            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->toDateTimeString();
         } catch (\Throwable $e) {
             return back()->with('error', 'Format tanggal tidak valid');
         }
         $start = $request->input('start_date');
-        $end   = $request->input('end_date');
+        $end = $request->input('end_date');
 
-        $year  = substr($start_date, 0, 4) ?: date('Y');
         $userId = Auth::id();
+        $year = substr($end_date, 0, 4) ?: date('Y');
 
         $paged = [
             'dibuat' => $request->input('dibuat'),
@@ -867,156 +681,149 @@ class ReportController extends Controller
             'jabatan' => $request->input('jabatan'),
             'jumlahLaman' => (int) $request->input('jumlahLaman'),
         ];
-        $tahunSebelumnya = date('Y');
+        $tahunSebelumnya = (string) ($year - 1);
 
-        // ===== 1) Prefetch COA Level 1, 3, 5 =====
-        // Level 1: kategori (Pendapatan, Beban, dll) → untuk saldo_normal & urutan
         $coasLv1 = Coa::where('created_by', $userId)
             ->where('level', 1)
             ->orderBy('nomor_akun')
-            ->get(['nomor_akun','nama_akun','saldo_normal'])
-            ->keyBy('nomor_akun'); // key: '4','5','6','7', dst
+            ->get(['nomor_akun', 'nama_akun', 'saldo_normal'])
+            ->keyBy('nomor_akun');
 
         if ($coasLv1->isEmpty()) {
             return back()->with('error', 'COA level 1 tidak ditemukan');
         }
 
-        // Level 3: nama grup untuk tampilan detail
         $coasLv3 = Coa::where('created_by', $userId)
             ->where('level', 3)
-            ->get(['nomor_akun','nama_akun'])
-            ->keyBy('nomor_akun'); // key: '4xx'
-
-        // Level 5: saldo_awal + saldo_normal akun (child)
-        $coasLv5 = Coa::where('created_by', $userId)
-            ->where('level', 5)
-            ->whereNull('is_deleted')
-            ->get(['nomor_akun','saldo_awal_debit','saldo_awal_credit'])
+            ->get(['nomor_akun', 'nama_akun'])
             ->keyBy('nomor_akun');
 
-        // ===== 2) Agregat transaksi periode dari jurnal_details =====
+        $ytdStart = Carbon::parse($end_date)->copy()->startOfYear()->format('Y-m-d 00:00:00');
+
         $agg = JurnalDetail::withoutGlobalScopes()
             ->select('coa_akun',
                 DB::raw('SUM(debit)  AS s_debit'),
                 DB::raw('SUM(credit) AS s_credit')
             )
             ->where('created_by', $userId)
-            ->when($n == 1, function ($q) use ($end_date) {
-                $q->where('tanggal_bukti', '<=', $end_date);
-            }, function ($q) use ($start_date, $end_date) {
-                $q->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+            ->where(function ($q) {
+                $q->whereNull('is_deleted')->orWhere('is_deleted', 0);
             })
-            // hanya kelas 4+ (pendapatan/beban/dll)
-            ->whereRaw('LEFT(coa_akun, 1) >= ?', ['4'])
+            ->whereRaw('LEFT(coa_akun, 1) BETWEEN ? AND ?', ['4', '7'])
+            ->when($n == 1, function ($q) use ($ytdStart, $end_date) {
+                $q->whereBetween('tanggal_bukti', [$ytdStart, $end_date]);
+            }, function ($q) use ($ytdStart, $end_date) {
+                $q->whereBetween('tanggal_bukti', [$ytdStart, $end_date]);
+            })
             ->groupBy('coa_akun')
             ->get();
 
         if ($agg->isEmpty()) {
-            return back()->with('error', 'Data tidak ditemukan');
+            Alert::error('Oops!', 'Data tidak ditemukan');
+
+            return redirect()->back();
         }
 
-        // ===== 3) Bentuk data: kategori (Lv1) -> Detail (Lv3) =====
         $data = [];
+        $totalPendapatan = 0.0;
+        $totalBeban = 0.0;
 
         foreach ($agg as $row) {
             $acc = (string) $row->coa_akun;
-            $katKey = substr($acc, 0, 1);     // '4','5',...
-            $lv3Key = substr($acc, 0, 3);     // '4xx'
+            $head = substr($acc, 0, 1);
+            $lv3Key = substr($acc, 0, 3);
 
-            $kat = $coasLv1->get($katKey);
-            if (!$kat) continue; // ignore jika master tidak ada
-
-            $child = $coasLv5->get($acc);
-            if (!$child) {
-                // coba fallback tanpa tanda pisah
-                $child = $coasLv5->get(str_replace('-', '', $acc));
-                if (!$child) continue;
+            $kat = $coasLv1->get($head);
+            if (! $kat) {
+                $fallback = [
+                    '4' => ['nama' => 'Pendapatan', 'saldo_normal' => 'credit'],
+                    '5' => ['nama' => 'Beban', 'saldo_normal' => 'debit'],
+                    '6' => ['nama' => 'Beban', 'saldo_normal' => 'debit'],
+                    '7' => ['nama' => 'Pendapatan/Beban Lain-lain', 'saldo_normal' => 'debit'],
+                ];
+                $katName = $fallback[$head]['nama'] ?? "Kelompok $head";
+                $katSaldoNorm = $fallback[$head]['saldo_normal'] ?? 'debit';
+            } else {
+                $katName = $kat->nama_akun;
+                $katSaldoNorm = strtolower((string) $kat->saldo_normal);
             }
 
-            $lv3 = $coasLv3->get($lv3Key);
-            $lv3Name = $lv3->nama_akun ?? $lv3Key;
-
-            $isDebitNormKategori = in_array(strtolower((string)$kat->saldo_normal), ['db','debit'], true);
+            $lv3Name = optional($coasLv3->get($lv3Key))->nama_akun ?? $lv3Key;
 
             $sumD = (float) $row->s_debit;
             $sumC = (float) $row->s_credit;
 
-            // nilai menurut saldo normal KATEGORI (sesuai kode lama)
-            $nilai = $isDebitNormKategori
-                ? ((float)($child->saldo_awal_debit ?? 0)  + ($sumD - $sumC))
-                : ((float)($child->saldo_awal_credit ?? 0) + ($sumC - $sumD));
+            $isDebitNorm = in_array($katSaldoNorm, ['db', 'debit', 'd'], true);
+            $nilai = $isDebitNorm ? ($sumD - $sumC) : ($sumC - $sumD);
 
-            $katName = $kat->nama_akun;
-
-            // akumulasi
             $data[$katName]['Jumlah'] = ($data[$katName]['Jumlah'] ?? 0) + $nilai;
             $data[$katName]['Detail'][$lv3Name] = ($data[$katName]['Detail'][$lv3Name] ?? 0) + $nilai;
+
+            if ($isDebitNorm) {
+                $totalBeban += $nilai;
+            } else {
+                $totalPendapatan += $nilai;
+            }
         }
 
         if (empty($data)) {
             echo "<script>alert('Oops! Data tidak ditemukan'); window.close();</script>";
+
             return;
         }
 
-        // ===== 4) Urutkan kategori mengikuti urutan Lv1 =====
-        uksort($data, function($a, $b) use ($coasLv1) {
+        uksort($data, function ($a, $b) use ($coasLv1) {
             $order = [];
-            foreach ($coasLv1 as $lv1) { $order[$lv1->nama_akun] = count($order); }
+            foreach ($coasLv1 as $lv1) {
+                $order[$lv1->nama_akun] = count($order);
+            }
+
             return ($order[$a] ?? PHP_INT_MAX) <=> ($order[$b] ?? PHP_INT_MAX);
         });
 
-        // ===== 5) Hitung Laba Rugi Bersih (kategori pertama - sisa) =====
-        $firstKey = null; $firstValue = 0.0;
-        foreach ($data as $k => $v) { $firstKey = $k; $firstValue = (float)($v['Jumlah'] ?? 0); break; }
-
-        $sumOthers = 0.0; $i = 0;
-        foreach ($data as $k => $v) {
-            if ($i++ === 0) continue;
-            $sumOthers += (float)($v['Jumlah'] ?? 0);
-        }
-        $labaRugiBersih = $firstValue - $sumOthers;
+        $labaRugiBersih = (float) $totalPendapatan - (float) $totalBeban;
 
         if ($n == 1) {
-            return $labaRugiBersih; // kompatibel dengan perilaku lama
+            return $labaRugiBersih;
         }
 
-        // ===== 6) Render PDF (Dompdf) =====
         $chunkedData = collect($data)->chunk(4);
         if ($chunkedData->isNotEmpty() && optional($chunkedData->last())->isEmpty()) {
             $chunkedData->pop();
         }
 
         $pdf = Dompdf::loadView('report.labarugi', [
-                'dataChunked'      => $chunkedData,
-                'tahunSebelumnya'  => $tahunSebelumnya,
-                'kategori'         => $coasLv1->toArray(), // kalau view masih butuh
-                'labaRugiBersih'   => $labaRugiBersih,
-                'paged'            => $paged,
-                'start'            => $start,
-                'end'              => $end,
-                'jumlahLaman'      => $paged['jumlahLaman'],
-            ])
-            ->setPaper('a4', 'landscape');
+            'dataChunked' => $chunkedData,
+            'tahunSebelumnya' => $tahunSebelumnya,
+            'kategori' => $coasLv1->toArray(),
+            'labaRugiBersih' => $labaRugiBersih,
+            'paged' => $paged,
+            'start' => $start,
+            'end' => $end,
+            'jumlahLaman' => $paged['jumlahLaman'],
+        ])->setPaper('a4', 'landscape');
 
         return $pdf->stream('labarugi.pdf');
     }
 
-    public function perubahanEkuitas(Request $request) {
-        if($request->isMethod('post')){
+    public function perubahanEkuitas(Request $request)
+    {
+        if ($request->isMethod('post')) {
             $start_date_input = $request->input('start_date');
             $end_date_input = $request->input('end_date');
 
-            if (!$start_date_input || !$end_date_input) {
+            if (! $start_date_input || ! $end_date_input) {
                 Alert::error('Oops!', 'Data tidak ditemukan');
+
                 return redirect()->back();
             }
 
             $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
             $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
 
-            if($start_date){
-                $year = substr($start_date,0,4);
-            }else{
+            if ($start_date) {
+                $year = substr($start_date, 0, 4);
+            } else {
                 $year = date('Y');
             }
 
@@ -1024,30 +831,31 @@ class ReportController extends Controller
             $tahunSekarang = $year;
 
             $jurnalDulu = Jurnal::whereNull('is_deleted')
-                            ->with(['details' => function($query) use ($start_date, $end_date) {
-                                $query->whereBetween('tanggal_bukti', [$start_date, $end_date]);
-                            }])
-                            ->whereYear('jurnal_tgl', $tahunSebelumnya)
-                            ->where('created_by', Auth::user()->id)->get();
+                ->with(['details' => function ($query) use ($start_date, $end_date) {
+                    $query->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+                }])
+                ->whereYear('jurnal_tgl', $tahunSebelumnya)
+                ->where('created_by', Auth::user()->id)->get();
 
             $jurnalSekarang = Jurnal::whereNull('is_deleted')
-                            ->with(['details' => function($query) use ($start_date, $end_date) {
-                                $query->whereBetween('tanggal_bukti', [$start_date, $end_date]);
-                            }])
-                            ->whereYear('jurnal_tgl', $tahunSekarang)
-                            ->where('created_by', Auth::user()->id)->get();
+                ->with(['details' => function ($query) use ($start_date, $end_date) {
+                    $query->whereBetween('tanggal_bukti', [$start_date, $end_date]);
+                }])
+                ->whereYear('jurnal_tgl', $tahunSekarang)
+                ->where('created_by', Auth::user()->id)->get();
 
-            if($jurnalDulu->isEmpty() && $jurnalSekarang->isEmpty()){
+            if ($jurnalDulu->isEmpty() && $jurnalSekarang->isEmpty()) {
                 Alert::error('Oops!', 'Data tidak ditemukan');
+
                 return redirect()->back();
             }
 
-            $labaRugi   = $this->labaRugi($request, 1);
-            $neraca     = $this->neracaEkuitas($end_date, $labaRugi);
+            $labaRugi = $this->labaRugi($request, 1);
+            $neraca = $this->neracaEkuitas($end_date, $labaRugi);
 
-            //   dd($neraca);
-            if(@$neraca['status'] == 'error'){
+            if (@$neraca['status'] == 'error') {
                 Alert::error($neraca['title'], $neraca['msg']);
+
                 return redirect()->back();
 
                 $result = [
@@ -1058,43 +866,33 @@ class ReportController extends Controller
                     $tahunSebelumnya => [
                         'MODAL' => 0,
                         'Sisa Hasil Usaha' => 0,
-                    ]
+                    ],
                 ];
-            }else{
+            } else {
                 $result = [];
                 foreach ($neraca as $tahun => $data) {
-                    if (isset($data["Liabilitas dan Ekuitas"])) {
-                        // Mengubah semua key menjadi lowercase untuk pencarian
-                        $liabilitasDanEkuitas = array_change_key_case($data["Liabilitas dan Ekuitas"], CASE_LOWER);
+                    if (isset($data['Liabilitas dan Ekuitas'])) {
+                        $liabilitasDanEkuitas = array_change_key_case($data['Liabilitas dan Ekuitas'], CASE_LOWER);
 
-                        //ambil array terakhir
                         $lastItem = end($liabilitasDanEkuitas);
                         $result[$tahun] = $lastItem;
                     }
 
                 }
 
-                // Dede 11/03/2025
-                //  foreach ($result as $year => $items) {
-                        // Menghapus elemen pertama dari array setiap tahun
-                        //array_shift($result[$year]);
-                // }
             }
 
             foreach ($result as $tahun => $values) {
-                if (isset($values["Saldo Tahun Berjalan"])) {
-                    $saldo = ["Saldo Tahun Berjalan" => $values["Saldo Tahun Berjalan"]];
-                    unset($values["Saldo Tahun Berjalan"]); // Hapus dari posisi awal
-                    $result[$tahun] = array_merge($values, $saldo); // Tambahkan di posisi akhir
+                if (isset($values['Saldo Tahun Berjalan'])) {
+                    $saldo = ['Saldo Tahun Berjalan' => $values['Saldo Tahun Berjalan']];
+                    unset($values['Saldo Tahun Berjalan']);
+                    $result[$tahun] = array_merge($values, $saldo);
                 }
             }
 
-
-            // da($result);
-
             $pdf = Dompdf::loadView('report.perubahanekuitas', [
                 'data' => $result,
-                'tahun'  => $tahunSekarang,
+                'tahun' => $tahunSekarang,
                 'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
                 'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y'),
             ]);
@@ -1106,171 +904,117 @@ class ReportController extends Controller
         return view('report.views.template');
     }
 
-    private function calculateTotals($journals, $coa) {
-        $totalPendapatan = 0;
-        $totalHPP = 0;
-        $totalBeban = 0;
-        $totalModal = 0;
-        $namaAkun = '';
+    public function processLevel($coa, $labaRugi)
+    {
+        $result = [];
+        $sisa = [];
+        foreach ($coa as $lv1) {
+            $lv1Result = [];
+            foreach ($lv1['child'] as $lv2) {
+                $lv2Result = [];
+                foreach ($lv2['child'] as $lv3) {
+                    $lv3Result = [];
+                    foreach ($lv3['child'] as $lv4) {
+                        $lv4Sum = 0;
+                        $sumSisa = 0;
+                        foreach ($lv4['child'] as $lv5) {
+                            if ($lv5['saldo_awal_debit'] != '0' || $lv5['saldo_awal_credit'] != '0') {
+                                if ($lv5['saldo_normal'] == 'debit' || $lv5['saldo_normal'] == 'db') {
+                                    $balance = $lv5['saldo_awal_debit'];
+                                } else {
+                                    $balance = $lv5['saldo_awal_credit'];
+                                }
 
-        foreach ($journals as $item) {
-            foreach ($item->details as $detail) {
-                $nomorAkun = substr($detail->coa_akun, 0, 1);
+                                if ($lv5['saldo_awal_debit'] != '0' && $lv5['saldo_normal'] != 'debit') {
+                                    $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_debit'] - $lv5['saldo_awal_credit'];
+                                }
 
+                                $lv4Sum += $balance;
+                                $sumSisa += @$sisa[$lv5['nomor_akun']];
+                            } else {
+                                if ($lv5['saldo_normal'] == 'debit' || $lv5['saldo_normal'] == 'db') {
+                                    $balance = $lv5['saldo_awal_debit'];
+                                } else {
+                                    $balance = $lv5['saldo_awal_credit'];
+                                }
+                                $lv4Sum += $balance;
+                            }
+                        }
+                        if ($lv4Sum != 0 || $sumSisa != 0) {
+                            $lv3Result[$lv4['nama_akun']] = $lv4Sum;
+                        }
+                    }
+                    if (! empty($lv3Result)) {
+                        $sus = array_sum(array_values($lv3Result));
+                        $lv2Result[$lv3['nama_akun']] = $sus;
+                        if ($lv1['nomor_akun'] == 3 || $lv1['nomor_akun'] == '3') {
+                            $lv2Result['Saldo Tahun Berjalan'] = $labaRugi;
+                        }
+                    }
+                }
+                if (! empty($lv2Result)) {
+                    $lv1Result[$lv2['nama_akun']] = $lv2Result;
+                }
+            }
+            if (! empty($lv1Result)) {
+                if ($lv1['golongan'] == 'Ekuitas' || $lv1['golongan'] == 'Liabilitas') {
+                    if (isset($result['Liabilitas dan Ekuitas'])) {
+                        $result['Liabilitas dan Ekuitas'] = array_merge_recursive($result['Liabilitas dan Ekuitas'], $lv1Result);
+                    } else {
+                        $result['Liabilitas dan Ekuitas'] = $lv1Result;
+                    }
+                } else {
+                    $result[$lv1['nama_akun']] = $lv1Result;
+                }
 
-                if ($nomorAkun == '4') {
-                    $totalPendapatan += $detail->credit - $detail->debit;
-                } elseif ($nomorAkun == '5') {
-                    $totalHPP += $detail->debit - $detail->credit;
-                } elseif ($nomorAkun == '6') {
-                    $totalBeban += $detail->debit - $detail->credit;
-                } elseif ($nomorAkun == '3') {
-                    $noKun = substr($detail->coa_akun, 0, 4);
-                    $namaAkun = $coa->where('nomor_akun', $noKun)->first();
-                    $totalModal += $detail->debit + $detail->credit;
+                if (@$sisa) {
+                    $getSisa = array_keys($sisa);
+                    $nom = substr($getSisa[0], 0, 5);
+                    if ($lv4['nomor_akun'] == $nom) {
+                        if ($lv1['golongan'] == 'Ekuitas' || $lv1['golongan'] == 'Liabilitas') {
+                            $result['Liabilitas dan Ekuitas'][$lv1['nama_akun']]['sisa'] = @$sisa[$getSisa[0]];
+                        }
+                    }
                 }
             }
         }
 
-        return [
-            'pendapatan' => $totalPendapatan,
-            'hpp' => $totalHPP,
-            'beban' => $totalBeban,
-            'modal' => $totalModal,
-            'namaAkun' => $namaAkun ? $namaAkun->nama_akun : ''
-        ];
-    }
-
-    function processLevel($coa, $labaRugi)
-    {
-        $result = [];
-        $sisa = [];
-            foreach ($coa as $lv1) {
-                $lv1Result = [];
-                foreach ($lv1['child'] as $lv2) {
-                    $lv2Result = [];
-                    foreach ($lv2['child'] as $lv3) {
-                        $lv3Result = [];
-                        foreach ($lv3['child'] as $lv4) {
-                            $lv4Sum = 0;
-                            $sumSisa = 0;
-                            foreach ($lv4['child'] as $lv5) {
-                                if($lv5['saldo_awal_debit'] != '0' || $lv5['saldo_awal_credit'] != '0'){
-                                    if($lv5['saldo_normal'] == 'debit' || $lv5['saldo_normal'] == 'db'){
-                                        $balance = $lv5['saldo_awal_debit'];
-                                        // $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_debit'] - $lv5['saldo_awal_credit'];
-                                    }else{
-                                        $balance = $lv5['saldo_awal_credit'];
-                                        // $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_credit'] - $lv5['saldo_awal_debit'];
-                                    }
-
-                                    if($lv5['saldo_awal_debit'] != '0' && $lv5['saldo_normal'] != 'debit'){
-                                        $sisa[$lv5['nomor_akun']] = $lv5['saldo_awal_debit'] - $lv5['saldo_awal_credit'];
-                                    }
-
-                                    $lv4Sum += $balance;
-                                    $sumSisa += @$sisa[$lv5['nomor_akun']];
-                                }else{
-                                    if($lv5['saldo_normal'] == 'debit' || $lv5['saldo_normal'] == 'db'){
-                                        $balance = $lv5['saldo_awal_debit'];
-                                    }else{
-                                        $balance = $lv5['saldo_awal_credit'];
-                                    }
-                                    $lv4Sum += $balance;
-                                }
-                            }
-                            if ($lv4Sum != 0 || $sumSisa != 0) {
-                                $lv3Result[$lv4['nama_akun']] = $lv4Sum;
-                                // $lv3Result['Sisa'] = $sumSisa;
-                            }
-                        }
-                        if (!empty($lv3Result)) {
-                            $sus = array_sum(array_values($lv3Result));
-                            $lv2Result[$lv3['nama_akun']] = $sus;
-                            if($lv1['nomor_akun'] == 3 || $lv1['nomor_akun'] == '3'){
-                                $lv2Result['Saldo Tahun Berjalan'] = $labaRugi;
-                            }
-                        }
-                    }
-                    if (!empty($lv2Result)) {
-                        $lv1Result[$lv2['nama_akun']] = $lv2Result;
-                    }
-                }
-                if (!empty($lv1Result)) {
-                    if($lv1['golongan'] == 'Ekuitas' || $lv1['golongan'] == 'Liabilitas'){
-                        if (isset($result['Liabilitas dan Ekuitas'])) {
-                            $result['Liabilitas dan Ekuitas'] = array_merge_recursive($result['Liabilitas dan Ekuitas'], $lv1Result);
-                        } else {
-                            $result['Liabilitas dan Ekuitas'] = $lv1Result;
-                        }
-                    }else{
-                        $result[$lv1['nama_akun']] = $lv1Result;
-                    }
-
-                    if(@$sisa){
-                        $getSisa = array_keys($sisa);
-                        $nom = substr($getSisa[0], 0, 5);
-                        if($lv4['nomor_akun'] == $nom){
-                            if($lv1['golongan'] == 'Ekuitas' || $lv1['golongan'] == 'Liabilitas'){
-                                $result['Liabilitas dan Ekuitas'][$lv1['nama_akun']]['sisa'] = @$sisa[$getSisa[0]];
-                            }
-                        }
-                    }
-                }
-            }
-
         return $result;
-    }
-
-    // hitung saldo awal
-    private function hitungSaldoAwal($detail)
-    {
-        $saldoAwal = Coa::where('nomor_akun', $detail->coa_akun)
-            ->where('created_by', Auth::user()->id)
-            ->whereNull('is_deleted')
-            ->first();
-
-        $saldoNormal = strtolower($saldoAwal->saldo_normal);
-        return $saldoNormal == 'db' || $saldoNormal == 'debit'
-            ? $saldoAwal->saldo_awal_debit
-            : $saldoAwal->saldo_awal_credit;
     }
 
     public function neracaEkuitas($tanggal, $labaRugi = null)
     {
-        $title = "";
-        $message = "";
+        $title = '';
+        $message = '';
         $error = 0;
 
         $year = $tanggal ? substr($tanggal, 0, 4) : date('Y');
         $userId = Auth::id();
 
-        // ===== 1) Prefetch COA level 1..5 (sekali) =====
         $coas = Coa::whereNull('is_deleted')
             ->where('created_by', $userId)
-            ->whereIn('level', [1,2,3,4,5])
-            ->orderBy('nomor_akun','asc')
-            ->get(['level','nomor_akun','nama_akun','saldo_normal','saldo_awal_debit','saldo_awal_credit','saldo_berjalan_debit','saldo_berjalan_credit','golongan','periode'])
+            ->whereIn('level', [1, 2, 3, 4, 5])
+            ->orderBy('nomor_akun', 'asc')
+            ->get(['level', 'nomor_akun', 'nama_akun', 'saldo_normal', 'saldo_awal_debit', 'saldo_awal_credit', 'saldo_berjalan_debit', 'saldo_berjalan_credit', 'golongan', 'periode'])
             ->groupBy('level');
 
-        $coasLv1 = ($coas[1] ?? collect())->keyBy('nomor_akun'); // '1','2','3'
-        $coasLv2 = ($coas[2] ?? collect())->keyBy('nomor_akun'); // '11','21',dst
-        $coasLv3 = ($coas[3] ?? collect())->keyBy('nomor_akun'); // '111','311',dst
-        $coasLv4 = ($coas[4] ?? collect())->keyBy('nomor_akun'); // '11101',dst
-        $coasLv5 = ($coas[5] ?? collect())->keyBy('nomor_akun'); // '11101001',dst
+        $coasLv1 = ($coas[1] ?? collect())->keyBy('nomor_akun');
+        $coasLv2 = ($coas[2] ?? collect())->keyBy('nomor_akun');
+        $coasLv3 = ($coas[3] ?? collect())->keyBy('nomor_akun');
+        $coasLv4 = ($coas[4] ?? collect())->keyBy('nomor_akun');
+        $coasLv5 = ($coas[5] ?? collect())->keyBy('nomor_akun');
 
         if ($coasLv1->isEmpty() || $coasLv5->isEmpty()) {
             return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Master COA tidak lengkap.'];
         }
 
-        // ===== 2) Agregat jurnal_details ≤ tanggal, hanya akun 1/2/3, GROUP BY 4-digit prefix =====
         $jdAgg4 = DB::table('jurnal_details')
-            ->selectRaw("LEFT(coa_akun,4) AS k4, SUM(debit) AS debit, SUM(credit) AS credit")
+            ->selectRaw('LEFT(coa_akun,4) AS k4, SUM(debit) AS debit, SUM(credit) AS credit')
             ->where('created_by', $userId)
-            ->where(function($q){
+            ->where(function ($q) {
                 $q->where('coa_akun', 'like', '1%')
-                ->orWhere('coa_akun', 'like', '2%')
-                ->orWhere('coa_akun', 'like', '3%');
+                    ->orWhere('coa_akun', 'like', '2%')
+                    ->orWhere('coa_akun', 'like', '3%');
             })
             ->where('tanggal_bukti', '<=', $tanggal)
             ->where('periode', $year)
@@ -1282,65 +1026,61 @@ class ReportController extends Controller
             return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Data jurnal tidak ditemukan.'];
         }
 
-        // ===== 3) Agregat saldo awal COA (SUM) GROUP BY 4-digit prefix =====
         $coaAgg4 = DB::table('coas')
-            ->selectRaw("LEFT(nomor_akun,4) AS k4, SUM(saldo_awal_debit) AS sad, SUM(saldo_awal_credit) AS sac")
+            ->selectRaw('LEFT(nomor_akun,4) AS k4, SUM(saldo_awal_debit) AS sad, SUM(saldo_awal_credit) AS sac')
             ->where('created_by', $userId)
-            ->where(function($q){
+            ->where(function ($q) {
                 $q->where('nomor_akun', 'like', '1%')
-                ->orWhere('nomor_akun', 'like', '2%')
-                ->orWhere('nomor_akun', 'like', '3%');
+                    ->orWhere('nomor_akun', 'like', '2%')
+                    ->orWhere('nomor_akun', 'like', '3%');
             })
             ->where('periode', $year)
             ->groupBy('k4')
             ->get()
             ->keyBy('k4');
 
-        // ===== 4) Siapkan data & validasi ringan (tanpa N+1) =====
         $data = [];
 
         foreach ($coasLv5 as $nomorAkun => $coa5) {
-            // Hanya akun 1/2/3 sesuai kode lama
             $h1 = substr($nomorAkun, 0, 1);
-            if (!in_array($h1, ['1','2','3'], true)) continue;
+            if (! in_array($h1, ['1', '2', '3'], true)) {
+                continue;
+            }
 
             $p1 = $coasLv1->get($h1);
             $p2 = $coasLv2->get(substr($nomorAkun, 0, 2));
             $p3 = $coasLv3->get(substr($nomorAkun, 0, 3));
             $p4 = $coasLv4->get(substr($nomorAkun, 0, 5));
 
-            if (!$p3) {
-                return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Akun CoA level 3 ('.substr($nomorAkun,0,3).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !'];
+            if (! $p3) {
+                return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Akun CoA level 3 ('.substr($nomorAkun, 0, 3).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !'];
             }
-            if (!$p2) {
-                return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Akun CoA level 2 ('.substr($nomorAkun,0,2).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !'];
+            if (! $p2) {
+                return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Akun CoA level 2 ('.substr($nomorAkun, 0, 2).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !'];
             }
-            if (!$p4) {
-                return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Akun CoA level 4 ('.substr($nomorAkun,0,5).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !'];
+            if (! $p4) {
+                return ['status' => 'error', 'title' => 'Oops!', 'msg' => 'Akun CoA level 4 ('.substr($nomorAkun, 0, 5).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !'];
             }
 
-            // Ambil agregat berdasarkan 4-digit prefix
             $k4 = substr($nomorAkun, 0, 4);
             $jt = $jdAgg4->get($k4);
             $ct = $coaAgg4->get($k4);
 
-            $sumDebit  = (float)($jt->debit ?? 0);
-            $sumCredit = (float)($jt->credit ?? 0);
-            $sumAwalD  = (float)($ct->sad ?? 0);
-            $sumAwalC  = (float)($ct->sac ?? 0);
+            $sumDebit = (float) ($jt->debit ?? 0);
+            $sumCredit = (float) ($jt->credit ?? 0);
+            $sumAwalD = (float) ($ct->sad ?? 0);
+            $sumAwalC = (float) ($ct->sac ?? 0);
 
-            // Hitung saldo dan saldo awal menurut saldo_normal akun detail (level 5)
-            $isDebitNormal = in_array(strtolower((string)$coa5->saldo_normal), ['debit','d','db'], true);
-            $saldo     = $isDebitNormal ? ($sumAwalD + $sumDebit - $sumCredit)
+            $isDebitNormal = in_array(strtolower((string) $coa5->saldo_normal), ['debit', 'd', 'db'], true);
+            $saldo = $isDebitNormal ? ($sumAwalD + $sumDebit - $sumCredit)
                                         : ($sumAwalC + $sumCredit - $sumDebit);
             $saldoAwal = $isDebitNormal ? $sumAwalD : $sumAwalC;
 
-            // Simpan ke struktur data
-            $parentKey     = $p1->nomor_akun;        // '1','2','3'
-            $childName     = $p2->nama_akun;         // nama level 2
-            $subChildKey   = $p3->nomor_akun;        // '111','311', ...
-            $currentYear   = (int)$year;
-            $previousYear  = $currentYear - 1;
+            $parentKey = $p1->nomor_akun;
+            $childName = $p2->nama_akun;
+            $subChildKey = $p3->nomor_akun;
+            $currentYear = (int) $year;
+            $previousYear = $currentYear - 1;
 
             if ($saldo != 0) {
                 $data[$currentYear][$parentKey][$childName][$subChildKey] = $saldo;
@@ -1350,21 +1090,17 @@ class ReportController extends Controller
                 $data[$previousYear][$parentKey][$childName][$subChildKey] = $saldoAwal;
             }
 
-            // Susunan tambahan "Liabilitas dan Ekuitas" mengikuti pola lama
             $liabEqKey = 'Liabilitas dan Ekuitas';
-            $data[$currentYear][$liabEqKey][$childName][$subChildKey]   = $data[$currentYear][$parentKey][$childName][$subChildKey] ?? $saldo;
-            $data[$previousYear][$liabEqKey][$childName][$subChildKey]  = $data[$previousYear][$parentKey][$childName][$subChildKey] ?? $saldoAwal;
+            $data[$currentYear][$liabEqKey][$childName][$subChildKey] = $data[$currentYear][$parentKey][$childName][$subChildKey] ?? $saldo;
+            $data[$previousYear][$liabEqKey][$childName][$subChildKey] = $data[$previousYear][$parentKey][$childName][$subChildKey] ?? $saldoAwal;
 
-            // Sisipkan "Saldo Tahun Berjalan" pada 311 atau prefix '30'
             if ($subChildKey === '311' || strpos($subChildKey, '30') === 0) {
-                $data[$currentYear][$liabEqKey][$childName]['Saldo Tahun Berjalan']  = $labaRugi;
+                $data[$currentYear][$liabEqKey][$childName]['Saldo Tahun Berjalan'] = $labaRugi;
                 $data[$previousYear][$liabEqKey][$childName]['Saldo Tahun Berjalan'] = 0;
             }
         }
 
-        // ===== 5) Komponen Ekuitas dari COA level-5 '3%' (tanpa raw SELECT per baris) =====
-        // Meniru blok "coas2" dengan agregasi in-memory
-        $ekuitasLv5 = $coasLv5->filter(function($row){
+        $ekuitasLv5 = $coasLv5->filter(function ($row) {
             return strpos($row->nomor_akun, '3') === 0
                 && (
                     ($row->saldo_awal_debit ?? 0) != 0 ||
@@ -1377,29 +1113,27 @@ class ReportController extends Controller
         $ekuitasAgg3 = [];
         foreach ($ekuitasLv5 as $row) {
             $k3 = substr($row->nomor_akun, 0, 3);
-            // Pilih saldo seperti blok lama: saldo_berjalan_credit jika ada, else saldo_awal_credit (fallback 0)
             $saldo = ($row->saldo_berjalan_credit ?? 0) ?: ($row->saldo_awal_credit ?? 0);
             if ($saldo != 0) {
                 $ekuitasAgg3[$k3] = ($ekuitasAgg3[$k3] ?? 0) + $saldo;
             }
         }
-        if (!empty($ekuitasAgg3)) {
-            $currentYear = (int)$year;
+        if (! empty($ekuitasAgg3)) {
+            $currentYear = (int) $year;
             foreach ($ekuitasAgg3 as $k3 => $saldo) {
-                $data[$currentYear][3]['Ekuitas'][$k3] = $saldo; // mengikuti pola lama
+                $data[$currentYear][3]['Ekuitas'][$k3] = $saldo;
             }
         }
 
-
-        foreach($data as $key => $value){
-            foreach($value as $key2 => $value2){
-                foreach($value2 as $key3 => $value3){
+        foreach ($data as $key => $value) {
+            foreach ($value as $key2 => $value2) {
+                foreach ($value2 as $key3 => $value3) {
                     if (is_array($value3)) {
                         ksort($value3);
                         $data[$key][$key2][$key3] = $value3;
-                        foreach($value3 as $key4 => $value4){
+                        foreach ($value3 as $key4 => $value4) {
                             $coa = Coa::where('nomor_akun', $key4)->where('created_by', Auth::user()->id)->first();
-                            if($coa){
+                            if ($coa) {
                                 $data[$key][$key2][$key3][@$coa->nama_akun] = $value4;
                                 unset($data[$key][$key2][$key3][$key4]);
                             }
@@ -1409,18 +1143,18 @@ class ReportController extends Controller
             }
         }
 
-        $currentYear = (int) $year; // variabel $year yang kamu pakai di function
+        $currentYear = (int) $year;
         $data = pruneZerosPairYears($data, $currentYear);
 
         return $data;
     }
 
-    public function neracaFunc($tanggal, $labaRugi = null){
-        $year = substr($tanggal,0,4);
+    public function neracaFunc($tanggal, $labaRugi = null)
+    {
+        $year = substr($tanggal, 0, 4);
 
-        // Get all relevant journal details
         $jurnal = JurnalDetail::where('created_by', Auth::user()->id)
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->where('coa_akun', 'like', '1%')
                     ->orWhere('coa_akun', 'like', '2%')
                     ->orWhere('coa_akun', 'like', '3%');
@@ -1430,9 +1164,8 @@ class ReportController extends Controller
             ->get()
             ->keyBy('coa_akun');
 
-        // Get all COA accounts (like trial balance does)
         $coa = Coa::whereNull('is_deleted')
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->where('nomor_akun', 'like', '1%')
                     ->orWhere('nomor_akun', 'like', '2%')
                     ->orWhere('nomor_akun', 'like', '3%');
@@ -1443,16 +1176,14 @@ class ReportController extends Controller
             ->get()
             ->keyBy('nomor_akun');
 
-        if($coa->isEmpty()) {
+        if ($coa->isEmpty()) {
             return [];
         }
 
         $data = [];
 
-        // Process ALL COA accounts (like trial balance does)
-        foreach($coa as $nomorAkun => $coaData) {
-            // Skip if not detail level account
-            if($coaData->level < 5) {
+        foreach ($coa as $nomorAkun => $coaData) {
+            if ($coaData->level < 5) {
                 continue;
             }
 
@@ -1460,18 +1191,16 @@ class ReportController extends Controller
             $child = $coa->get(substr($nomorAkun, 0, 2));
             $subChild = $coa->get(substr($nomorAkun, 0, 3));
 
-            if(!$parent || !$child || !$subChild) {
+            if (! $parent || ! $child || ! $subChild) {
                 continue;
             }
 
-            // Calculate current balance for this account
             $saldo = 0;
             $saldoAwal = $coaData->saldo_awal_debit + $coaData->saldo_awal_credit;
 
-            // Add journal movements if any
-            if($jurnal->has($nomorAkun)) {
+            if ($jurnal->has($nomorAkun)) {
                 $jurnalEntry = $jurnal->get($nomorAkun);
-                if(in_array($coaData->saldo_normal, ['debit', 'd', 'db'])) {
+                if (in_array($coaData->saldo_normal, ['debit', 'd', 'db'])) {
                     $saldo = $coaData->saldo_awal_debit + $jurnalEntry->debit - $jurnalEntry->credit;
                     $saldoAwal = $coaData->saldo_awal_debit;
                 } else {
@@ -1479,8 +1208,7 @@ class ReportController extends Controller
                     $saldoAwal = $coaData->saldo_awal_credit;
                 }
             } else {
-                // No journal entries, use opening balance
-                if(in_array($coaData->saldo_normal, ['debit', 'd', 'db'])) {
+                if (in_array($coaData->saldo_normal, ['debit', 'd', 'db'])) {
                     $saldo = $coaData->saldo_awal_debit;
                     $saldoAwal = $coaData->saldo_awal_debit;
                 } else {
@@ -1489,46 +1217,41 @@ class ReportController extends Controller
                 }
             }
 
-            // Only include accounts with non-zero balances
-            if($saldo != 0 || $saldoAwal != 0) {
+            if ($saldo != 0 || $saldoAwal != 0) {
                 $data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldo;
                 $data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldoAwal;
 
-                // Handle Liabilities and Equity grouping
-                if(@$parent->golongan == 'Liabilitas' || @$parent->golongan == 'Ekuitas'){
+                if (@$parent->golongan == 'Liabilitas' || @$parent->golongan == 'Ekuitas') {
                     $data[$year]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $saldo;
                     $data[$year - 1]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $saldoAwal;
                 }
 
-                // Add current year profit/loss to equity
-                if($subChild->nomor_akun == '311' || strpos($subChild->nomor_akun, '30') === 0){
+                if ($subChild->nomor_akun == '311' || strpos($subChild->nomor_akun, '30') === 0) {
                     $data[$year]['Liabilitas dan Ekuitas'][$child->nama_akun]['Saldo Tahun Berjalan'] = $labaRugi;
                     $data[$year - 1]['Liabilitas dan Ekuitas'][$child->nama_akun]['Saldo Tahun Berjalan'] = 0;
                 }
             }
         }
 
-        // Clean up the data structure - remove separate liability and equity sections
-        foreach($data as $tahun => $rows) {
-            foreach($rows as $rowKey => $row) {
-                if(in_array($rowKey, ['2', '3', 2, 3], true)){
+        foreach ($data as $tahun => $rows) {
+            foreach ($rows as $rowKey => $row) {
+                if (in_array($rowKey, ['2', '3', 2, 3], true)) {
                     unset($data[$tahun][$rowKey]);
                 }
             }
         }
 
-        // Replace account numbers with account names
-        foreach($data as $key => $value){
-            foreach($value as $key2 => $value2){
-                foreach($value2 as $key3 => $value3){
+        foreach ($data as $key => $value) {
+            foreach ($value as $key2 => $value2) {
+                foreach ($value2 as $key3 => $value3) {
                     if (is_array($value3)) {
                         ksort($value3);
                         $data[$key][$key2][$key3] = $value3;
-                        foreach($value3 as $key4 => $value4){
+                        foreach ($value3 as $key4 => $value4) {
                             $coaItem = Coa::where('nomor_akun', $key4)
                                 ->where('created_by', Auth::user()->id)
                                 ->first();
-                            if($coaItem){
+                            if ($coaItem) {
                                 $data[$key][$key2][$key3][$coaItem->nama_akun] = $value4;
                                 unset($data[$key][$key2][$key3][$key4]);
                             }
@@ -1541,1138 +1264,629 @@ class ReportController extends Controller
         return $data;
     }
 
-    public function neraca(Request $request, $n = null){
-        // da($request);
-        if($request->isMethod('post')){
-            // da($request->query('excel'));
-            $start_date_input = $request->input('start_date');
-            $end_date_input = $request->input('end_date');
-
-            if (!$start_date_input || !$end_date_input) {
-                Alert::error('Oops!', 'Data tidak ditemukan');
-                return redirect()->back();
-            }
-            $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-            $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
-            // $ttd1 = $request->input('dibuat');
-            // $alamat = $request->input('alamat');
-            // $tanggal = $request->input('tanggal');
-            // $jabatan = $request->input('jabatan');
-            // $jumlahLaman = $request->input('jumlahLaman');
-            if($start_date){
-                $year = substr($start_date,0,4);
-            }else{
-                $year = date('Y');
-            }
-            $paged = [
-                'dibuat' => $request->input('dibuat'),
-                'alamat' => $request->input('alamat'),
-                'tanggal' => $request->input('tanggal'),
-                'jabatan' => $request->input('jabatan'),
-                'jumlahLaman' => (int) $request->input('jumlahLaman'),
-            ];
-
-            // da('fafa');
-            $labaRugi = $this->labarugi($request, 1, $year);
-
-            // da($labaRugi);
-
-            $data = $this->neracaFuncPerbandingan($end_date, $labaRugi, $year);
-            // dd($n);
-            if($n == true){
-                foreach ($data[$year] as $key => &$groups) {
-                    foreach ($groups as $subKey => $subGroup) {
-                        // cek apakah semua nilai dalam $subGroup == 0
-                        if (is_array($subGroup) && count($subGroup) > 0) {
-                            $allZero = true;
-                            foreach ($subGroup as $val) {
-                                if ((float)$val !== 0.0) {
-                                    $allZero = false;
-                                    break;
-                                }
-                            }
-
-                            // kalau semua 0 → unset parent
-                            if ($allZero) {
-                                unset($groups[$subKey]);
-                            }
-                        }
-                    }
-
-                    // kalau parent akhirnya kosong → unset juga
-                    if (empty($groups)) {
-                        unset($data[$year][$key]);
-                    }
-                }
-                unset($groups);
-            }
-
-
-            //  da($data);
-
-            if ($data instanceof \Illuminate\Http\RedirectResponse) {
-                return $data;
-            }
-            if($n == true){
-                unset($data[Auth::user()->periode - 1]);
-            }
-            if(!$data){
-                Alert::error('Oops!', 'Data tidak ditemukan');
-                return redirect()->back();
-            }
-            if(isset($data[0])){
-                unset($data[0]);
-            }
-            $sisaModalUsaha = $data;
-
-            //Kewajiban Lancar start
-            $jurnal = JurnalDetail::where('created_by', Auth::user()->id)
-                    ->whereBetween('tanggal_bukti', [$start_date, $end_date])
-                    ->get();
-
-            $coa = Coa::where('created_by', Auth::user()->id)
-                    ->where(function ($query) {
-                        $query->where('nomor_akun', 'like', '2%')
-                            ->orWhere('nomor_akun', 'like', '3%');
-                    })
-                    ->where('level', 5)
-                    ->whereNull('is_deleted')
-                    ->orderBy('nomor_akun', 'asc')
-                    ->get()
-                    ->keyBy('nomor_akun');
-
-                    $coa_nama = Coa::where('created_by', Auth::user()->id)
-                    ->where(function ($query) {
-                        $query->where('nomor_akun', 'like', '2%')
-                            ->orWhere('nomor_akun', 'like', '3%');
-                    })
-                    ->where('level', 3)
-                    ->whereNull('is_deleted')
-                    ->get()
-                    ->keyBy('nomor_akun');
-
-                     // da($coa_nama);
-
-            $liabilitas = [];
-            $subTotalSaldoAwalDebit     = 0;
-            $subTotalSaldoAwalKredit    = 0;
-            $subTotalmutasiDebit        = 0;
-            $subTotalmutasiKredit       = 0;
-            $subTotalsaldoAkhirDebit    = 0;
-            $subTotalsaldoAkhirKredit   = 0;
-
-            foreach($coa as $akun => $coaData){
-              // da(substr($akun, 0, 3));
-              $kepala_coa = $coa_nama[substr($akun, 0, 3)] ?? '';
-
-             // da($data);
-                $saldoNormal = strtolower($coaData->saldo_normal);
-                if(Carbon::parse($request->input('start_date'))->format('d') != '01'){
-                    $awal_bulan = Carbon::parse($request->input('start_date'))->startOfMonth()->format('Y-m-d H:i:s');
-                    $saldoAwalDebit = JurnalDetail::where('created_by', Auth::user()->id)
-                                                ->where('coa_akun', $akun)
-                                                ->whereBetween('tanggal_bukti', [$awal_bulan, $start_date])
-                                                ->sum('debit');
-                    $saldoAwalKredit = JurnalDetail::where('created_by', Auth::user()->id)
-                                                ->where('coa_akun', $akun)
-                                                ->whereBetween('tanggal_bukti', [$awal_bulan, $start_date])
-                                                ->sum('credit');
-                }else{
-                    $saldoAwalDebit = 0;
-                    $saldoAwalKredit = 0;
-                }
-
-                $saldoAwalDebit = $coaData->saldo_awal_debit + $saldoAwalDebit ?? 0;
-                $saldoAwalKredit = $coaData->saldo_awal_credit + $saldoAwalKredit ?? 0;
-
-                $subTotalSaldoAwalDebit     += $coaData->saldo_awal_debit ?? 0;
-                $subTotalSaldoAwalKredit    += $coaData->saldo_awal_credit ?? 0;
-
-                $mutasiDebit = 0;
-                $mutasiKredit = 0;
-
-                $jurnalAkun = $jurnal->where('coa_akun', $akun);
-                if($jurnalAkun->isNotEmpty()){
-                    $mutasiDebit            = $jurnalAkun->sum('debit');
-                    $mutasiKredit           = $jurnalAkun->sum('credit');
-                    //Lukman menambahkan tgl 15/11/2024
-                    $subTotalmutasiDebit    += $jurnalAkun->sum('debit');
-                    $subTotalmutasiKredit   += $jurnalAkun->sum('credit');
-                    //
-                }
-
-                if ($saldoNormal == 'db' || $saldoNormal == 'debit') {
-                    $saldoAkhirDebit            = $saldoAwalDebit + $mutasiDebit - $mutasiKredit;
-                    $saldoAkhirKredit = 0;
-                    //Lukman menambahkan tgl 15/11/2024
-                    $subTotalsaldoAkhirDebit    += $saldoAwalDebit + $mutasiDebit - $mutasiKredit;
-                    //
-                } else {
-                    $saldoAkhirKredit           = $saldoAwalKredit + $mutasiKredit - $mutasiDebit;
-                    $saldoAkhirDebit = 0;
-                    //Lukman menambahkan tgl 15/11/2024
-                    $subTotalsaldoAkhirKredit   += $saldoAwalKredit + $mutasiKredit - $mutasiDebit;
-                    //
-                }
-
-
-                // dede 10/03/2025
-                $liabilitas[$coaData->golongan][$akun] = [
-                    $kepala_coa['nama_akun'] => $saldoAkhirKredit
-                ];
-            }
-
-        // da($liabilitas);
-
-
-
-          //da($tampunganku);
-
-            foreach ($liabilitas as $key => $subArray) {
-             // da($subArray);
-
-                foreach ($subArray as $subKey => $item) {
-                    // Menghapus item yang memiliki nilai 0
-                    $liabilitas[$key][$subKey] = array_filter($item, function($value) {
-                        return $value !== 0; // Menghapus item yang nilainya 0
-                    });
-
-                    // Menghilangkan elemen array jika kosong setelah filtering
-                    if (empty($liabilitas[$key][$subKey])) {
-                        unset($liabilitas[$key][$subKey]);
-                    }
-                }
-            }
-
-         // da ($liabilitas);
-            $kewajibanLancar = [];
-             // $ekuitas = [];
-//              foreach ($liabilitas['Liabilitas'] as $kode => $item) {
-//                 foreach ($item as $key => $value) {
-//                     $kewajibanLancar[$key] = $value;
-//                 }
-//             }
-
-    // da($kewajibanLancar);
-    // dede 11/03/2025
-                foreach ($liabilitas['Liabilitas'] as $kode => $item) {
-                    foreach ($item as $namaAkun => $nilai) {
-                        if (isset($kewajibanLancar[$namaAkun])) {
-                            $kewajibanLancar[$namaAkun] += $nilai;
-                        } else {
-                            $kewajibanLancar[$namaAkun] = $nilai;
-                        }
-                    }
-                }
-
-// da($kewajibanLancar);
-
-            if (!isset($sisaModalUsaha[$year]['Liabilitas dan Ekuitas'])) {
-                //Mengambil Ekuitasnya saja
-                $ekuitas_values = array_values($liabilitas["Ekuitas"]);
-
-                $tampungEkuitas = [];
-
-            foreach ($ekuitas_values as $ekuitas) {
-                foreach ($ekuitas as $key => $value) {
-                    if (!isset($tampungEkuitas[$key])) {
-                        $tampungEkuitas[$key] = 0;
-
-                    }
-                    $tampungEkuitas[$key] += $value;
-                }
-            }
-                //$tampungEkuitas = array_merge(...$ekuitas_values);
-
-                 // da($tampungEkuitas);
-                $data[$year]['Liabilitas dan Ekuitas'] = [];
-                if (!isset($data[$year]['Liabilitas dan Ekuitas']['LIABILITAS'])) {
-                    $liabilitas = [];
-                    foreach ($kewajibanLancar as $a => $b) {
-                        $liabilitas[$a] = $b; // Menambahkan elemen ke array $liabilitas
-                    }
-                    $data[$year]['Liabilitas dan Ekuitas']['LIABILITAS'] = $liabilitas;
-                }
-
-               // da($data);
-
-                if (!isset($data[$year]['Liabilitas dan Ekuitas']['EKUITAS'])) {
-                    $data[$year]['Liabilitas dan Ekuitas']['EKUITAS'] = array_merge(
-                        $tampungEkuitas, // Ekuitas yang sudah ada duluan
-                        ['Saldo Tahun Berjalan' => $labaRugi] // Ditambahkan di akhir
-                    );
-                }
-
-
-                 // da($data);
-
-            }else{
-                // da($kewajibanLancar);
-                $minusValues = array_filter($kewajibanLancar, function($value) {
-                    return $value < 0; // Hanya ambil nilai yang kurang dari 0
-                });
-
-               // da($minusValues);
-
-                $liabilitasDanEkuitasIndexed = array_values($data[$year]['Liabilitas dan Ekuitas']);
-                $hutangJangkaPendek = array_key_first($data[$year]['Liabilitas dan Ekuitas']); // Mendapatkan key pertama
-                if (!empty($minusValues)) {
-                    $data[$year]['Liabilitas dan Ekuitas'][$hutangJangkaPendek] = array_merge(
-                        $data[$year]['Liabilitas dan Ekuitas'][$hutangJangkaPendek], // Data lama
-                        $minusValues // Data baru
-                    );
-
-                }
-
-            //    da($data);
-                // foreach ($liabilitas['Ekuitas'] as $kode => $item) {
-//                     foreach ($item as $key => $value) {
-//                         if ($key !== 'Saldo Tahun Berjalan') {
-//                             $ekuitas[$key] = $value;
-//                         }
-//                     }
-//                 }
-
-                // dede 11/03/2025
-                // da($liabilitas);
-                foreach ($liabilitas['Ekuitas'] as $kode => $item) {
-                    foreach ($item as $namaAkun => $nilai) {
-                        if ($namaAkun !== 'Saldo Tahun Berjalan') {
-                            $ekuitas[$namaAkun] = ($ekuitas[$namaAkun] ?? 0) + $nilai;
-                        }
-                    }
-                }
-
-                // da($data);
-
-                $lastKey = array_key_last($data[$year]['Liabilitas dan Ekuitas']);
-                if (isset($sisaModalUsaha[$year]['Liabilitas dan Ekuitas'][$lastKey]['Saldo Tahun Berjalan'])) {
-                    $ekuitas['Saldo Tahun Berjalan'] = $sisaModalUsaha[$year]['Liabilitas dan Ekuitas'][$lastKey]['Saldo Tahun Berjalan'];
-                }
-
-                //   da($data);
-
-                // dd(array_key_last($ekuitas));
-
-                // Update struktur array $data dengan Kewajiban Lancar dan Ekuitas baru
-                if(!empty($data[$year]['Liabilitas dan Ekuitas']['Kewajiban Lancar'])){
-                //  da($kewajibanLancar);
-                    $data[$year]['Liabilitas dan Ekuitas']['Kewajiban Lancar'] = $kewajibanLancar;
-                }
-                $data[$year]['Liabilitas dan Ekuitas'][$lastKey] = $ekuitas;
-            }
-
-
-            //    da($data);
-
-            if($request->query('excel') == 0){
-
-                $pdf = Dompdf::loadView('report.neraca', [
-                    'data'              => $data,
-                    'label'             => $n == true ? 'Neraca' : 'Neraca Perbandingan',
-                    'periode'           => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
-                    'paged'             => $paged,
-                    'tanggal_mulai'     => Carbon::parse($start_date)->format('d/m/Y'),
-                    'tanggal_selesai'   => Carbon::parse($end_date)->format('d/m/Y'),
-                ]);
-
-                $pdf->setPaper('A4', 'portrait');
-                if($n){
-                    return $pdf->stream('neraca.pdf');
-                }else{
-                    return $pdf->stream('neraca perbandingan.pdf');
-                }
-            }else{
-                // da($data);
-                $label = $n == true ? 'Neraca' : 'Neraca Perbandingan';
-                $periode = Carbon::parse($request->input('end_date'))->translatedFormat('j F Y');
-
-                return Excel::download(new NeracaExport($data, $label, $periode, $paged), 'Neraca.xlsx');
-            }
-            // $pdf = Dompdf::loadView('report.neraca', [
-            //     'data' => $data,
-            //     'periode' => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
-            //     'ttd1' => $ttd1,
-            //     'ttd2' => $ttd2,
-            // ]);
-            // return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
-        }
-
-        return view('report.views.template');
-    }
-
-    private function removeDuplicatesFromArray(array $array)
+    public function neraca(Request $request, $n = null)
     {
-          // Serialize setiap elemen untuk membandingkan data bersarang
-        $serializedArray = array_map('serialize', $array);
-
-        // Hapus duplikat
-        $uniqueSerialized = array_unique($serializedArray);
-
-        // Kembalikan ke bentuk asli dengan unserialize
-        $uniqueArray = array_map('unserialize', $uniqueSerialized);
-
-        // Proses array bersarang
-        foreach ($uniqueArray as $key => $value) {
-            if (is_array($value)) {
-                $uniqueArray[$key] = $this->removeDuplicatesFromArray($value); // Rekursif
-            }
+        if (! $request->isMethod('post')) {
+            return view('report.views.template');
         }
 
-        return $uniqueArray;
-    }
+        $start_date_input = $request->input('start_date');
+        $end_date_input = $request->input('end_date');
+        if (! $start_date_input || ! $end_date_input) {
+            Alert::error('Oops!', 'Data tidak ditemukan');
 
-    function sortArrayByKey($array) {
-        foreach ($array as &$subArray) {
-            if (is_array($subArray)) {
-                // Check if it's an associative array that needs sorting
-                if (array_keys($subArray) !== range(0, count($subArray) - 1)) {
-                    uksort($subArray, function($a, $b) {
-                        $aNum = intval(explode(' - ', $a)[0]);
-                        $bNum = intval(explode(' - ', $b)[0]);
-                        return $aNum <=> $bNum;
-                    });
+            return redirect()->back();
+        }
+        $start_date = Carbon::parse($start_date_input)->startOfDay()->format('Y-m-d H:i:s');
+        $end_date = Carbon::parse($end_date_input)->endOfDay()->format('Y-m-d H:i:s');
+        $year = substr($start_date, 0, 4) ?: date('Y');
+
+        $paged = [
+            'dibuat' => $request->input('dibuat'),
+            'alamat' => $request->input('alamat'),
+            'tanggal' => $request->input('tanggal'),
+            'jabatan' => $request->input('jabatan'),
+            'jumlahLaman' => (int) $request->input('jumlahLaman'),
+        ];
+
+        $ytdStart = Carbon::parse($end_date_input)->copy()->startOfYear()->format('Y-m-d 00:00:00');
+        $reqYTD = clone $request;
+        $reqYTD->merge([
+            'start_date' => $ytdStart,
+            'end_date' => $end_date,
+        ]);
+        $labaRugiYTD = $this->labaRugi($reqYTD, 1);
+
+        $data = $this->neracaFuncPerbandingan($end_date, $labaRugiYTD, $year, $start_date);
+        if ($data instanceof \Illuminate\Http\RedirectResponse) {
+            return $data;
+        }
+        if (! $data) {
+            Alert::error('Oops!', 'Data tidak ditemukan');
+
+            return redirect()->back();
+        }
+        if (isset($data[0])) {
+            unset($data[0]);
+        }
+
+        $mergeGroups = function (array &$dst, array $src) {
+            foreach ($src as $groupName => $leafs) {
+                if (! is_array($leafs)) {
+                    continue;
                 }
-                // Recursively sort the subarray
-                $subArray = $this->sortArrayByKey($subArray);
+                if (! isset($dst[$groupName])) {
+                    $dst[$groupName] = [];
+                }
+                foreach ($leafs as $leafName => $val) {
+                    if (! isset($dst[$groupName][$leafName])) {
+                        $dst[$groupName][$leafName] = 0.0;
+                    }
+                    $dst[$groupName][$leafName] += (float) $val;
+                }
+            }
+        };
+
+        $equityCandidates = [];
+        if (isset($data[$year]['3']) && is_array($data[$year]['3'])) {
+            $equityCandidates = array_keys($data[$year]['3']);
+        }
+
+        if (isset($data[$year]) && is_array($data[$year])) {
+            if (! isset($data[$year]['Liabilitas dan Ekuitas'])) {
+                $data[$year]['Liabilitas dan Ekuitas'] = [];
+            }
+            if (isset($data[$year]['2']) && is_array($data[$year]['2'])) {
+                $mergeGroups($data[$year]['Liabilitas dan Ekuitas'], $data[$year]['2']);
+            }
+            if (isset($data[$year]['3']) && is_array($data[$year]['3'])) {
+                $mergeGroups($data[$year]['Liabilitas dan Ekuitas'], $data[$year]['3']);
+            }
+            unset($data[$year]['2'], $data[$year]['3']);
+        }
+
+        $curYear = (int) $year;
+        $prevYear = $curYear - 1;
+        if (isset($data[$prevYear]) && is_array($data[$prevYear])) {
+            $combinedPrev = $data[$prevYear]['Liabilitas dan Ekuitas'] ?? [];
+            if (isset($data[$prevYear]['2']) && is_array($data[$prevYear]['2'])) {
+                $mergeGroups($combinedPrev, $data[$prevYear]['2']);
+            }
+            if (isset($data[$prevYear]['3']) && is_array($data[$prevYear]['3'])) {
+                $mergeGroups($combinedPrev, $data[$prevYear]['3']);
+            }
+            if (! empty($combinedPrev)) {
+                $data[$prevYear]['Liabilitas dan Ekuitas'] = $combinedPrev;
+                unset($data[$prevYear]['2'], $data[$prevYear]['3']);
             }
         }
-        return $array;
-    }
 
+        if (isset($data[$year]['Liabilitas dan Ekuitas']) && is_array($data[$year]['Liabilitas dan Ekuitas'])) {
+            foreach ($data[$year]['Liabilitas dan Ekuitas'] as $kelompok => &$leafs) {
+                if (! is_array($leafs)) {
+                    continue;
+                }
+                foreach ($leafs as $namaLeaf => $val) {
+                    $nLower = mb_strtolower(trim($namaLeaf));
+                    if (in_array($nLower, ['saldo tahun berjalan', 'laba rugi berjalan', 'laba/rugi berjalan'], true)) {
+                        $leafs[$namaLeaf] = 0.0;
+                    }
+                }
+            }
+            unset($leafs);
+
+            $equityGroupKey = null;
+
+            foreach ($equityCandidates as $cand) {
+                if (isset($data[$year]['Liabilitas dan Ekuitas'][$cand])) {
+                    $equityGroupKey = $cand;
+                    break;
+                }
+            }
+            if (! $equityGroupKey) {
+                foreach (array_keys($data[$year]['Liabilitas dan Ekuitas']) as $grp) {
+                    $g = mb_strtolower($grp);
+                    if (str_contains($g, 'ekuitas') || str_contains($g, 'aset neto') || str_contains($g, 'modal')) {
+                        $equityGroupKey = $grp;
+                        break;
+                    }
+                }
+            }
+            if (! $equityGroupKey) {
+                $equityGroupKey = 'Ekuitas';
+                if (! isset($data[$year]['Liabilitas dan Ekuitas'][$equityGroupKey])) {
+                    $data[$year]['Liabilitas dan Ekuitas'][$equityGroupKey] = [];
+                }
+            }
+
+            $data[$year]['Liabilitas dan Ekuitas'][$equityGroupKey]['Saldo Tahun Berjalan'] = (float) $labaRugiYTD;
+        }
+
+        $EPS = 0.000001;
+
+        $prevNonZero = [];
+        if (isset($data[$prevYear]) && is_array($data[$prevYear])) {
+            foreach ($data[$prevYear] as $topKey => $groups) {
+                if (! is_array($groups)) {
+                    continue;
+                }
+                foreach ($groups as $groupName => $leafs) {
+                    if (! is_array($leafs)) {
+                        continue;
+                    }
+                    foreach ($leafs as $leafName => $val) {
+                        if (is_numeric($val) && abs((float) $val) > $EPS) {
+                            $prevNonZero[$leafName] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        $curNonZero = [];
+        if (isset($data[$year]) && is_array($data[$year])) {
+            foreach ($data[$year] as $topKey => $groups) {
+                if (! is_array($groups)) {
+                    continue;
+                }
+                foreach ($groups as $groupName => $leafs) {
+                    if (! is_array($leafs)) {
+                        continue;
+                    }
+                    foreach ($leafs as $leafName => $val) {
+                        if (is_numeric($val) && abs((float) $val) > $EPS) {
+                            $curNonZero[$leafName] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isset($data[$year]) && is_array($data[$year])) {
+            foreach ($data[$year] as $topKey => &$groups) {
+                if (! is_array($groups)) {
+                    continue;
+                }
+                foreach ($groups as $groupName => &$leafs) {
+                    if (! is_array($leafs)) {
+                        continue;
+                    }
+                    foreach ($leafs as $leafName => $val) {
+                        if (is_numeric($val) && abs((float) $val) <= $EPS && empty($prevNonZero[$leafName])) {
+                            unset($leafs[$leafName]);
+                        }
+                    }
+                    if (empty($leafs)) {
+                        unset($groups[$groupName]);
+                    }
+                }
+                unset($leafs);
+                if (empty($groups)) {
+                    unset($data[$year][$topKey]);
+                }
+            }
+            unset($groups);
+        }
+
+        if (isset($data[$prevYear]) && is_array($data[$prevYear])) {
+            foreach ($data[$prevYear] as $topKey => &$groups) {
+                if (! is_array($groups)) {
+                    continue;
+                }
+                foreach ($groups as $groupName => &$leafs) {
+                    if (! is_array($leafs)) {
+                        continue;
+                    }
+                    foreach ($leafs as $leafName => $val) {
+                        if (is_numeric($val) && abs((float) $val) <= $EPS && empty($curNonZero[$leafName])) {
+                            unset($leafs[$leafName]);
+                        }
+                    }
+                    if (empty($leafs)) {
+                        unset($groups[$groupName]);
+                    }
+                }
+                unset($leafs);
+                if (empty($groups)) {
+                    unset($data[$prevYear][$topKey]);
+                }
+            }
+            unset($groups);
+        }
+
+        if ($n === true && isset($data[$year]) && is_array($data[$year])) {
+            foreach ($data[$year] as $key => &$groups) {
+                foreach ($groups as $subKey => $subGroup) {
+                    if (is_array($subGroup) && count($subGroup) > 0) {
+                        $allZero = true;
+                        foreach ($subGroup as $val) {
+                            if ((float) $val !== 0.0) {
+                                $allZero = false;
+                                break;
+                            }
+                        }
+                        if ($allZero) {
+                            unset($groups[$subKey]);
+                        }
+                    }
+                }
+                if (empty($groups)) {
+                    unset($data[$year][$key]);
+                }
+            }
+            unset($groups);
+        }
+        if ($n === true && isset(Auth::user()->periode)) {
+            unset($data[Auth::user()->periode - 1]);
+        }
+
+        if ((int) $request->query('excel', 0) === 0) {
+            $pdf = Dompdf::loadView('report.neraca', [
+                'data' => $data,
+                'label' => $n ? 'Neraca' : 'Neraca Perbandingan',
+                'periode' => Carbon::parse($end_date_input)->translatedFormat('j F Y'),
+                'paged' => $paged,
+                'tanggal_mulai' => Carbon::parse($start_date)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($end_date)->format('d/m/Y'),
+            ]);
+            $pdf->setPaper('A4', 'portrait');
+
+            return $pdf->stream($n ? 'neraca.pdf' : 'neraca perbandingan.pdf');
+        } else {
+            $label = $n ? 'Neraca' : 'Neraca Perbandingan';
+            $periode = Carbon::parse($end_date_input)->translatedFormat('j F Y');
+
+            return Excel::download(new NeracaExport($data, $label, $periode, $paged), 'Neraca.xlsx');
+        }
+    }
 
     public function neracaSaldo(Request $request)
     {
-        if (!$request->isMethod('post')) {
+        if (! $request->isMethod('post')) {
             return view('report.views.template');
         }
 
         $userId = Auth::id();
 
-        // --- Parse tanggal sekali dengan aman ---
         try {
             $start = Carbon::parse($request->input('start_date'))->startOfDay();
-            $end   = Carbon::parse($request->input('end_date'))->endOfDay();
+            $end = Carbon::parse($request->input('end_date'))->endOfDay();
         } catch (\Throwable $e) {
             return back()->with('error', 'Format tanggal tidak valid');
         }
 
-        // === Ambil COA: level 5 untuk akun detail, plus level 3 & 4 untuk mapping nama kepala ===
+        $ytdStart = (clone $end)->startOfYear();
+
         $coasLv5 = Coa::where('created_by', $userId)
             ->where('level', 5)
             ->whereNull('is_deleted')
             ->orderBy('nomor_akun', 'asc')
-            ->get(['nomor_akun','nama_akun','saldo_normal','saldo_awal_debit','saldo_awal_credit'])
+            ->get(['nomor_akun', 'nama_akun', 'saldo_normal', 'saldo_awal_debit', 'saldo_awal_credit'])
             ->keyBy('nomor_akun');
 
         if ($coasLv5->isEmpty()) {
             return back()->with('error', 'COA level 5 tidak ditemukan');
         }
 
-        // Map nama kepala level 3 & 4 (sekali ambil, hindari DB::select berulang)
         $coasLv3 = Coa::where('created_by', $userId)
             ->where('level', 3)
-            ->get(['nomor_akun','nama_akun'])
+            ->get(['nomor_akun', 'nama_akun'])
             ->keyBy('nomor_akun');
 
         $coasLv4 = Coa::where('created_by', $userId)
             ->where('level', 4)
-            ->get(['nomor_akun','nama_akun'])
+            ->get(['nomor_akun', 'nama_akun'])
             ->keyBy('nomor_akun');
 
-        // === Agregat mutasi periode: SUM debit/credit per coa_akun ===
-        $mutasiPeriode = JurnalDetail::withoutGlobalScopes()
-            ->select('coa_akun',
+        $mutasiYTD = JurnalDetail::withoutGlobalScopes()
+            ->select(
+                'coa_akun',
                 DB::raw('SUM(debit)  AS m_debit'),
                 DB::raw('SUM(credit) AS m_credit')
             )
             ->where('created_by', $userId)
-            ->whereBetween('tanggal_bukti', [$start->toDateTimeString(), $end->toDateTimeString()])
+            ->where(function ($q) {
+                $q->whereNull('is_deleted')->orWhere('is_deleted', 0);
+            })
+            ->whereBetween('tanggal_bukti', [$ytdStart->toDateTimeString(), $end->toDateTimeString()])
             ->groupBy('coa_akun')
             ->get()
             ->keyBy('coa_akun');
 
-        if ($mutasiPeriode->isEmpty()) {
+        if ($mutasiYTD->isEmpty()) {
             return back()->with('error', 'Data tidak ditemukan');
         }
 
-        // === Agregat awal bulan → start (untuk saldo awal berjalan), hanya jika perlu ===
-        $mutasiAwal = collect();
-        if ($start->day !== 1) {
-            $awalBulan = (clone $start)->startOfMonth();
-            $mutasiAwal = JurnalDetail::withoutGlobalScopes()
-                ->select('coa_akun',
-                    DB::raw('SUM(debit)  AS a_debit'),
-                    DB::raw('SUM(credit) AS a_credit')
-                )
-                ->where('created_by', $userId)
-                ->whereBetween('tanggal_bukti', [$awalBulan->toDateTimeString(), $start->toDateTimeString()])
-                ->groupBy('coa_akun')
-                ->get()
-                ->keyBy('coa_akun');
-        }
-
-        // === Hitung saldo akhir per akun & bentuk struktur bertingkat (kepala3 → kepala4 → akun5) ===
         $data = [];
 
-        // Subtotal global (mengikuti pola variabel lama)
-        $subTotalSaldoAwalDebit   = 0.0;
-        $subTotalSaldoAwalKredit  = 0.0;
-        $subTotalmutasiDebit      = 0.0;
-        $subTotalmutasiKredit     = 0.0;
-        $subTotalsaldoAkhirDebit  = 0.0;
-        $subTotalsaldoAkhirKredit = 0.0;
+        $grandDebit = 0.0;
+        $grandKredit = 0.0;
 
         foreach ($coasLv5 as $akun5 => $coa5) {
-            // saldo normal
-            $saldoNormal = strtolower((string)$coa5->saldo_normal);
+            $head = substr($akun5, 0, 1);
+            $isPL = ($head >= '4');
 
-            // saldo awal statik COA + mutasi awal bulan→start
-            $awalAgg = $mutasiAwal->get($akun5);
-            $saldoAwalDebit  = (float)($coa5->saldo_awal_debit  ?? 0) + (float)($awalAgg->a_debit  ?? 0);
-            $saldoAwalKredit = (float)($coa5->saldo_awal_credit ?? 0) + (float)($awalAgg->a_credit ?? 0);
+            $mut = $mutasiYTD->get($akun5);
+            $mD = (float) ($mut->m_debit ?? 0);
+            $mC = (float) ($mut->m_credit ?? 0);
 
-            // subtotal saldo awal (sesuai kode lama: COA statik saja)
-            $subTotalSaldoAwalDebit  += (float)($coa5->saldo_awal_debit  ?? 0);
-            $subTotalSaldoAwalKredit += (float)($coa5->saldo_awal_credit ?? 0);
+            $saD = $isPL ? 0.0 : (float) ($coa5->saldo_awal_debit ?? 0);
+            $saC = $isPL ? 0.0 : (float) ($coa5->saldo_awal_credit ?? 0);
 
-            // mutasi periode
-            $mut = $mutasiPeriode->get($akun5);
-            $mDebit  = (float)($mut->m_debit  ?? 0);
-            $mKredit = (float)($mut->m_credit ?? 0);
+            $signed = ($saD - $saC) + ($mD - $mC);
 
-            $subTotalmutasiDebit  += $mDebit;
-            $subTotalmutasiKredit += $mKredit;
+            $saldoDebit = $signed >= 0 ? abs($signed) : 0.0;
+            $saldoKredit = $signed < 0 ? abs($signed) : 0.0;
 
-            // saldo akhir
-            $saldoAkhirDebit = 0.0; $saldoAkhirKredit = 0.0;
-            if ($saldoNormal === 'db' || $saldoNormal === 'debit') {
-                $saldoAkhirDebit = $saldoAwalDebit + $mDebit - $mKredit;
-                $subTotalsaldoAkhirDebit += $saldoAkhirDebit;
-            } else {
-                $saldoAkhirKredit = $saldoAwalKredit + $mKredit - $mDebit;
-                $subTotalsaldoAkhirKredit += $saldoAkhirKredit;
-            }
-
-            // skip kalau nol semua (ikuti logika if di kode lama)
-            if ($saldoAkhirDebit == 0 && $saldoAkhirKredit == 0) {
+            if ($saldoDebit == 0.0 && $saldoKredit == 0.0) {
                 continue;
             }
 
-            // Tentukan kepala 3/4
-            $kepala3 = substr($akun5, 0, 3);
-            $kepala4 = substr($akun5, 0, 5);
+            $k3 = substr($akun5, 0, 3);
+            $k4 = substr($akun5, 0, 5);
 
-            $nama_kepala3 = $coasLv3->get($kepala3)->nama_akun ?? 'Unknown';
-            $nama_kepala4 = $coasLv4->get($kepala4)->nama_akun ?? 'Unknown';
-            $nama_kepala5 = $coa5->nama_akun;
+            $nama_k3 = optional($coasLv3->get($k3))->nama_akun ?? $k3;
+            $nama_k4 = optional($coasLv4->get($k4))->nama_akun ?? $k4;
+            $nama_k5 = $coa5->nama_akun;
 
-            $label5 = $akun5.' - '.$nama_kepala5;
+            $label5 = $akun5.' - '.$nama_k5;
 
-            if (!isset($data[$nama_kepala3])) $data[$nama_kepala3] = [];
-            if (!isset($data[$nama_kepala3][$nama_kepala4])) $data[$nama_kepala3][$nama_kepala4] = [];
-
-            $data[$nama_kepala3][$nama_kepala4][$label5] = [
-                'debit'  => $saldoAkhirDebit,
-                'kredit' => $saldoAkhirKredit,
+            $data[$nama_k3] ??= [];
+            $data[$nama_k3][$nama_k4] ??= [];
+            $data[$nama_k3][$nama_k4][$label5] = [
+                'debit' => $saldoDebit,
+                'kredit' => $saldoKredit,
             ];
 
-            // siapkan placeholder Total level 3 (akan dihitung belakangan)
-            $data[$nama_kepala3]['Total'] = 0;
+            $grandDebit += $saldoDebit;
+            $grandKredit += $saldoKredit;
         }
 
-        // === Rekap Total per level & penomoran seperti kode kamu ===
         $parentNo = 1;
         $newData = [];
 
-        foreach ($data as $akunLv3 => $subLv4) {
-            $newLv3 = $parentNo.'.'.$akunLv3;
+        foreach ($data as $lvl3Name => $groupL4) {
+            $lvl3Key = $parentNo.'.'.$lvl3Name;
 
             $childNo = 1;
-            $parentTotalDebit = 0.0;
-            $parentTotalKredit = 0.0;
+            $sumL3D = 0.0;
+            $sumL3K = 0.0;
 
-            foreach ($subLv4 as $akunLv4 => $accountsLv5) {
-                if ($akunLv4 === 'Total') {
-                    continue;
+            foreach ($groupL4 as $lvl4Name => $itemsL5) {
+                $lvl4Key = $parentNo.'.'.$childNo.'.'.$lvl4Name;
+
+                $sumL4D = 0.0;
+                $sumL4K = 0.0;
+                foreach ($itemsL5 as $label5 => $row) {
+                    if ($label5 === 'Total') {
+                        continue;
+                    }
+                    $sumL4D += (float) ($row['debit'] ?? 0);
+                    $sumL4K += (float) ($row['kredit'] ?? 0);
                 }
 
-                $newLv4 = $parentNo.'.'.$childNo.'.'.$akunLv4;
-
-                $subTotalDebit = 0.0;
-                $subTotalKredit = 0.0;
-
-                foreach ($accountsLv5 as $label5 => $balance) {
-                    if ($label5 === 'Total') continue;
-                    $subTotalDebit  += (float)($balance['debit']  ?? 0);
-                    $subTotalKredit += (float)($balance['kredit'] ?? 0);
-                }
-
-                // set total di level 4
-                $accountsLv5['Total'] = [
-                    'debit'  => $subTotalDebit,
-                    'kredit' => $subTotalKredit,
+                $itemsL5['Total'] = [
+                    'debit' => $sumL4D,
+                    'kredit' => $sumL4K,
                 ];
 
-                $newData[$newLv3][$newLv4] = $accountsLv5;
+                $newData[$lvl3Key][$lvl4Key] = $itemsL5;
 
-                $parentTotalDebit  += $subTotalDebit;
-                $parentTotalKredit += $subTotalKredit;
-
+                $sumL3D += $sumL4D;
+                $sumL3K += $sumL4K;
                 $childNo++;
             }
 
-            // total level 3
-            $newData[$newLv3]['Total'] = [
-                'debit'  => $parentTotalDebit,
-                'kredit' => $parentTotalKredit,
+            $newData[$lvl3Key]['Total'] = [
+                'debit' => $sumL3D,
+                'kredit' => $sumL3K,
             ];
 
             $parentNo++;
         }
 
-        // (Opsional) kalau kamu masih butuh subtotal global, variabel sudah tersedia:
-        // $subTotalSaldoAwalDebit, $subTotalSaldoAwalKredit, $subTotalmutasiDebit, $subTotalmutasiKredit,
-        // $subTotalsaldoAkhirDebit, $subTotalsaldoAkhirKredit
-
-        // === Paged meta (tanpa perubahan) ===
         $paged = [
-            'dibuat'       => $request->input('dibuat'),
-            'alamat'       => $request->input('alamat'),
-            'tanggal'      => $request->input('tanggal'),
-            'jabatan'      => $request->input('jabatan'),
-            'jumlahLaman'  => (int) $request->input('jumlahLaman'),
+            'dibuat' => $request->input('dibuat'),
+            'alamat' => $request->input('alamat'),
+            'tanggal' => $request->input('tanggal'),
+            'jabatan' => $request->input('jabatan'),
+            'jumlahLaman' => (int) $request->input('jumlahLaman'),
         ];
 
-        // === Generate PDF dengan Dompdf (tidak sentuh Snappy) ===
         $pdf = Dompdf::loadView('report.neraca_saldo', [
-                'data'              => $newData,
-                'tanggal_mulai'     => $start->format('d/m/Y'),
-                'tanggal_selesai'   => $end->format('d/m/Y'),
-                'paged'             => $paged,
-            ])
-            ->setPaper('A4', 'portrait');
+            'data' => $newData,
+            'tanggal_mulai' => $start->format('d/m/Y'),
+            'tanggal_selesai' => $end->format('d/m/Y'),
+            'paged' => $paged,
+            'grand_debit' => $grandDebit,
+            'grand_kredit' => $grandKredit,
+        ])->setPaper('A4', 'portrait');
 
         return $pdf->stream('neraca_saldo.pdf');
     }
 
-    private function kalNeDo(&$data)
+    public function neracaPerbandingan(Request $request, $n = null)
     {
-        foreach ($data as $mainCategory => &$subcategories) {
-            $mainTotal = 0;
-            foreach ($subcategories as $subcategory => &$accounts) {
-                if ($subcategory === 'Total') continue;
-                $subTotal = array_sum($accounts);
-                $accounts['Total'] = $subTotal;
-                $mainTotal += $subTotal;
-            }
-            $subcategories['Total'] = $mainTotal;
-        }
-    }
-
-    //skrip asli 30 november 2024
-    public function neracaPerbandingan(Request $request, $n = null){
         return $this->neraca($request, true);
-        // if($request->isMethod('post')){
-        //     // da($request->query('excel'));
-        //     $start_date = Carbon::parse($request->input('start_date'))->format('Y-m-d H:i:s');
-        //     // return response()->json([
-        //     //     'data'  => $start_date
-        //     // ]);
-        //     $end_date = Carbon::parse($request->input('end_date'))->endOfDay()->format('Y-m-d H:i:s');
-        //     // $ttd1 = $request->input('dibuat');
-        //     // $alamat = $request->input('alamat');
-        //     // $tanggal = $request->input('tanggal');
-        //     // $jabatan = $request->input('jabatan');
-        //     // $jumlahLaman = $request->input('jumlahLaman');
-        //     $paged = [
-        //         'dibuat' => $request->input('dibuat'),
-        //         'alamat' => $request->input('alamat'),
-        //         'tanggal' => $request->input('tanggal'),
-        //         'jabatan' => $request->input('jabatan'),
-        //         'jumlahLaman' => (int) $request->input('jumlahLaman'),
-        //     ];
-
-        //     $labaRugi = $this->labarugi($request, 1);
-        //     $data = $this->neracaFunc($end_date, $labaRugi);
-
-        //     // da($data);
-        //     if ($data instanceof \Illuminate\Http\RedirectResponse) {
-        //         return $data;
-        //     }
-        //     if($n == true){
-        //         unset($data[Auth::user()->periode - 1]);
-        //     }
-        //     // da($data);
-        //     if(!$data){
-        //         Alert::error('Oops!', 'Data tidak ditemukan');
-        //         return redirect()->back();
-        //     }
-        //     if(isset($data[0])){
-        //         unset($data[0]);
-        //     }
-
-        //     // da($data);
-
-        //     if($request->query('excel') == 0){
-        //         // return view('report.neraca', [
-        //         //     'data'              => $data,
-        //         //     'label'             => $n == true ? 'Neraca' : 'Neraca Perbandingan',
-        //         //     'periode'           => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
-        //         //     'paged'             => $paged,
-        //         //     'tanggal_mulai'     => Carbon::parse($start_date)->format('d/m/Y'),
-        //         //     'tanggal_selesai'   => Carbon::parse($end_date)->format('d/m/Y'),
-        //         // ]);
-
-        //         $pdf = Dompdf::loadView('report.neraca', [
-        //             'data'              => $data,
-        //             'label'             => $n == true ? 'Neraca' : 'Neraca Perbandingan',
-        //             'periode'           => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
-        //             'paged'             => $paged,
-        //             'tanggal_mulai'     => Carbon::parse($start_date)->format('d/m/Y'),
-        //             'tanggal_selesai'   => Carbon::parse($end_date)->format('d/m/Y'),
-        //         ]);
-        //         $pdf->setPaper('A4', 'portrait');
-        //         if($n){
-        //             return $pdf->stream('neraca.pdf');
-        //         }else{
-        //             return $pdf->stream('neraca perbandingan.pdf');
-        //         }
-        //     }else{
-        //         // da($data);
-        //         $label = $n == true ? 'Neraca' : 'Neraca Perbandingan';
-        //         $periode = Carbon::parse($request->input('end_date'))->translatedFormat('j F Y');
-
-        //         return Excel::download(new NeracaExport($data, $label, $periode, $paged), 'Neraca.xlsx');
-        //     }
-        //     // $pdf = Dompdf::loadView('report.neraca', [
-        //     //     'data' => $data,
-        //     //     'periode' => Carbon::parse($request->input('end_date'))->translatedFormat('j F Y'),
-        //     //     'ttd1' => $ttd1,
-        //     //     'ttd2' => $ttd2,
-        //     // ]);
-        //     // return $pdf->download('neraca_' . Carbon::now()->format('YmdHis') . '.pdf');
-        // }
-        // return view('report.views.template');
     }
 
-    private function neracaFuncPerbandingan($tanggal, $labaRugi = null, $year){
-        $jurnal = JurnalDetail::where('created_by', Auth::user()->id)
-            ->where(function($query) {
-                $query->where('coa_akun', 'like', '1%')
-                    ->orWhere('coa_akun', 'like', '2%')
-                    ->orWhere('coa_akun', 'like', '3%');
-            })->where('tanggal_bukti', '<=', $tanggal)->orderBy('coa_akun', 'asc')->get()->keyBy('coa_akun');
+    private function neracaFuncPerbandingan($tanggal, $labaRugi, $year, $tanggalMulai = null)
+    {
+        $userId = Auth::user()->id;
+        $userPeriode = Auth::user()->periode;
 
-        // da($jurnal);
+        // FIXED: Use provided start date or default to start of year
+        // For accurate balance sheet, we need to calculate from beginning of period
+        $periodStart = $tanggalMulai
+            ? Carbon::parse($tanggalMulai)->startOfDay()->format('Y-m-d 00:00:00')
+            : Carbon::parse($tanggal)->copy()->startOfYear()->format('Y-m-d 00:00:00');
 
-        if($jurnal->isEmpty()){
-            return $data = [];
-        }
-
-        $coa = Coa::whereNull('is_deleted')
-            ->where(function($query) {
-                $query->where('nomor_akun', 'like', '1%')
+        // CRITICAL FIX: Use user's active periode, not year from date
+        // This ensures we get the correct COA with proper saldo_awal values
+        $coas = Coa::whereNull('is_deleted')
+            ->where('created_by', $userId)
+            ->where('periode', $userPeriode)  // Use auth user periode
+            ->where(function ($q) {
+                $q->where('nomor_akun', 'like', '1%')
                     ->orWhere('nomor_akun', 'like', '2%')
                     ->orWhere('nomor_akun', 'like', '3%');
             })
-            ->whereYear('created_at', $year)
-            ->where('created_by', Auth::user()->id)
             ->orderBy('nomor_akun', 'asc')
             ->get()
             ->keyBy('nomor_akun');
 
-        // da($coa);
-        if(!$jurnal->isEmpty() && !$coa->isEmpty()) {
-            $data = [];
-            foreach($jurnal as $row) {
-                $nomorAkun = $row->coa_akun;
-                $parent = $coa->get(substr($nomorAkun, 0, 1));
-                $child = $coa->get(substr($nomorAkun, 0, 2));
-                $subChild = $coa->get(substr($nomorAkun, 0, 3));
-                $grandChild = $coa->get(substr($nomorAkun, 0, 5));
-                $detail = $coa->get(substr($nomorAkun, 0, 8));
-
-            //    da($nomorAkun);
-
-                if($subChild === null){
-                    Alert::error('Oops!', 'Akun CoA level 3 ('.substr($nomorAkun, 0 , 3).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !');
-                    return redirect()->back();
-                }elseif ($child === null) {
-                    Alert::error('Oops!', 'Akun CoA level 2 ('.substr($nomorAkun, 0 , 2).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !');
-                    return redirect()->back();
-                }elseif ($grandChild === null) {
-                    Alert::error('Oops!', 'Akun CoA level 4 ('.substr($nomorAkun, 0 , 5).') untuk Nomor Akun: '.$nomorAkun.' tidak ditemukan !');
-                    return redirect()->back();
-                }
-
-                $jurnalTotals = DB::table('jurnal_details')
-                ->select(DB::raw('SUM(debit) as debit, SUM(credit) as credit'))
-                ->where('created_by', Auth::user()->id)
-                ->whereYear('created_at', $year)
-                ->where('coa_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                ->limit(1)
-                ->first();
-
-                // da($jurnalTotals);
-
-                $coasTotals = DB::table('coas')
-                    ->select(
-                        DB::raw('SUM(saldo_awal_debit) AS saldo_awal_debit'),
-                        DB::raw('SUM(saldo_awal_credit) AS saldo_awal_credit')
-                    )
-                    ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                    ->where('created_by', Auth::user()->id)
-                    ->whereYear('created_at', $year)
-                    ->first();
-
-                if($nomorAkun === $detail->nomor_akun) {
-                    $saldo = 0;
-                    $saldoAwal = 0;
-                    if(in_array($detail->saldo_normal, ['debit', 'd', 'db'])) {
-                        $saldo = $coasTotals->saldo_awal_debit + $jurnalTotals->debit - $jurnalTotals->credit;
-                        $saldoAwal = $coasTotals->saldo_awal_debit;
-                    } else {
-                        $saldo = $coasTotals->saldo_awal_credit + $jurnalTotals->credit - $jurnalTotals->debit;
-                        $saldoAwal = $coasTotals->saldo_awal_credit;
-                    }
-
-                    // da($saldo);
-
-                    $data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldo;
-                    $data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = $saldoAwal;
-
-                    if($saldo == 0){
-                      unset($data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun]);
-
-                      unset($data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun]);
-                    }
-                }
-            }
-
-        //  da($data);
-            $temp = [];
-            $saldo = 0;
-            $saldoAwal = 0;
-            $saldo_paling_awal = 0;
-            // da($coa);
-            foreach($coa as $nomorAkun => $coaDetail) {
-                // da($coaDetail);
-                if ($coaDetail->saldo_awal_debit != 0 || $coaDetail->saldo_awal_credit != 0) {
-                    $parent = $coa->get(substr($nomorAkun, 0, 1));
-                    $child = $coa->get(substr($nomorAkun, 0, 2));
-                    $subChild = $coa->get(substr($nomorAkun, 0, 3));
-
-                    // if($nomorAkun == '12101002'){
-                    //     da($nomorAkun);
-                    // }
-                    $coasTotals = DB::table('coas')
-                        ->select(
-                            DB::raw('SUM(saldo_awal_debit) AS saldo_awal_debit'),
-                            DB::raw('SUM(saldo_awal_credit) AS saldo_awal_credit')
-                        )
-                        // ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                        ->where('nomor_akun', $nomorAkun)
-                        ->where('created_by', Auth::user()->id)
-                        ->whereYear('created_at', $year)
-                        ->first();
-
-                    $coasTotalsTahunLalu = DB::table('coas')
-                        ->select(
-                            DB::raw('SUM(saldo_awal_debit) AS saldo_awal_debit'),
-                            DB::raw('SUM(saldo_awal_credit) AS saldo_awal_credit')
-                        )
-                        ->where('nomor_akun', 'like', substr($nomorAkun, 0, 4).'%')
-                        ->where('created_by', Auth::user()->id)
-                        ->whereYear('created_at', $year)
-                        ->first();
-
-                    // da(substr($nomorAkun, 0, 4));
-
-                    //Lukman
-                    $query = DB::select('
-                        SELECT
-                            SUM(js.debit) as debit,
-                            SUM(js.credit) as credit
-                        FROM jurnal_details js
-
-                        WHERE
-                        js.is_deleted IS NULL
-                        AND js.coa_akun = ?
-                        AND js.created_by = ?
-                        AND YEAR(js.created_at) = ?', [$nomorAkun, Auth::user()->id, $year]);
-                    $result = $query[0] ?? null;
-
-                    // da($data);
-
-
-                    // if($coaDetail->saldo_awal_debit != 0 || $coaDetail->saldo_awal_credit != 0){
-                    //     if($coaDetail->saldo_normal == 'debit' && $coaDetail->saldo_awal_credit != 0){
-                    //         $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_debit ?: $coaDetail->saldo_awal_credit;
-                    //     }
-                    //     // dd($data);
-                    //     if($coaDetail->saldo_normal == 'credit' && $coaDetail->saldo_awal_debit != 0){
-                    //         $data[0][$child->nama_akun][$subChild->nomor_akun] = $coaDetail->saldo_awal_credit ?: $coaDetail->saldo_awal_debit;
-                    //     }
-                    // }
-
-                    // if($subChild->nomor_akun == '121'){
-                    //     da($subChild);
-                    // }
-                        // $temp[] = $coasTotals;
-                        if (in_array(strtolower($coaDetail->saldo_normal), ['debit','d','db'])) {
-                            // debit normal
-                            if ($coasTotals->saldo_awal_debit < 0) {
-                                // kalau saldo awal debit sudah negatif, hitung dengan pengurangan
-                                $saldo = ($result->debit - $result->credit) - abs($coasTotals->saldo_awal_debit);
-                            } else {
-                                // default (positif) → tambah
-                                $saldo = ($coasTotals->saldo_awal_debit + $result->debit) - $result->credit;
-                            }
-
-                            // da($subChild);
-                            // if($subChild->nomor_akun == '121') {
-                            //     $saldo_paling_awal += $saldo;
-                            // }
-
-                            $saldoAwal = $coasTotalsTahunLalu->saldo_awal_debit ?? 0;
-
-                        } else {
-                            // credit normal
-                            if ($coasTotals->saldo_awal_credit < 0) {
-                                // kalau saldo awal kredit sudah negatif
-                                $saldo = ($result->credit - $result->debit) - abs($coasTotals->saldo_awal_credit);
-                            } else {
-                                $saldo = ($coasTotals->saldo_awal_credit + $result->credit) - $result->debit;
-                            }
-                            $saldoAwal = $coasTotalsTahunLalu->saldo_awal_credit ?? 0;
-                        }
-
-                    // da($saldo);
-
-                    if (!isset($data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun]) || $data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] == 0) {
-
-                        if (!isset($data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun])) {
-                            $data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = 0;
-                        }
-                        if (!isset($data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun])) {
-                            $data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] = 0;
-                        }
-
-                        $data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] += $saldo;
-                        $data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] += $saldoAwal;
-                    }
-
-
-                    if(@$parent['golongan'] == 'Liabilitas' || @$parent['golongan'] == 'Ekuitas'){
-                        $data[$year]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $data[$year][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] ?: $saldo;
-                        $data[$year - 1]['Liabilitas dan Ekuitas'][$child->nama_akun][$subChild->nomor_akun] = $data[$year - 1][$parent->nomor_akun][$child->nama_akun][$subChild->nomor_akun] ?: $saldo;
-                    }else{
-                        $data;
-                    }
-
-                    if($subChild->nomor_akun == '311' || strpos($subChild->nomor_akun, '30') === 0){
-                        $data[$year]['Liabilitas dan Ekuitas'][$child->nama_akun]['Saldo Tahun Berjalan'] = $labaRugi;
-                        $data[$year - 1]['Liabilitas dan Ekuitas'][$child->nama_akun]['Saldo Tahun Berjalan'] = 0;
-                    }
-                }
-            }
-
-            // da($saldo_paling_awal);
-            // da($data);
-            // da($temp);
-
-            foreach($data as $tahun => $rows) {
-                foreach($rows as $rowKey => $row) {
-                    if (isset($rows['Liabilitas dan Ekuitas']) && $rows['Liabilitas dan Ekuitas']) {
-                        // Skip processing
-                    } else {
-                        if (isset($data[date('Y')]['2']) && isset($data[date('Y')]['3'])) {
-                            $data[date('Y')]['Liabilitas dan Ekuitas'] = $data[date('Y')]['2'] + $data[date('Y')]['3'];
-                            $is = array_keys($data[date('Y')]['3']);
-                            if (!empty($is)) {
-                                $data[date('Y')]['Liabilitas dan Ekuitas'][$is[0]]['Saldo Tahun Berjalan'] = $labaRugi;
-                            }
-                        }
-                    }
-
-                    if(in_array($rowKey, ['2', '3', 2, 3], true)){
-                        unset($data[$tahun][$rowKey]);
-                    }
-                }
-            }
+        if ($coas->isEmpty()) {
+            return [];
         }
 
-        foreach($data as $key => $value){
-            foreach($value as $key2 => $value2){
-                foreach($value2 as $key3 => $value3){
-                    if (is_array($value3)) {
-                        ksort($value3);
-                        $data[$key][$key2][$key3] = $value3;
-                        foreach($value3 as $key4 => $value4){
-                            if (substr($key4, 0, 1) === '3') {
-                                $coa = Coa::where('nomor_akun', $key4)
-                                    ->whereYear('created_at', $year)
-                                    ->where('created_by', Auth::user()->id)
-                                    ->first();
-                            } else {
-                                $coa = Coa::where('nomor_akun', $key4)
-                                    ->whereYear('created_at', $year)
-                                    ->where('created_by', Auth::user()->id)
-                                    ->first();
-                            }
+        $getNode = function (string $acc, int $len) use ($coas) {
+            return $coas->get(substr($acc, 0, $len));
+        };
 
-                            if($coa){
-                                $data[$key][$key2][$key3][$coa->nama_akun] = $value4;
-                                unset($data[$key][$key2][$key3][$key4]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // Query jurnal details from start of year to end date for YTD calculation
+        // This ensures we capture all transactions up to the balance sheet date
+        // CRITICAL FIX: Filter by jurnal_headers.jurnal_tgl instead of jurnal_details.tanggal_bukti
+        // to preserve jurnal atomicity and prevent imbalanced reports when jurnals have mixed dates
+        $ytdStart = Carbon::parse($tanggal)->copy()->startOfYear()->format('Y-m-d 00:00:00');
 
-        // da($temp);
-        // da($data);
-        return $data;
-    }
-
-    private function totalNeraca($data) {
-        foreach ($data as $year => $categories) {
-            foreach ($categories as $category => $subCategories) {
-                $categoryTotal = 0;
-                foreach ($subCategories as $subCategory => $values) {
-                    if (is_array($values)) {
-                        $subCategoryTotal = array_sum($values);
-                        $data[$year][$category][$subCategory]['Total'] = $subCategoryTotal;
-                        $categoryTotal += $subCategoryTotal;
-                    } else {
-                        $categoryTotal += $values;
-                    }
-                }
-                $data[$year][$category]['Total'] = $categoryTotal;
-            }
-        }
-        return $data;
-    }
-
-    private function neracaFunction($jurnal, $coa){
-        $totalPendapatanDulu = 0;
-        $totalHPPDulu = 0;
-        $totalBebanDulu = 0;
-        $totalModalDulu = 0;
-        $namaAkunDulu = '';
-        $salwal = 0;
-        foreach ($jurnal as $item) {
-            foreach ($item->details as $detail) {
-                $nomorAkun = substr($detail->coa_akun, 0, 1);
-                $saldoAwal = Coa::where('nomor_akun', $detail->coa_akun)->where('created_by', Auth::user()->id)->whereNull('is_deleted')->first();
-                $saldoNormal = strtolower($saldoAwal->saldo_normal);
-                if($saldoNormal == 'db' || $saldoNormal == 'debit'){
-                    $salwal = $saldoAwal->saldo_awal_debit;
-                }else{
-                    $salwal = $saldoAwal->saldo_awal_credit;
-                }
-                if ($nomorAkun == '4') {
-                    $totalPendapatanDulu += $salwal + $detail->credit - $detail->debit;
-                } elseif ($nomorAkun == '5') {
-                    $totalHPPDulu += $salwal + $detail->debit - $detail->credit;
-                } elseif ($nomorAkun == '6') {
-                    $totalBebanDulu += $salwal + $detail->debit - $detail->credit;
-                } elseif($nomorAkun == '3'){
-                    $noKunLu = substr($detail->coa_akun, 0 , 4);
-                    $namaAkunDulu = $coa->where('nomor_akun', $noKunLu)->first();
-                    $totalModalDulu += $salwal + $detail->debit + $detail->credit;
-                }
-            }
-        }
-        // da($totalPendapatanDulu);
-        $labaKotorDulu = $totalPendapatanDulu - $totalHPPDulu;
-        $labaBersihDulu = $labaKotorDulu - $totalBebanDulu;
-        // da($labaBersihDulu);
-
+        $jurnalYTD = DB::table('jurnal_details as jd')
+            ->join('jurnal_headers as jh', 'jd.jurnal_id', '=', 'jh.id')
+            ->selectRaw('jd.coa_akun, COALESCE(SUM(jd.debit),0) AS sum_debit, COALESCE(SUM(jd.credit),0) AS sum_credit')
+            ->where('jd.created_by', $userId)
+            ->where('jh.created_by', $userId)
+            ->where(function ($q) {
+                $q->whereNull('jh.is_deleted')->orWhere('jh.is_deleted', 0);
+            })
+            ->where(function ($q) {
+                $q->whereNull('jd.is_deleted')->orWhere('jd.is_deleted', 0);
+            })
+            ->where(function ($q) {
+                $q->where('jd.coa_akun', 'like', '1%')
+                    ->orWhere('jd.coa_akun', 'like', '2%')
+                    ->orWhere('jd.coa_akun', 'like', '3%');
+            })
+            ->whereBetween('jh.jurnal_tgl', [$ytdStart, $tanggal])
+            ->groupBy('jd.coa_akun')
+            ->get()
+            ->keyBy('coa_akun');
 
         $data = [];
-        $saldoAwal = 0;
-        foreach ($jurnal as $item) {
-            foreach ($item->details as $detail) {
-                $pAkun = substr($detail->coa_akun, 0, 1);
-                $cAkun = substr($detail->coa_akun, 0, 2);
-                $scAkun = substr($detail->coa_akun, 0, 3);
+        foreach ($coas as $nomorAkun => $coa) {
+            if ((int) ($coa->level ?? 0) !== 5) {
+                continue;
+            }
 
-                $parent = Coa::where('nomor_akun', $pAkun)->first();
-                $child = Coa::where('nomor_akun', $cAkun)->first();
-                $subChild = Coa::where('nomor_akun', $scAkun)->first();
+            $head = substr($nomorAkun, 0, 1);
+            if (! in_array($head, ['1', '2', '3'], true)) {
+                continue;
+            }
 
-                $xCoa = Coa::where('nomor_akun', $detail->coa_akun)->where('created_by', Auth::user()->id)->whereNull('is_deleted')->first();
-                $saldoNormal = strtolower($xCoa->saldo_normal);
-                if($saldoNormal == 'db' || $saldoNormal == 'debit'){
-                    $saldoAwal = $xCoa->saldo_awal_debit;
-                }else{
-                    $saldoAwal = $xCoa->saldo_awal_credit;
+            $parent = $getNode($nomorAkun, 1);
+            $child = $getNode($nomorAkun, 2);
+            $subChild = $getNode($nomorAkun, 3);
+            $grandChild = $getNode($nomorAkun, 5);
+
+            if (! $parent || ! $child || ! $subChild) {
+                continue;
+            }
+
+            $mut = $jurnalYTD->get($nomorAkun);
+            $sumD = (float) ($mut->sum_debit ?? 0);
+            $sumC = (float) ($mut->sum_credit ?? 0);
+
+            $saD = (float) ($coa->saldo_awal_debit ?? 0);
+            $saC = (float) ($coa->saldo_awal_credit ?? 0);
+
+            $saldoAwalNorm = 0.0;
+            $saldoAkhir = 0.0;
+            $sn = strtolower((string) ($coa->saldo_normal ?? 'debit'));
+
+            if (in_array($sn, ['db', 'd', 'debit'], true)) {
+                $saldoAwalNorm = $saD - $saC;
+                $saldoAkhir = $saldoAwalNorm + ($sumD - $sumC);
+            } else {
+                $saldoAwalNorm = $saC - $saD;
+                $saldoAkhir = $saldoAwalNorm + ($sumC - $sumD);
+            }
+
+            $parentKey = $parent->nomor_akun;
+            $childKey = $child->nama_akun;
+            $subChildKey = $subChild->nomor_akun;
+
+            $data[$year] ??= [];
+            $data[$year][$parentKey] ??= [];
+            $data[$year][$parentKey][$childKey] ??= [];
+            $data[$year][$parentKey][$childKey][$subChildKey] = ($data[$year][$parentKey][$childKey][$subChildKey] ?? 0) + $saldoAkhir;
+
+            $data[$year - 1] ??= [];
+            $data[$year - 1][$parentKey] ??= [];
+            $data[$year - 1][$parentKey][$childKey] ??= [];
+            $data[$year - 1][$parentKey][$childKey][$subChildKey] = ($data[$year - 1][$parentKey][$childKey][$subChildKey] ?? 0) + $saldoAwalNorm;
+        }
+
+        foreach ($data as $th => $top) {
+            foreach ($top as $pKey => $groups) {
+                foreach ($groups as $gKey => $leafs) {
+                    foreach ($leafs as $leafKey => $val) {
+                        if ((float) $val === 0.0) {
+                            unset($data[$th][$pKey][$gKey][$leafKey]);
+                        }
+                    }
+                    if (empty($data[$th][$pKey][$gKey])) {
+                        unset($data[$th][$pKey][$gKey]);
+                    }
                 }
-
-                if (!isset($data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun])) {
-                    $data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun] = $saldoAwal;
-                }
-                if($saldoNormal == 'db' || $saldoNormal == 'debit'){
-                    $data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun] += $detail->debit - $detail->credit;
-                }else{
-                    $data[$parent->nama_akun][$child->nama_akun][$subChild->nama_akun] += $detail->credit - $detail->debit;
+                if (empty($data[$th][$pKey])) {
+                    unset($data[$th][$pKey]);
                 }
             }
         }
-        // da($data);
 
-        // Gabungkan akun Liabilitas dan Ekuitas secara dinamis
-        $liabilitasEkuitas = ['Liabilitas', 'Ekuitas'];
-        $data['Liabilitas dan Ekuitas'] = [];
-
-        foreach ($liabilitasEkuitas as $group) {
-            if (isset($data[$group])) {
-                $data['Liabilitas dan Ekuitas'] = array_merge_recursive($data['Liabilitas dan Ekuitas'], $data[$group]);
-                unset($data[$group]); // Hapus data asli untuk menghindari duplikasi
+        foreach ($data as $th => $top) {
+            foreach ($top as $pKey => $groups) {
+                foreach ($groups as $gKey => $leafs) {
+                    $sorted = [];
+                    ksort($leafs);
+                    foreach ($leafs as $subKey => $amount) {
+                        $coa3 = $coas->get($subKey);
+                        $name = $coa3 ? ($coa3->nama_akun ?? $subKey) : $subKey;
+                        $sorted[$name] = $amount;
+                    }
+                    $data[$th][$pKey][$gKey] = $sorted;
+                }
             }
         }
-
-
-
-        // Tambahkan Saldo Tahun Berjalan
-        $data['Liabilitas dan Ekuitas']['Ekuitas']['Saldo Tahun Berjalan'] = $labaBersihDulu;
 
         return $data;
     }
 
     public function mutasiSaldo(Request $request)
     {
-        if (!$request->isMethod('post')) {
+        if (! $request->isMethod('post')) {
             return view('report.views.template');
         }
 
         $userId = Auth::id();
 
-        // --- Parse tanggal sekali, aman ---
         try {
             $start = Carbon::parse($request->input('start_date'))->startOfDay();
-            $end   = Carbon::parse($request->input('end_date'))->endOfDay();
+            $end = Carbon::parse($request->input('end_date'))->endOfDay();
         } catch (\Throwable $e) {
             return back()->with('error', 'Format tanggal tidak valid');
         }
         $jumlahLaman = $request->input('jumlahLaman');
 
-        // --- Ambil COA level 5 milik user (sekali) ---
         $coas = Coa::where('created_by', $userId)
             ->where('level', 5)
             ->whereNull('is_deleted')
             ->orderBy('nomor_akun', 'asc')
-            ->get(['nomor_akun','nama_akun','saldo_normal','saldo_awal_debit','saldo_awal_credit','golongan'])
+            ->get(['nomor_akun', 'nama_akun', 'saldo_normal', 'saldo_awal_debit', 'saldo_awal_credit', 'golongan'])
             ->keyBy('nomor_akun');
 
         if ($coas->isEmpty()) {
             return back()->with('error', 'COA level 5 tidak ditemukan');
         }
 
-        // --- Agregat mutasi periode (SEMUA data; hemat) ---
         $mutasiPeriode = JurnalDetail::withoutGlobalScopes()
             ->select('coa_akun',
                 DB::raw('SUM(debit)  AS m_debit'),
@@ -2684,105 +1898,132 @@ class ReportController extends Controller
             ->get()
             ->keyBy('coa_akun');
 
-        if ($mutasiPeriode->isEmpty()) {
-            // konsisten dengan perilaku lama jika tidak ada data periode
-            // Alert::error('Oops!', 'Data tidak ditemukan');
-            return back()->with('error', 'Data tidak ditemukan');
-        }
-
-        // --- Agregat untuk saldo awal berjalan (awal bulan → start), hanya jika perlu ---
         $mutasiAwal = collect();
-        if ($start->day !== 1) {
-            $awalBulan = (clone $start)->startOfMonth();
+        $awalTahun = (clone $start)->startOfYear();
+
+        if ($start > $awalTahun) {
+            $sebelumStart = (clone $start)->subDay()->endOfDay();
             $mutasiAwal = JurnalDetail::withoutGlobalScopes()
                 ->select('coa_akun',
                     DB::raw('SUM(debit)  AS a_debit'),
                     DB::raw('SUM(credit) AS a_credit')
                 )
                 ->where('created_by', $userId)
-                ->whereBetween('tanggal_bukti', [$awalBulan->toDateTimeString(), $start->toDateTimeString()])
+                ->whereBetween('tanggal_bukti', [$awalTahun->toDateTimeString(), $sebelumStart->toDateTimeString()])
                 ->groupBy('coa_akun')
                 ->get()
                 ->keyBy('coa_akun');
         }
 
-        // --- Bangun data per golongan & subtotal (kompatibel dengan view lama) ---
         $data = [];
 
-        $subTotalSaldoAwalDebit   = 0.0;
-        $subTotalSaldoAwalKredit  = 0.0;
-        $subTotalmutasiDebit      = 0.0;
-        $subTotalmutasiKredit     = 0.0;
-        $subTotalsaldoAkhirDebit  = 0.0;
+        $subTotalSaldoAwalDebit = 0.0;
+        $subTotalSaldoAwalKredit = 0.0;
+        $subTotalmutasiDebit = 0.0;
+        $subTotalmutasiKredit = 0.0;
+        $subTotalsaldoAkhirDebit = 0.0;
         $subTotalsaldoAkhirKredit = 0.0;
 
         foreach ($coas as $akun => $coaData) {
-            $saldoNormal = strtolower((string)$coaData->saldo_normal);
+            $saldoNormal = strtolower((string) $coaData->saldo_normal);
+            $golongan = substr($akun, 0, 1);
 
-            // Saldo awal statik COA + mutasi awal-bulan→start (meniru logika lama)
             $awal = $mutasiAwal->get($akun);
-            $saldoAwalDebit  = (float)($coaData->saldo_awal_debit  ?? 0) + (float)($awal->a_debit  ?? 0);
-            $saldoAwalKredit = (float)($coaData->saldo_awal_credit ?? 0) + (float)($awal->a_credit ?? 0);
+            $mutasiAwalDebit = (float) ($awal->a_debit ?? 0);
+            $mutasiAwalKredit = (float) ($awal->a_credit ?? 0);
 
-            // Subtotal saldo awal (sesuai kode lama: hanya dari COA statik)
-            $subTotalSaldoAwalDebit  += (float)($coaData->saldo_awal_debit  ?? 0);
-            $subTotalSaldoAwalKredit += (float)($coaData->saldo_awal_credit ?? 0);
+            $saldoAwalDebit = 0.0;
+            $saldoAwalKredit = 0.0;
 
-            // Mutasi periode (0 jika tidak ada)
+            if ($saldoNormal === 'db' || $saldoNormal === 'debit') {
+                $saldoAwalBersih = (float) ($coaData->saldo_awal_debit ?? 0) + $mutasiAwalDebit - $mutasiAwalKredit;
+                if ($saldoAwalBersih >= 0) {
+                    $saldoAwalDebit = $saldoAwalBersih;
+                } else {
+                    $saldoAwalKredit = abs($saldoAwalBersih);
+                }
+            } else {
+                $saldoAwalBersih = (float) ($coaData->saldo_awal_credit ?? 0) + $mutasiAwalKredit - $mutasiAwalDebit;
+                if ($saldoAwalBersih >= 0) {
+                    $saldoAwalKredit = $saldoAwalBersih;
+                } else {
+                    $saldoAwalDebit = abs($saldoAwalBersih);
+                }
+            }
+
+            $subTotalSaldoAwalDebit += $saldoAwalDebit;
+            $subTotalSaldoAwalKredit += $saldoAwalKredit;
+
             $mut = $mutasiPeriode->get($akun);
-            $mutasiDebit  = (float)($mut->m_debit  ?? 0);
-            $mutasiKredit = (float)($mut->m_credit ?? 0);
+            $mutasiDebit = (float) ($mut->m_debit ?? 0);
+            $mutasiKredit = (float) ($mut->m_credit ?? 0);
 
-            $subTotalmutasiDebit  += $mutasiDebit;
+            $subTotalmutasiDebit += $mutasiDebit;
             $subTotalmutasiKredit += $mutasiKredit;
 
-            // Saldo akhir mengikuti saldo_normal
             $saldoAkhirDebit = 0.0;
             $saldoAkhirKredit = 0.0;
+
             if ($saldoNormal === 'db' || $saldoNormal === 'debit') {
-                $saldoAkhirDebit = $saldoAwalDebit + $mutasiDebit - $mutasiKredit;
+                $saldoAkhirBersih = $saldoAwalDebit - $saldoAwalKredit + $mutasiDebit - $mutasiKredit;
+                if ($saldoAkhirBersih >= 0) {
+                    $saldoAkhirDebit = $saldoAkhirBersih;
+                } else {
+                    $saldoAkhirKredit = abs($saldoAkhirBersih);
+                }
                 $subTotalsaldoAkhirDebit += $saldoAkhirDebit;
+                $subTotalsaldoAkhirKredit += $saldoAkhirKredit;
             } else {
-                $saldoAkhirKredit = $saldoAwalKredit + $mutasiKredit - $mutasiDebit;
+                $saldoAkhirBersih = $saldoAwalKredit - $saldoAwalDebit + $mutasiKredit - $mutasiDebit;
+                if ($saldoAkhirBersih >= 0) {
+                    $saldoAkhirKredit = $saldoAkhirBersih;
+                } else {
+                    $saldoAkhirDebit = abs($saldoAkhirBersih);
+                }
+                $subTotalsaldoAkhirDebit += $saldoAkhirDebit;
                 $subTotalsaldoAkhirKredit += $saldoAkhirKredit;
             }
 
-            $gol = (string)($coaData->golongan ?? 'LAINNYA');
-            if (!isset($data[$gol])) $data[$gol] = [];
+            $gol = (string) ($coaData->golongan ?? 'LAINNYA');
+            if (! isset($data[$gol])) {
+                $data[$gol] = [];
+            }
 
             $data[$gol][$akun] = [
-                'nama_akun'   => $coaData->nama_akun,
-                'saldo_awal'  => ['debit' => $saldoAwalDebit,  'credit' => $saldoAwalKredit],
-                'mutasi'      => ['debit' => $mutasiDebit,     'credit' => $mutasiKredit],
+                'nama_akun' => $coaData->nama_akun,
+                'saldo_awal' => ['debit' => $saldoAwalDebit,  'credit' => $saldoAwalKredit],
+                'mutasi' => ['debit' => $mutasiDebit,     'credit' => $mutasiKredit],
                 'saldo_akhir' => ['debit' => $saldoAkhirDebit, 'credit' => $saldoAkhirKredit],
             ];
         }
 
         $subTotal = [
             'Jumlah' => [
-                'nama_akun'   => 'Jumlah',
-                'saldo_awal'  => ['debit' => $subTotalSaldoAwalDebit,  'kredit' => $subTotalSaldoAwalKredit],
-                'mutasi'      => ['debit' => $subTotalmutasiDebit,     'kredit' => $subTotalmutasiKredit],
+                'nama_akun' => 'Jumlah',
+                'saldo_awal' => ['debit' => $subTotalSaldoAwalDebit,  'kredit' => $subTotalSaldoAwalKredit],
+                'mutasi' => ['debit' => $subTotalmutasiDebit,     'kredit' => $subTotalmutasiKredit],
                 'saldo_akhir' => ['debit' => $subTotalsaldoAkhirDebit, 'kredit' => $subTotalsaldoAkhirKredit],
             ],
         ];
 
-        // --- Chunk tampilan seperti semula ---
         $chunkedData = collect($data)
-            ->map(function ($items) { ksort($items); return $items; })
+            ->map(function ($items) {
+                ksort($items);
+
+                return $items;
+            })
             ->chunk(4);
 
         if ($chunkedData->isNotEmpty() && optional($chunkedData->last())->isEmpty()) {
             $chunkedData->pop();
         }
 
-        // --- Generate PDF dengan Dompdf (tidak menyentuh Snappy) ---
         $pdf = Dompdf::loadView('report.mutasi_saldo', [
-            'dataChunked'     => $chunkedData,
-            'subTotal'        => $subTotal,
-            'tanggal_mulai'   => $start->format('d/m/Y'),
+            'dataChunked' => $chunkedData,
+            'subTotal' => $subTotal,
+            'tanggal_mulai' => $start->format('d/m/Y'),
             'tanggal_selesai' => $end->format('d/m/Y'),
-            'jumlahLaman'     => $jumlahLaman,
+            'jumlahLaman' => $jumlahLaman,
         ])->setPaper('A4', 'portrait');
 
         return $pdf->stream('mutasi_saldo.pdf');

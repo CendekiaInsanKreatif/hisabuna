@@ -58,15 +58,12 @@
     </script>
 </head>
 <body>
-    <header class="new-header">
-        <img src="<?php echo e(asset('storage/' . auth()->user()->company_logo)); ?>" alt="Logo" class="company-logo">
-        <div class="header" style="text-align: center;">
-            <h1><?php echo e(auth()->user()->company_name); ?></h1>
-            <h2>Laporan Perubahan Ekuitas</h2>
-            <h3>Per <?php echo e(\Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->format('d F Y')); ?></h3>
-        </div>
-    </header>
-    <hr style="border: 2px solid black; width: 100%;">
+    <?php echo $__env->make('report.partials.header', [
+        'reportTitle' => 'Laporan Perubahan Ekuitas',
+        'reportPeriod' =>
+            'Per ' .
+            \Carbon\Carbon::createFromFormat('d/m/Y', $tanggal_selesai)->locale('id')->isoFormat('D MMMM YYYY'),
+    ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <table>
         <thead>
             <tr>

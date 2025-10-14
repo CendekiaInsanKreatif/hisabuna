@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,63 +13,60 @@
     </style>
     <script>
         setTimeout(() => {
-                window.print()
-            }, 5000);
+            window.print()
+        }, 5000);
     </script>
 </head>
+
 <body>
-    <header class="new-header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
-        <div class="header" style="text-align: center;">
-            <h1>{{ auth()->user()->company_name }}</h1>
-            <h2>Laporan Laba Rugi</h2>
-            <h3>Periode {{ date('d/m/Y', strtotime($start)) }} s/d {{ date('d/m/Y', strtotime($end)) }}</h3>
-        </div>
-    </header>
-    <hr style="border: 2px solid black; border-top: 2px solid black; border-bottom: 2px solid black; padding-right: 10px;">
+    @include('report.partials.header', [
+        'reportTitle' => 'Laporan Laba Rugi',
+        'reportPeriod' => 'Periode ' . date('d/m/Y', strtotime($start)) . ' s/d ' . date('d/m/Y', strtotime($end)),
+    ])
+
     <div class="report-container">
-    @foreach ($dataChunked as $pageIndex => $data)
-    <div class="page-break">
-        @foreach ($data as $category => $details)
-            <table class="main-data">
-                <h3>{{ $category }}</h3>
-                @foreach ($details['Detail'] as $item => $amount)
-                    <tr>
-                        <td class="data-desc">{{ $item }}</td>
-                        <td class="data-num">{{ number_format($amount, 0, ',', '.') }}</td>
-                    </tr>
+        @foreach ($dataChunked as $pageIndex => $data)
+            <div class="page-break">
+                @foreach ($data as $category => $details)
+                    <table class="main-data">
+                        <h3>{{ $category }}</h3>
+                        @foreach ($details['Detail'] as $item => $amount)
+                            <tr>
+                                <td class="data-desc">{{ $item }}</td>
+                                <td class="data-num">{{ number_format($amount, 0, ',', '.') }}</td>
+                            </tr>
+                        @endforeach
+                        <tr>
+                            <td style="padding: 0px; margin: 0px; font-weight: bold; font-size: 14px;">Total
+                                {{ $category }}</td>
+                            <td class="data-num" style="text-align: right; font-weight: bold; font-size: 12px;">
+                                {{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
+                        </tr>
+                        <div style="height: 5px;"></div>
+                    </table>
                 @endforeach
-                <tr>
-                    <td style="padding: 0px; margin: 0px; font-weight: bold; font-size: 14px;">Total {{ $category }}</td>
-                    <td class="data-num" style="text-align: right; font-weight: bold; font-size: 12px;">{{ number_format($details['Jumlah'], 0, ',', '.') }}</td>
-                </tr>
                 <div style="height: 5px;"></div>
-            </table>
+                <table class="main-data">
+                    <tr>
+                        <td style="padding: 0px; margin: 0px; font-weight: bold; font-size: 16px;">Saldo Laba (Rugi)
+                            Tahun Berjalan</td>
+                        <td
+                            style="text-align: right; border-top: 2px solid black; width: 20%; font-weight: bold; font-size: 12px;">
+                            <h3>{{ number_format($labaRugiBersih, 0, ',', '.') }}</h3>
+                        </td>
+                    </tr>
+                </table>
+
+                @include('report.partials.footer', [
+                    'location' => $paged['alamat'],
+                    'date' => $paged['tanggal'],
+                    'preparedBy' => $paged['dibuat'],
+                    'position' => $paged['jabatan'],
+                ])
+
+                <!-- Footer Nomor Halaman -->
+            </div>
         @endforeach
-        <div style="height: 5px;"></div>
-            <table class="main-data">
-                <tr>
-                    <td style="padding: 0px; margin: 0px; font-weight: bold; font-size: 16px;">Saldo Laba (Rugi) Tahun Berjalan</td>
-                    <td style="text-align: right; border-top: 2px solid black; width: 20%; font-weight: bold; font-size: 12px;">
-                        <h3>{{ number_format($labaRugiBersih, 0, ',', '.') }}</h3>
-                    </td>
-                </tr>
-            </table>
-        <footer>
-            <table style="width: 100%; margin-top: 70px;">
-                <tr>
-                    <td style="text-align: center; width: 100%;">
-                        <div style="font-size: 12px;">{{ $paged['alamat'] }}, {{ $paged['tanggal'] }}</div>
-                        <div style="height: 80px;"></div>
-                        <div style="font-size: 12px;">{{ $paged['dibuat'] }}</div>
-                        <div style="border-bottom: 2px solid black; width: 100px; margin-left: auto; margin-right: auto;"></div>
-                        <div style="font-size: 12px;">{{ $paged['jabatan'] }}</div>
-                    </td>
-                </tr>
-            </table>
-        </footer>
-        <!-- Footer Nomor Halaman -->
-    </div>
-    @endforeach
 </body>
+
 </html>

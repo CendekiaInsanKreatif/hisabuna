@@ -327,7 +327,7 @@
                 },
                 async fetchCoaData() {
                     const overlay = document.getElementById('overlay');
-                    overlay.style.display = 'flex';
+                    // overlay.style.display = 'flex';
                     try {
                         const response = await fetch('/api/saldo-awal');
                         const data = await response.json();

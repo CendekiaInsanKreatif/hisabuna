@@ -1,6 +1,9 @@
+# Laravel & PHP
 /.phpunit.cache
 /node_modules
 /public/build
+/public/build2
+/public/build3
 /public/hot
 /public/storage
 /storage/*.key
@@ -15,6 +18,103 @@ Homestead.yaml
 auth.json
 npm-debug.log
 yarn-error.log
+
+# IDE & Editors
 /.fleet
 /.idea
 /.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Workspace files
+*.code-workspace
+hisabuna_backend.code-workspace
+
+# Storage & Cache
+/storage/testfile
+/storage/app/*
+!/storage/app/.gitkeep
+!/storage/app/public/
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Bootstrap cache
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+
+# Archive files
+*.zip
+*.tar
+*.gz
+*.rar
+hisabuna.zip
+
+# Documentation markdown (temporary/generated)
+JURNAL_DOWNLOAD_FIX.md
+JURNAL_EXPORT_GUIDE.md
+REFACTORING_SUMMARY.md
+TIMEOUT_SOLUTION_GUIDE.md
+CRITICAL_FIX_MIXED_DATE_JURNAL.md
+*.md
+*.example
+*.sh
+*.txt
+*.log
+
+# Config & setup files (environment-specific)
+nginx_timeout_config.txt
+php_fpm_timeout_config.txt
+optimize_system.sh
+Feedback.txt
+
+# Database exports & dumps
+*.sql
+*.dump
+elect('SHOW TABLES');
+
+# Domain-specific files
+dev.hisabuna.com
+trial.hisabuna.com
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.old
+.~lock.*
+
+# Package manager locks (optional - uncomment if you want to ignore)
+# composer.lock
+# package-lock.json
+# yarn.lock
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# Windows
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.directory
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+
+# Laravel specific
+/storage/telescope/
+/storage/ignition/

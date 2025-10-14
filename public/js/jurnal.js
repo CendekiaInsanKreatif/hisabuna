@@ -146,7 +146,7 @@ $(document).ready(function () {
     }
 
     // Load total jurnal when modal is opened
-    $(document).on('click', '[onclick*="exampleModal"]', function() {
+    $(document).on('click', '[onclick*="exampleModal"]', function () {
         setTimeout(loadTotalJurnal, 500);
     });
 
@@ -253,9 +253,10 @@ function toggleModal(modalID) {
     }
 }
 
-// Alpine.js Component
+// Alpine.js Component for Jurnal Table (Optimized)
 document.addEventListener('alpine:init', () => {
     Alpine.data('jurnalTable', () => ({
+        // State
         currentPage: 1,
         itemsPerPage: 10,
         totalItems: 0,
@@ -263,14 +264,22 @@ document.addEventListener('alpine:init', () => {
         sortDirection: 'asc',
         filter: 'all',
         selectedCategory: 'all',
+        selectedMonth: 'all',
         searchInput: '',
         searchTimeout: null,
         allData: [],
-        hover: false,
         isLoading: true,
         isSearching: false,
         hasError: false,
         errorMessage: '',
+        totalDebit: 0,
+        totalCredit: 0,
+        months: [],
+
+        // Computed properties
+        get selisih() {
+            return this.totalDebit - this.totalCredit;
+        },
 
         get paginatedData() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -284,14 +293,85 @@ document.addEventListener('alpine:init', () => {
             return Array.from({ length: end - start + 1 }, (_, i) => start + i);
         },
 
+        // Pagination methods
         changePage(page) { this.currentPage = page; },
         prevPage() { if (this.currentPage > 1) this.currentPage--; },
         nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
 
+        // Helper methods
+        getMonthName(monthValue) {
+            if (monthValue === 'all') return 'Semua Bulan';
+            const month = this.months.find(m => m.value === monthValue);
+            return month ? month.label : monthValue;
+        },
+
+        formatCurrency(value) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        },
+
+        // Optimized totals calculation (use server data when available)
+        calculateTotals() {
+            // Skip if server already provided totals
+            if (this.totalDebit !== 0 || this.totalCredit !== 0) {
+                return;
+            }
+
+            // Fallback client-side calculation
+            this.totalDebit = 0;
+            this.totalCredit = 0;
+
+            this.allData.forEach(jurnal => {
+                if (jurnal.details?.length) {
+                    jurnal.details.forEach(detail => {
+                        this.totalDebit += parseFloat(detail.debit || 0);
+                        this.totalCredit += parseFloat(detail.credit || 0);
+                    });
+                }
+            });
+        },
+
+        // Fetch available months
+        async fetchAvailableMonths() {
+            try {
+                const response = await fetch('/jurnal/months', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    this.months = Array.isArray(result.data) ? result.data : [];
+                }
+            } catch (error) {
+                console.error('Error fetching months:', error);
+                // Fallback to current year
+                const year = new Date().getFullYear();
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+                this.months = monthNames.map((name, i) => ({
+                    value: `${year}-${String(i + 1).padStart(2, '0')}`,
+                    label: `${name} ${year}`
+                }));
+            }
+        },
+
+        // Fetch jurnal data (optimized)
         async fetchJurnalData() {
             this.isLoading = true;
             this.hasError = false;
             this.errorMessage = '';
+
             try {
                 const response = await fetch('/jurnal/data', {
                     headers: {
@@ -300,35 +380,35 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const result = await response.json();
-                console.log('Jurnal data loaded:', result);
 
                 if (result.status === 'success') {
                     this.allData = Array.isArray(result.data) ? result.data : [];
                     this.totalItems = result.total || 0;
                     this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
+
+                    // Use server totals
+                    if (result.totals) {
+                        this.totalDebit = result.totals.debit || 0;
+                        this.totalCredit = result.totals.credit || 0;
+                    } else {
+                        this.calculateTotals();
+                    }
                 } else {
-                    console.warn('Unexpected response format:', result);
                     this.allData = [];
                     this.totalItems = 0;
                     this.totalPages = 0;
                 }
             } catch (error) {
-                console.error('Error fetching Jurnal data:', error);
+                console.error('Error fetching jurnal:', error);
                 this.allData = [];
                 this.totalItems = 0;
                 this.totalPages = 0;
                 this.hasError = true;
 
-                // Show user-friendly error message
-                if (error.message.includes('404')) {
-                    this.errorMessage = 'Endpoint data jurnal tidak ditemukan';
-                    console.warn('Jurnal data endpoint not found. Check routes.');
-                } else if (error.message.includes('401') || error.message.includes('403')) {
+                if (error.message.includes('401') || error.message.includes('403')) {
                     this.errorMessage = 'Sesi Anda telah berakhir';
                     setTimeout(() => window.location.reload(), 2000);
                 } else {
@@ -339,25 +419,19 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // Fetch filtered data (optimized)
         async fetchFilteredData(filters = {}) {
             this.isSearching = true;
             this.hasError = false;
-            this.errorMessage = '';
+
             try {
                 const params = new URLSearchParams();
 
-                if (filters.jenis && filters.jenis !== 'all') {
-                    params.append('jenis', filters.jenis);
-                }
-                if (filters.search) {
-                    params.append('search', filters.search);
-                }
-                if (filters.start_date) {
-                    params.append('start_date', filters.start_date);
-                }
-                if (filters.end_date) {
-                    params.append('end_date', filters.end_date);
-                }
+                if (filters.jenis && filters.jenis !== 'all') params.append('jenis', filters.jenis);
+                if (filters.search) params.append('search', filters.search);
+                if (filters.month && filters.month !== 'all') params.append('month', filters.month);
+                if (filters.start_date) params.append('start_date', filters.start_date);
+                if (filters.end_date) params.append('end_date', filters.end_date);
 
                 const response = await fetch(`/jurnal/data?${params.toString()}`, {
                     headers: {
@@ -366,68 +440,82 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const result = await response.json();
-                console.log('Filtered jurnal data loaded:', result);
 
                 if (result.status === 'success') {
                     this.allData = Array.isArray(result.data) ? result.data : [];
                     this.totalItems = result.total || 0;
                     this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
-                    this.currentPage = 1; // Reset to first page
+                    this.currentPage = 1;
+
+                    // Use server totals
+                    if (result.totals) {
+                        this.totalDebit = result.totals.debit || 0;
+                        this.totalCredit = result.totals.credit || 0;
+                    } else {
+                        this.calculateTotals();
+                    }
                 } else {
-                    console.warn('Unexpected response format:', result);
                     this.allData = [];
                     this.totalItems = 0;
                     this.totalPages = 0;
+                    this.totalDebit = 0;
+                    this.totalCredit = 0;
                 }
             } catch (error) {
-                console.error('Error fetching filtered Jurnal data:', error);
+                console.error('Error fetching filtered data:', error);
                 this.allData = [];
                 this.totalItems = 0;
                 this.totalPages = 0;
+                this.totalDebit = 0;
+                this.totalCredit = 0;
 
                 if (error.message.includes('401') || error.message.includes('403')) {
                     alert('Sesi Anda telah berakhir. Silakan login kembali.');
                     window.location.reload();
-                } else {
-                    alert('Gagal memuat data jurnal. Silakan refresh halaman.');
                 }
             } finally {
                 this.isSearching = false;
             }
         },
 
+        // Filter methods
         filterCategory(category) {
             this.selectedCategory = category;
             this.filter = category;
-
-            // Use server-side filtering for better performance
             this.fetchFilteredData({
                 jenis: category,
-                search: this.searchInput
+                search: this.searchInput,
+                month: this.selectedMonth
             });
         },
 
+        filterByMonth(month) {
+            this.selectedMonth = month;
+            this.fetchFilteredData({
+                jenis: this.filter,
+                search: this.searchInput,
+                month: month
+            });
+        },
+
+        // Optimized search with debounce
         searchJurnalTable() {
-            // Debounce search to reduce server requests
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
-                this.fetchFilteredData({
-                    jenis: this.filter,
-                    search: this.searchInput
-                });
-            }, 500);
+                if (this.searchInput.length >= 2 || this.searchInput.length === 0) {
+                    this.fetchFilteredData({
+                        jenis: this.filter,
+                        search: this.searchInput,
+                        month: this.selectedMonth
+                    });
+                }
+            }, 800);
         },
 
-        filteredData() {
-            // Since we're using server-side filtering, just return the data
-            return this.allData;
-        },
-
+        // Show jurnal detail
         async showJurnalDetail(jurnalId) {
             try {
                 const response = await fetch(`/jurnal/${jurnalId}`, {
@@ -437,15 +525,11 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const result = await response.json();
-                console.log('Jurnal detail loaded:', result);
 
                 if (result.success) {
-                    // Dispatch event to open modal with jurnal data
                     this.$dispatch('open-modal', {
                         route: `/jurnal/${jurnalId}`,
                         name: 'jurnal.show',
@@ -455,34 +539,17 @@ document.addEventListener('alpine:init', () => {
                         method: 'GET'
                     });
                 } else {
-                    throw new Error(result.message || 'Failed to fetch jurnal detail');
+                    throw new Error(result.message || 'Failed to fetch detail');
                 }
             } catch (error) {
-                console.error('Error fetching jurnal detail:', error);
+                console.error('Error fetching detail:', error);
                 alert('Gagal memuat detail jurnal: ' + error.message);
             }
         },
 
-        async getJurnalDetail(jurnal_id) {
-            try {
-                const response = await fetch(`/jurnal/${jurnal_id}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    // Populate modal with jurnal detail
-                    this.populateModal(data.data);
-                    return data.data;
-                } else {
-                    throw new Error(data.message || 'Failed to fetch jurnal detail');
-                }
-            } catch (error) {
-                console.error('Error fetching Jurnal detail:', error);
-                alert('Gagal memuat detail jurnal: ' + error.message);
-            }
-        },
-
+        // Initialize component
         init() {
-            console.log('Alpine.js jurnalTable component initialized');
+            this.fetchAvailableMonths();
             this.fetchJurnalData();
         }
     }));

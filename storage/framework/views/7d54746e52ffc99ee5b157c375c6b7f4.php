@@ -716,7 +716,7 @@
                         this.loading = true;
                         this.error = null;
                         const overlay = document.getElementById('overlay');
-                        if (overlay) overlay.style.display = 'flex';
+                        // if (overlay) overlay.style.display = 'flex';
 
                         try {
                             const response = await fetch('api/coas', {

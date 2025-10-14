@@ -1,150 +1,235 @@
 @php
     $fieldSelect = [
-                [
-                    'name' => 'nomor_akun',
-                    'type' => 'text',
-                    'label' => 'Nomor Akun',
-                    'required' => true,
-                ],
-                [
-                    'name' => 'nama_akun',
-                    'type' => 'text',
-                    'label' => 'Nama Akun',
-                    'required' => true,
-                ],
-            ];
+        [
+            'name' => 'nomor_akun',
+            'type' => 'text',
+            'label' => 'Nomor Akun',
+            'required' => true,
+        ],
+        [
+            'name' => 'nama_akun',
+            'type' => 'text',
+            'label' => 'Nama Akun',
+            'required' => true,
+        ],
+    ];
 
-$report = [
-    [
-        'label' => 'Neraca',
-        'route' => '/report/neraca'
-    ],
-    [
-        'label' => 'Neraca Perbandingan',
-        'route' => '/report/neraca-perbandingan'
-    ],
-    [
-        'label' => 'Laba / Rugi',
-        'route' => '/report/labarugi'
-    ],
-    [
-        'label' => 'Laporan Perubahan Modal',
-        'route' => '/report/perubahanekuitas'
-    ],
-    [
-        'label' => 'Laporan Arus Kas',
-        'route' => '/report/aruskas'
-    ],
-    [
-        'label' => 'Neraca Saldo',
-        'route' => '/report/neraca-saldo'
-    ],
-    [
-        'label' => 'Mutasi Saldo',
-        'route' => '/report/mutasi-saldo'
-    ],
-    [
-        'label' => 'Buku Besar',
-        'route' => '/report/bukubesar'
-    ]
-];
+    $report = [
+        [
+            'label' => 'Neraca',
+            'route' => '/report/neraca',
+        ],
+        [
+            'label' => 'Neraca Perbandingan',
+            'route' => '/report/neraca-perbandingan',
+        ],
+        [
+            'label' => 'Laba / Rugi',
+            'route' => '/report/labarugi',
+        ],
+        [
+            'label' => 'Laporan Perubahan Modal',
+            'route' => '/report/perubahanekuitas',
+        ],
+        [
+            'label' => 'Laporan Arus Kas',
+            'route' => '/report/aruskas',
+        ],
+        [
+            'label' => 'Neraca Saldo',
+            'route' => '/report/neraca-saldo',
+        ],
+        [
+            'label' => 'Mutasi Saldo',
+            'route' => '/report/mutasi-saldo',
+        ],
+        [
+            'label' => 'Buku Besar',
+            'route' => '/report/bukubesar',
+        ],
+    ];
 @endphp
 
 @extends('layouts.app')
 @section('content')
-<x-modal :field="$fieldSelect" :data="@$coa" maxWidth="2xl" focusable />
-<div class="container w-full" x-data="">
-    <h1 class="text-2xl font-bold">Semua Laporan</h1>
-    <br>
-    <div class="flex flex-wrap -mx-2">
-        <div class="w-full md:w-1/2 px-2">
-            <div class="mb-2">
-                <label for="start_date" class="block text-sm font-medium text-gray-700">Tanggal Mulai</label>
-                <input type="text" id="start_date" name="start_date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-            </div>
-            {{-- <input type="checkbox" name="signature" id="signature"><span class="text-sm font-medium text-gray-700"> Need Signature ? (Neraca dan Laba/Rugi)</span>
-            <div class="mb-2" id="signature1">
-                <label for="text_input1" class="block text-sm font-medium text-gray-700">Ditandatangani oleh : </label>
-                <input type="text" id="text_input1" name="text_input1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-            </div> --}}
+    <x-modal :field="$fieldSelect" :data="@$coa" maxWidth="2xl" focusable />
+    <div class="container mx-auto px-4 py-6 max-w-7xl" x-data="">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Semua Laporan</h1>
+            <p class="text-gray-600">Pilih periode dan generate laporan keuangan</p>
         </div>
-        <div class="w-full md:w-1/2 px-2">
-            <div class="mb-2">
-                <label for="end_date" class="block text-sm font-medium text-gray-700">Tanggal Selesai</label>
-                <input type="text" id="end_date" name="end_date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-            </div>
-            {{-- <div class="mb-2" style="margin-top: 32px;" id="signature2">
-                <label for="text_input2" class="block text-sm font-medium text-gray-700">Jabatan : </label>
-                <input type="text" id="text_input2" name="text_input2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-            </div> --}}
-        </div>
-        <div class="w-full md:w-1/2 px-2">
-            {{-- <div class="mb-2">
-                <label for="jumlahLaman" class="block text-sm font-medium text-gray-700">Mulai dari Halaman</label>
-                <input type="text" id="jumlahLaman" name="jumlahLaman" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-            </div> --}}
-        </div>
-    </div>
 
-    <div class="flex flex-wrap -mx-2">
-        @foreach ($report as $i)
-        <div class="container-card-report mt-1 flex flex-row gap-5 w-full p-2">
-            <div class="report-card p-2 bg-slate-50 border hover:bg-slate-100 border-slate-200 rounded-md flex justify-between items-center w-full cursor-pointer">
-                <p class="text-xl">{{ $i['label'] }}</p>
-                <div class="flex gap-3 items-center">
-                    @if ($i['route'] == '/report/bukubesar')
-                            <label for="akun" class="text-sm font-medium">Akun:</label>
-                                <input type="text" id="akun" name="akun" placeholder="Filter Buku Besar by CoA" readonly class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-                                <button type="button" class="h-fit text-sm border border-slate-500 py-1 px-2 rounded-md hover:bg-slate-200" @click.prevent="$dispatch('open-modal', { route: '{{ route('coas.index') }}', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: false })">
-                                    Pilih
+        <!-- Date Filter Card -->
+        <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Filter Periode Laporan
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
+                    <div class="relative">
+                        <input type="text" id="start_date" name="start_date" placeholder="Pilih tanggal mulai"
+                            class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out">
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Selesai</label>
+                    <div class="relative">
+                        <input type="text" id="end_date" name="end_date" placeholder="Pilih tanggal selesai"
+                            class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out">
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div class="space-y-3">
+            @foreach ($report as $i)
+                <div class="container-card-report">
+                    <div
+                        class="report-card bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between p-5 gap-4">
+                            <div class="flex items-center space-x-4">
+                                <div
+                                    class="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-800">{{ $i['label'] }}</h3>
+                                    <p class="text-sm text-gray-500">Laporan periode terpilih</p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if ($i['route'] == '/report/bukubesar')
+                                    <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                                        <label for="akun"
+                                            class="text-sm font-medium text-gray-700 whitespace-nowrap">Akun:</label>
+                                        <input type="text" id="akun" name="akun" placeholder="Pilih akun..."
+                                            readonly
+                                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-white">
+                                        <button type="button"
+                                            class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition duration-150"
+                                            @click.prevent="$dispatch('open-modal', { route: '{{ route('coas.index') }}', name: 'coas.index', title: 'Data Coa', type: 'select', isDetail: false })">
+                                            Pilih
+                                        </button>
+                                    </div>
+                                @endif
+
+                                @if (in_array($i['route'], [
+                                        '/report/neraca',
+                                        '/report/neraca-perbandingan',
+                                        '/report/labarugi',
+                                        '/report/aruskas',
+                                        '/report/perubahanekuitas',
+                                    ]))
+                                    <button @click="showReport('{{ $loop->index }}', '{{ $i['route'] }}')"
+                                        class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 transition duration-150 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        Opsi
+                                    </button>
+                                @endif
+
+                                <button @click="downloadReport('{{ $i['route'] }}', {{ $loop->index }}, 0)"
+                                    class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition duration-150 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Preview
                                 </button>
-                    @endif
-                    @if (in_array($i['route'], ['/report/neraca', '/report/neraca-perbandingan', '/report/labarugi', '/report/aruskas', '/report/perubahanekuitas']))
-                        <button @click="showReport('{{ $loop->index }}', '{{ $i['route'] }}')" class="h-fit text-sm border border-slate-500 py-1 px-2 rounded-md hover:bg-slate-200">Show Options</button>
-                    @endif
-                    <button @click="downloadReport('{{ $i['route'] }}', {{ $loop->index }}, 0)" class="h-fit text-sm border border-slate-500 py-1 px-2 rounded-md hover:bg-slate-200">Preview</button>
-                    {{-- <button @click="downloadReport('{{ $i['route'] }}', {{ $loop->index }}, 1)" class="h-fit text-sm border border-slate-500 py-1 px-2 rounded-md hover:bg-slate-200">Download (Excel)</button> --}}
-
-                    {{-- <div class="flex items-center gap-1">
-                        <button class="size-8 bg-slate-800 text-2xl text-white aspect-square rounded-md" @click="kurangiLaman('{{ $loop->index }}')">
-                            -
-                        </button>
-                        <input type="text" id="jumlahLaman{{ $loop->index }}" class="h-8 w-10 px-2 text-center border rounded-md border-slate-300 p-2 bg-white" value="1" style="appearance: textfield;" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
-                        <button class="size-8 bg-slate-800 text-2xl text-white aspect-square rounded-md" @click="tambahLaman('{{ $loop->index }}')">
-                            +
-                        </button>
-                    </div> --}}
-
-                </div>
-            </div>
-        </div>
-        @if (in_array($i['route'], ['/report/neraca', '/report/neraca-perbandingan', '/report/labarugi', '/report/aruskas', '/report/perubahanekuitas']))
-        @php
-            $pecah = explode('/', $i['route']);
-            $pecah = end($pecah);
-        @endphp
-            <div id="showReport{{ $loop->index }}" class="hidden container-card-report w-full p-2">
-                <div class="flex justify-evenly p-2">
-                    <div class="px-1">
-                        <label for="alamat_{{$loop->index}}" class="block text-sm font-medium text-gray-700">Tempat</label>
-                        <input type="text" id="alamat_{{$loop->index}}" oninput="funcState(this.value, 'alamat', {{ $loop->index }})" name="alamat_{{$loop->index}}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-                    </div>
-                    <div class="px-1">
-                        <label for="tanggal_{{$loop->index}}" class="block text-sm font-medium text-gray-700">Tanggal</label>
-                        <input type="text" id="tanggal_{{$loop->index}}" oninput="funcState(this.value, 'tanggal', {{ $loop->index }})" name="tanggal_{{$loop->index}}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-                    </div>
-                    <div class="px-1">
-                        <label for="dibuat_{{$loop->index}}" class="block text-sm font-medium text-gray-700">Ditandatangani Oleh</label>
-                        <input type="text" id="dibuat_{{$loop->index}}" oninput="funcState(this.value, 'dibuat', {{ $loop->index }})" name="dibuat_{{$loop->index}}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-                    </div>
-                    <div class="px-1">
-                        <label for="jabatan_{{$loop->index}}" class="block text-sm font-medium text-gray-700">Jabatan</label>
-                        <input type="text" id="jabatan_{{$loop->index}}" oninput="funcState(this.value, 'jabatan', {{ $loop->index }})" name="jabatan_{{$loop->index}}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        @endif
-            {{-- <div class="p-2 w-full md:w-1/4">
+
+                @if (in_array($i['route'], [
+                        '/report/neraca',
+                        '/report/neraca-perbandingan',
+                        '/report/labarugi',
+                        '/report/aruskas',
+                        '/report/perubahanekuitas',
+                    ]))
+                    @php
+                        $pecah = explode('/', $i['route']);
+                        $pecah = end($pecah);
+                    @endphp
+                    <div id="showReport{{ $loop->index }}" class="hidden container-card-report">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-5 ml-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-emerald-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Opsi Tambahan untuk {{ $i['label'] }}
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <label for="alamat_{{ $loop->index }}"
+                                        class="block text-sm font-medium text-gray-700 mb-2">Tempat</label>
+                                    <input type="text" id="alamat_{{ $loop->index }}"
+                                        oninput="funcState(this.value, 'alamat', {{ $loop->index }})"
+                                        name="alamat_{{ $loop->index }}" placeholder="Kota/Tempat"
+                                        class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                </div>
+                                <div>
+                                    <label for="tanggal_{{ $loop->index }}"
+                                        class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                    <input type="text" id="tanggal_{{ $loop->index }}"
+                                        oninput="funcState(this.value, 'tanggal', {{ $loop->index }})"
+                                        name="tanggal_{{ $loop->index }}" placeholder="Pilih tanggal"
+                                        class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                </div>
+                                <div>
+                                    <label for="dibuat_{{ $loop->index }}"
+                                        class="block text-sm font-medium text-gray-700 mb-2">Ditandatangani Oleh</label>
+                                    <input type="text" id="dibuat_{{ $loop->index }}"
+                                        oninput="funcState(this.value, 'dibuat', {{ $loop->index }})"
+                                        name="dibuat_{{ $loop->index }}" placeholder="Nama penandatangan"
+                                        class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                </div>
+                                <div>
+                                    <label for="jabatan_{{ $loop->index }}"
+                                        class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
+                                    <input type="text" id="jabatan_{{ $loop->index }}"
+                                        oninput="funcState(this.value, 'jabatan', {{ $loop->index }})"
+                                        name="jabatan_{{ $loop->index }}" placeholder="Jabatan penandatangan"
+                                        class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                {{-- <div class="p-2 w-full md:w-1/4">
                 <div class="bg-emerald-300 shadow-lg overflow-hidden hover:bg-emerald-500 hover:shadow-2xl transition-shadow duration-300 cursor-pointer" style="border-radius: 0; height: 200px;" onclick="downloadReport('{{ $i['route'] }}')">
                     <div class="p-2 flex flex-col justify-between h-full">
                         <div class="flex justify-center items-center h-full">
@@ -154,53 +239,65 @@ $report = [
                     </div>
                 </div>
             </div> --}}
-        @endforeach
+            @endforeach
+        </div>
     </div>
-</div>
 @endsection
 
 @push('script')
     <script>
         $(document).ready(function() {
             let periode = @js(auth()->user()->periode);
-            let val = 0;
-            let defaultDateStart = new Date(new Date(new Date().getFullYear(), new Date().getMonth(), 1).setHours(0, 0, 0, 0))
-            let defaultDateEnd = new Date(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).setHours(23, 59, 59, 999))
+            let defaultDateStart = new Date(new Date(periode, 0, 1).setHours(0, 0, 0, 0));
+            let defaultDateEnd = new Date(new Date(periode, 11, 31).setHours(23, 59, 59, 999));
 
-            $('#signature1').toggleClass('hidden', !$('#signature').is(':checked'));
-            $('#signature2').toggleClass('hidden', !$('#signature').is(':checked'));
-
-            tambahLaman = (index) => {
-                var jumlah = parseInt($('#jumlahLaman'+index).val());
-                $('#jumlahLaman'+index).val(jumlah + 1);
-            }
-
-            kurangiLaman = (index) => {
-                var jumlah = parseInt($('#jumlahLaman'+index).val());
-                if (jumlah > 1) {
-                    $('#jumlahLaman'+index).val(jumlah - 1);
-                }
-            }
-
+            // Function to show report options
             showReport = (index, route) => {
-                if (route === '/report/neraca-perbandingan' || route === '/report/neraca' || route === '/report/labarugi' || route === '/report/aruskas' || route === '/report/perubahanekuitas') {
-                    $('#showReport'+index).fadeToggle(300);
+                if (route === '/report/neraca-perbandingan' || route === '/report/neraca' || route ===
+                    '/report/labarugi' || route === '/report/aruskas' || route === '/report/perubahanekuitas') {
+                    $('#showReport' + index).slideToggle(300);
                 }
             }
 
+            // Function to sync input fields across reports
             funcState = (value, field, index) => {
                 const containers = document.querySelectorAll('.container-card-report');
-                const tanggal = flatpickr(`#tanggal_${index}`, {
-                    dateFormat: 'd-m-Y',
-                    allowInput: true,
-                    minDate: `01-01-${periode}`,
-                    maxDate: `31-12-${periode}`,
-                    defaultDate: defaultDateStart
-                });
+
+                // Initialize flatpickr for tanggal fields
+                if (field === 'tanggal') {
+                    flatpickr(`#tanggal_${index}`, {
+                        dateFormat: 'd-m-Y',
+                        allowInput: true,
+                        minDate: `01-01-${periode}`,
+                        maxDate: `31-12-${periode}`,
+                        defaultDate: new Date(),
+                        locale: {
+                            firstDayOfWeek: 1,
+                            weekdays: {
+                                shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                                longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat',
+                                    'Sabtu'
+                                ]
+                            },
+                            months: {
+                                shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu',
+                                    'Sep', 'Okt', 'Nov', 'Des'
+                                ],
+                                longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                                    'Juli', 'Agustus', 'September', 'Oktober', 'November',
+                                    'Desember'
+                                ]
+                            }
+                        }
+                    });
+                }
+
+                // Sync values across similar fields
                 containers.forEach((container) => {
                     const input = container.querySelector(`#${field}_${index}`);
                     if (input) {
-                        const inputsToUpdate = document.querySelectorAll(`input[id^="${field}_"]:not(#${field}_${index-1})`);
+                        const inputsToUpdate = document.querySelectorAll(
+                            `input[id^="${field}_"]:not(#${field}_${index-1})`);
                         inputsToUpdate.forEach(inputToUpdate => {
                             inputToUpdate.value = value;
                         });
@@ -208,61 +305,102 @@ $report = [
                 });
             }
 
-            const currentYear   = new Date().getFullYear();
-            const defaultDate   = `01-01-${currentYear}`;
-
-            flatpickr('#start_date', {
+            // Initialize start date picker
+            const startDatePicker = flatpickr('#start_date', {
                 dateFormat: 'd-m-Y',
                 allowInput: true,
-                minDate: '01-01-1990',
-                maxDate: '31-12-' + periode,
-                defaultDate: defaultDate,
+                minDate: `01-01-${periode}`,
+                maxDate: `31-12-${periode}`,
+                defaultDate: defaultDateStart,
+                locale: {
+                    firstDayOfWeek: 1,
+                    weekdays: {
+                        shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                        longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+                    },
+                    months: {
+                        shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt',
+                            'Nov', 'Des'
+                        ],
+                        longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
+                            'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                        ]
+                    }
+                },
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Update end date min date
+                    if (selectedDates.length > 0) {
+                        endDatePicker.set('minDate', selectedDates[0]);
+                    }
+                },
                 onClose: function(selectedDates, dateStr, instance) {
                     instance.setDate(dateStr, true);
                 }
             });
 
-            flatpickr('#end_date', {
+            // Initialize end date picker
+            const endDatePicker = flatpickr('#end_date', {
                 dateFormat: 'd-m-Y',
                 allowInput: true,
-                minDate: '01-01-' + periode,
-                maxDate: '31-12-' + periode,
+                minDate: defaultDateStart,
+                maxDate: `31-12-${periode}`,
                 defaultDate: defaultDateEnd,
+                locale: {
+                    firstDayOfWeek: 1,
+                    weekdays: {
+                        shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                        longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+                    },
+                    months: {
+                        shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt',
+                            'Nov', 'Des'
+                        ],
+                        longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
+                            'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                        ]
+                    }
+                },
                 onClose: function(selectedDates, dateStr, instance) {
                     instance.setDate(dateStr, true);
-                    var startDate = $('#start_date').val();
-                    if (startDate && new Date(dateStr.split('-').reverse().join('-')) < new Date(startDate.split('-').reverse().join('-'))) {
-                        alert('Tanggal selesai tidak boleh kurang dari tanggal mulai');
-                        instance.clear();
+                    const startDate = $('#start_date').val();
+
+                    if (startDate && selectedDates.length > 0) {
+                        const startDateObj = new Date(startDate.split('-').reverse().join('-'));
+                        const endDateObj = selectedDates[0];
+
+                        if (endDateObj < startDateObj) {
+                            alert('Tanggal selesai tidak boleh kurang dari tanggal mulai');
+                            instance.clear();
+                        }
                     }
                 }
             });
 
-            window.$('#signature').on('change', function() {
-                $('#signature1').toggleClass('hidden', !$(this).is(':checked'));
-                $('#signature2').toggleClass('hidden', !$(this).is(':checked'));
-            });
-
-
+            // Download report function
             downloadReport = function(route, index, jenis = 0) {
                 let startDate = $('#start_date').val();
                 let endDate = $('#end_date').val();
+
+                // Validate dates
+                if (!startDate || !endDate) {
+                    alert('Silakan pilih tanggal mulai dan tanggal selesai');
+                    return;
+                }
+
                 let akun = $('#akun').val();
-                let alamat = $('#alamat_'+index).val();
-                let tanggal = $('#tanggal_'+index).val();
-                let dibuat = $('#dibuat_'+index).val();
-                let jabatan = $('#jabatan_'+index).val();
+                let alamat = $('#alamat_' + index).val();
+                let tanggal = $('#tanggal_' + index).val();
+                let dibuat = $('#dibuat_' + index).val();
+                let jabatan = $('#jabatan_' + index).val();
                 let jumlahLaman = $('#jumlahLaman').val();
                 let token = $('meta[name="csrf-token"]').attr("content");
                 let routenya = '';
 
-                if(jenis == 0){
+                if (jenis == 0) {
                     routenya = `${route}?excel=0`
-                }else{
+                } else {
                     routenya = `${route}?excel=1`
                 }
-
-                console.log(routenya)
 
                 var form = $('<form>', {
                     'method': 'POST',
@@ -308,15 +446,12 @@ $report = [
 
                 form.appendTo('body').submit().fail(function(jqXHR) {
                     if (jqXHR.status === 419) {
-                        // Tangani error 419, misalnya dengan meminta token baru
                         alert('Session expired. Please refresh the page.');
-                        location.reload(); // Reload halaman untuk mendapatkan token baru
+                        location.reload();
                     }
                 });
             };
 
         });
-
     </script>
-
 @endpush

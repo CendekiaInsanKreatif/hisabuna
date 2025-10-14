@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,46 +11,78 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
-            max-width: 800px;
+            font-size: 11px;
+            max-width: 100%;
             margin: 0 auto;
             counter-reset: table-counter;
         }
 
         .report-container {
-            max-width: 900px;
+            max-width: 100%;
             margin: 0 auto;
             padding: 5px;
             background-color: #fff;
         }
 
-        h2 {
-            margin: 0;
+        h1 {
+            margin: 5px 0;
             padding: 0;
+            font-size: 16px;
+        }
+
+        h2 {
+            margin: 15px 0 5px 0;
+            padding: 0;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         h3 {
-            margin: 0;
+            margin: 3px 0;
             padding: 0;
+            font-size: 12px;
+            font-weight: normal;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 5px;
+            margin-bottom: 20px;
             table-layout: fixed;
         }
 
-        th, td {
-            padding: 3px;
+        table caption {
+            margin-bottom: 8px;
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
             text-align: left;
-            /* font-size: 0.875rem; */
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
 
         th {
             text-transform: uppercase;
+            font-weight: bold;
+            background-color: #f5f5f5;
+            font-size: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        tbody tr:first-child {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+
+        tbody tr:first-child td {
+            border-top: 2px solid #333;
+        }
+
+        td {
+            font-size: 10px;
         }
 
         .text-right {
@@ -60,120 +93,138 @@
             text-align: center;
         }
 
-        .coa-title {
-            font-size: 1.5em;
-            font-weight: 600;
-        }
-
         .new-header {
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             text-align: center;
+            margin-bottom: 10px;
         }
 
         .company-logo {
             position: absolute;
-            top: 5%;
+            top: 50%;
             left: 0;
             transform: translateY(-50%);
-            width: 100px;
+            width: 80px;
+            max-height: 80px;
+            object-fit: contain;
         }
 
         .header-content {
-            width: calc(100% - 120px);
+            width: calc(100% - 100px);
             margin-left: auto;
             margin-right: auto;
         }
 
+        .header-divider {
+            border: none;
+            border-top: 2px solid #333;
+            margin: 10px 0 15px 0;
+        }
+
+        .saldo-normal-info {
+            font-size: 9px;
+            font-style: italic;
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
         @page {
             size: A4;
-            margin: 30px;
-            padding: 0;
-            margin-bottom: 40px;
+            margin: 20mm 15mm 25mm 15mm;
         }
     </style>
-    <script>
-        setTimeout(() => {
-                window.print()
-            }, 5000);
-    </script>
 </head>
+
 <body>
-    <header class="new-header">
-        <img src="{{ asset('storage/' . auth()->user()->company_logo) }}" alt="Logo" class="company-logo">
-        <div class="header-content">
-            <h1>{{ auth()->user()->company_name }}</h1>
-            <h2>Buku Besar (Ledger)</h2>
-            <h3>Periode {{ \Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y') }}</h3>
+    @include('report.partials.header', [
+        'reportTitle' => 'Buku Besar (Ledger)',
+        'reportPeriod' =>
+            'Periode ' .
+            \Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y') .
+            ' s/d ' .
+            \Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y'),
+    ])
+
+    @foreach ($ledgers as $coaAkun => $transactions)
+        <div>
+            <table>
+                <caption style="text-align: left;">
+                    <h2>{{ formatNomorAkun($coaAkun) }} - {{ $transactions->first()->coa->nama_akun }}</h2>
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col" style="width: 10%;">Tanggal</th>
+                        <th scope="col" style="width: 10%;">Jurnal</th>
+                        <th scope="col" style="width: 12%;">No. Transaksi</th>
+                        <th scope="col" style="width: 35%;">Keterangan</th>
+                        <th scope="col" class="text-right" style="width: 11%;">
+                            Debit
+                            <div class="saldo-normal-info">
+                                {{ $transactions->first()->coa->saldo_normal == 'debit' ? '(Bertambah)' : '(Berkurang)' }}
+                            </div>
+                        </th>
+                        <th scope="col" class="text-right" style="width: 11%;">
+                            Kredit
+                            <div class="saldo-normal-info">
+                                {{ $transactions->first()->coa->saldo_normal == 'credit' ? '(Bertambah)' : '(Berkurang)' }}
+                            </div>
+                        </th>
+                        <th scope="col" class="text-right" style="width: 11%;">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ \Carbon\Carbon::parse($tanggalMulai)->format('d/m/y') }}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><strong>Saldo Awal</strong></td>
+                        <td class="text-right">-</td>
+                        <td class="text-right">-</td>
+                        <td class="text-right">
+                            <strong>{{ number_format($transactions->saldo_per_tanggal, 0, ',', '.') }}</strong>
+                        </td>
+                    </tr>
+                    @php
+                        $previousDate = null;
+                    @endphp
+                    @foreach ($transactions as $transaction)
+                        <tr>
+                            <td style="vertical-align: top;">
+                                @if ($previousDate != \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/y'))
+                                    {{ \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/y') }}
+                                    @php
+                                        $previousDate = \Carbon\Carbon::parse($transaction->tanggal_bukti)->format(
+                                            'd/m/y',
+                                        );
+                                    @endphp
+                                @endif
+                            </td>
+                            <td style="vertical-align: top;">{{ $transaction->jenis }}</td>
+                            <td style="vertical-align: top;">{{ $transaction->no_urut_transaksi }}</td>
+                            <td style="text-align: justify; vertical-align: top;">{{ $transaction->keterangan }}</td>
+                            <td class="text-right" style="vertical-align: top;">
+                                {{ $transaction->debit ? number_format($transaction->debit, 0, ',', '.') : '-' }}</td>
+                            <td class="text-right" style="vertical-align: top;">
+                                {{ $transaction->credit ? number_format($transaction->credit, 0, ',', '.') : '-' }}
+                            </td>
+                            <td class="text-right" style="vertical-align: top;">
+                                {{ number_format($transaction->saldo, 0, ',', '.') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-    </header>
-    <hr style="border: 2px solid black; width: 100%;">
-    {{-- <div class="report-container"> --}}
-        @foreach ($ledgers as $coaAkun => $transactions)
-            <div>
-                <table style="width: 100%">
-                    <caption style="text-align: left;"><h2>{{ formatNomorAkun($coaAkun) . ' - ' . $transactions->first()->coa->nama_akun }}</h2></caption>
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 13%;">Tanggal</th>
-                            <th scope="col" style="width: 13%;">Jurnal</th>
-                            <th scope="col" style="width: 13%;">No.Urut Transaksi</th>
-                            <th scope="col" style="width: 37%;">Keterangan</th>
-                            <th scope="col" class="text-right" style="width: 15%;">Debit<div style="color: #e53e3e; font-size: 0.75em;">{{ $transactions->first()->coa->saldo_normal == 'debit' ? 'Bertambah' : 'Berkurang' }}</div></th>
-                            <th scope="col" class="text-right" style="width: 15%;">Kredit<div style="color: #e53e3e; font-size: 0.75em;">{{ $transactions->first()->coa->saldo_normal == 'credit' ? 'Bertambah' : 'Berkurang' }}</div></th>
-                            <th scope="col" class="text-right" style="width: 15%;">Saldo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>{{ \Carbon\Carbon::parse($tanggalMulai)->format('d/m/y') }}</td>
-                            <td class="text-right" style="text-align: left;">-</td>
-                            <td class="text-right" style="text-align: left;">-</td>
-                            <td>Saldo per tanggal</td>
-                            <td class="text-right">-</td>
-                            <td class="text-right">-</td>
-                            <td class="text-right">{{ number_format($transactions->saldo_per_tanggal, 0, ',', '.') }}</td>
-                        </tr>
-                        @php
-                            $previousDate = null;
-                        @endphp
-                        @foreach ($transactions as $transaction)
-                            <tr>
-                                <td style="vertical-align: top;">
-                                    @if ($previousDate != \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/y'))
-                                        {{ \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/y') }}
-                                        @php
-                                            $previousDate = \Carbon\Carbon::parse($transaction->tanggal_bukti)->format('d/m/y');
-                                        @endphp
-                                    @endif
-                                </td>
-                                <td style="text-wrap: break-word; text-align: justify; overflow-wrap: break-word; vertical-align: top;">
-                                    @php
-                                        echo $transaction->jenis;
-                                    @endphp
-                                </td>
-                                <td style="text-wrap: break-word; text-align: justify; overflow-wrap: break-word; vertical-align: top;">
-                                    @php
-                                        echo $transaction->no_urut_transaksi;
-                                    @endphp
-                                </td>
-                                <td style="text-wrap: break-word; text-align: justify; overflow-wrap: break-word; vertical-align: top;">
-                                    @php
-                                        echo $transaction->keterangan;
-                                    @endphp
-                                </td>
-                                <td class="text-right" style="vertical-align: top;">{{ number_format($transaction->debit, 0, ',', '.') }}</td>
-                                <td class="text-right" style="vertical-align: top;">{{ number_format($transaction->credit, 0, ',', '.') }}</td>
-                                <td class="text-right" style="vertical-align: top;">{{ number_format($transaction->saldo, 0, ',', '.') }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    <div class="count"></div>
-                </table>
-            </div>
-        @endforeach
-    {{-- </div> --}}
+    @endforeach
+
+    @include('report.partials.footer', [
+        'location' => auth()->user()->company_address ?? 'Jakarta',
+        'date' => \Carbon\Carbon::now()->locale('id')->isoFormat('D MMMM YYYY'),
+        'preparedBy' => auth()->user()->name ?? 'Dibuat Oleh',
+        'position' => 'Direktur',
+    ])
 </body>
+
 </html>

@@ -1,85 +1,107 @@
-{{-- <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
-    </div>
-
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('password.email') }}">
-        @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout> --}}
-
 <x-guest-layout>
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <main class="flex h-screen w-full flex-wrap">
-        <div class="flex-1 bg-emerald-500 flex items-center justify-center md:flex-1/2">
-            <img class="max-w-md w-full" src="/images/login-artwork.png" alt="Login artwork Hisabuna" />
+        <!-- Left Illustration -->
+        <div class="flex-1 bg-emerald-500 flex items-center justify-center">
+            <img class="max-w-md w-full drop-shadow-lg" src="/images/login-artwork.png" alt="Login artwork Hisabuna" />
         </div>
-        <div class="flex-1 flex flex-col bg-emerald-50 items-center justify-center md:flex-1/2">
-            <div class="w-full p-5 max-w-md grid place-items-center">
-                <div class="relative">
-                    <img
-                        src="/images/brand/logo-hisabuna-color.svg"
-                        height="32"
-                        width="120"
-                        alt="logo hisabuna"
-                    />
-                </div>
+
+        <!-- Right Form Section -->
+        <div class="flex-1 flex flex-col bg-emerald-50 items-center justify-center relative">
+            <!-- Logo -->
+            <div class="absolute top-6 left-0 right-0 flex justify-center">
+                <img src="/images/brand/logo-hisabuna-color.svg" height="32" width="120" alt="Logo Hisabuna" />
             </div>
+
+            <!-- Alert Section -->
             <div class="h-16 flex items-center w-full px-5 py-2 max-w-md">
                 @if (session('error'))
-                    <div class="flex gap-2 border border-{{ session('color') }}-400 bg-{{ session('color') }}-100 p-2 rounded w-full">
-                        <div class="border border-{{ session('color') }}-400 rounded-full size-5 text-xs text-{{ session('color') }}-400 font-bold grid place-items-center">!</div>
-                        <p class="text-sm text-{{ session('color') }}-400">{{ session('error') }}</p>
+                    <div
+                        x-data="{ show: true }"
+                        x-show="show"
+                        x-transition
+                        class="flex items-center gap-3 border border-{{ session('color') }}-400 bg-{{ session('color') }}-50 p-3 rounded-lg w-full shadow-sm"
+                    >
+                        <!-- Icon -->
+                        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-{{ session('color') }}-100 border border-{{ session('color') }}-400 text-{{ session('color') }}-500 font-bold">
+                            !
+                        </div>
+
+                        <!-- Message -->
+                        <p class="text-sm text-{{ session('color') }}-600 font-medium">
+                            {{ session('error') }}
+                        </p>
+
+                        <!-- Close Button -->
+                        <button
+                            @click="show = false"
+                            class="ml-auto text-{{ session('color') }}-500 hover:text-{{ session('color') }}-700 focus:outline-none"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                @elseif (session('status'))
+                    <div
+                        x-data="{ show: true }"
+                        x-show="show"
+                        x-transition
+                        class="flex items-center gap-3 border border-emerald-400 bg-emerald-50 p-3 rounded-lg w-full shadow-sm"
+                    >
+                        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 border border-emerald-400 text-emerald-600 font-bold">✓</div>
+                        <p class="text-sm text-emerald-700 font-medium">
+                            {{ session('status') }}
+                        </p>
+                        <button
+                            @click="show = false"
+                            class="ml-auto text-emerald-500 hover:text-emerald-700 focus:outline-none"
+                        >
+                            ✕
+                        </button>
                     </div>
                 @endif
             </div>
-            <div class="flex flex-col p-5 gap-5 w-full max-w-md">
+
+            <!-- Form Card -->
+            <div class="flex flex-col p-6 gap-5 w-full max-w-md bg-white rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold text-emerald-700 text-center">
+                    Lupa Password?
+                </h2>
+                <p class="text-sm text-gray-500 text-center">
+                    Masukkan alamat email yang terdaftar. Kami akan mengirimkan tautan untuk mengatur ulang password Anda.
+                </p>
+
                 <form method="POST" action="{{ route('password.email') }}">
                     @csrf
+
                     <!-- Email Address -->
                     <div>
                         <x-input-label for="email" :value="__('Email')" />
                         <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
                         <x-input-error :messages="$errors->get('email')" class="mt-2" />
                     </div>
-            
-                    <div class="flex items-center justify-end mt-4">
-                        <x-primary-button>
-                            {{ __('Reset Password') }}
+
+                    <!-- Submit Button -->
+                    <div class="flex items-center justify-end mt-6">
+                        <x-primary-button class="bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500">
+                            {{ __('Kirim Tautan Reset Password') }}
                         </x-primary-button>
                     </div>
 
-
-                    <div class="flex items-center justify-end mt-4 space-x-4">
-                        {{-- <label for="remember_me" class="inline-flex items-center">
-                            <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-emerald-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-                        </label> --}}
-                        @if (Route::has('password.request'))
-                            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:focus:ring-offset-gray-800" href="{{ route('login') }}">
-                                {{ __('Already registered?') }}
-                            </a>
-                        @endif
+                    <!-- Back to Login -->
+                    <div class="flex items-center justify-center mt-4 space-x-2 text-sm">
+                        <p class="text-gray-500">Sudah punya akun?</p>
+                        <a href="{{ route('login') }}" class="text-emerald-600 font-medium hover:underline">
+                            Masuk sekarang
+                        </a>
                     </div>
                 </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-8 text-gray-400 text-xs">
+                &copy; {{ date('Y') }} <strong>Hisabuna</strong>. All rights reserved.
             </div>
         </div>
     </main>

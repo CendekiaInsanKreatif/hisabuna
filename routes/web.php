@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\TestMail;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -32,6 +34,12 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/test-mail', function () {
+        $to = request('to', 'jikurto01@gmail.com');
+        Mail::to($to)->send(new TestMail());
+        return "OK — terkirim ke {$to}";
+    });
 
     Route::get('upgrade', function () {
         return view('upgrade.index');

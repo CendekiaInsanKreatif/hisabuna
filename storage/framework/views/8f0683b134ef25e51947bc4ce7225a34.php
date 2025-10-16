@@ -230,7 +230,8 @@
                                             name="tanggal_<?php echo e($loop->index); ?>" placeholder="Pilih tanggal"
                                             class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                             </svg>
@@ -301,12 +302,20 @@
                             locale: {
                                 firstDayOfWeek: 1,
                                 weekdays: {
-                                    shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-                                    longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+                                    shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum',
+                                        'Sab'],
+                                    longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis',
+                                        'Jumat', 'Sabtu'
+                                    ]
                                 },
                                 months: {
-                                    shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-                                    longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+                                    shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul',
+                                        'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+                                    ],
+                                    longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei',
+                                        'Juni', 'Juli', 'Agustus', 'September', 'Oktober',
+                                        'November', 'Desember'
+                                    ]
                                 }
                             },
                             onChange: function(selectedDates, dateStr, instance) {

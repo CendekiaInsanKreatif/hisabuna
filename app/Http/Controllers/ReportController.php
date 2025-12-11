@@ -1507,7 +1507,7 @@ class ReportController extends Controller
                                 break;
                             }
                         }
-                        if ($allZero) {
+                if ($allZero) {
                             unset($groups[$subKey]);
                         }
                     }
@@ -1522,6 +1522,147 @@ class ReportController extends Controller
             unset($data[Auth::user()->periode - 1]);
         }
 
+        // === NORMALIZE DATA STRUCTURE ===
+        // Ensure all level1/level2/level3 keys from ALL years exist in EVERY year
+        // This is crucial because the view uses array_key_first($data) as the template
+        // Without this, accounts that exist in 2023 but not 2024 would be invisible
+        $allYears = array_keys($data);
+        if (count($allYears) > 1) {
+            // Collect all unique paths: level1 -> level2 -> [level3 keys]
+            $allPaths = [];
+            foreach ($data as $yearKey => $yearData) {
+                if (!is_array($yearData)) continue;
+                foreach ($yearData as $level1 => $level1Data) {
+                    if (!is_array($level1Data)) continue;
+                    $allPaths[$level1] ??= [];
+                    foreach ($level1Data as $level2 => $level2Data) {
+                        if (!is_array($level2Data)) continue;
+                        $allPaths[$level1][$level2] ??= [];
+                        foreach ($level2Data as $level3 => $amount) {
+                            if (!isset($allPaths[$level1][$level2][$level3])) {
+                                $allPaths[$level1][$level2][$level3] = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Now ensure each year has all paths (with 0 if not exists)
+            foreach ($data as $yearKey => &$yearData) {
+                if (!is_array($yearData)) continue;
+                foreach ($allPaths as $level1 => $level2s) {
+                    $yearData[$level1] ??= [];
+                    foreach ($level2s as $level2 => $level3s) {
+                        $yearData[$level1][$level2] ??= [];
+                        foreach ($level3s as $level3 => $_) {
+                            if (!isset($yearData[$level1][$level2][$level3])) {
+                                $yearData[$level1][$level2][$level3] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            unset($yearData);
+        }
+
+        // === BALANCE CORRECTION FOR ALL YEARS ===
+        // Calculate and fix imbalance for each year before generating PDF
+        foreach (array_keys($data) as $yearKey) {
+            if (!is_array($data[$yearKey])) continue;
+
+            
+            $totalAset = 0.0;
+            $totalLiabEkuitas = 0.0;
+            
+            // Sum Aset (level1 = '1')
+            if (isset($data[$yearKey]['1']) && is_array($data[$yearKey]['1'])) {
+                foreach ($data[$yearKey]['1'] as $level2 => $level2Data) {
+                    if (is_array($level2Data)) {
+                        foreach ($level2Data as $level3 => $amount) {
+                            if (is_numeric($amount)) {
+                                $totalAset += (float) $amount;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Sum Liabilitas dan Ekuitas from all possible keys
+            // Check 'Liabilitas dan Ekuitas' merged key
+            if (isset($data[$yearKey]['Liabilitas dan Ekuitas']) && is_array($data[$yearKey]['Liabilitas dan Ekuitas'])) {
+                foreach ($data[$yearKey]['Liabilitas dan Ekuitas'] as $level2 => $level2Data) {
+                    if (is_array($level2Data)) {
+                        foreach ($level2Data as $level3 => $amount) {
+                            if (is_numeric($amount)) {
+                                $totalLiabEkuitas += (float) $amount;
+                            }
+                        }
+                    }
+                }
+            }
+            // Also check unmerged '2' key (Liabilitas)
+            if (isset($data[$yearKey]['2']) && is_array($data[$yearKey]['2'])) {
+                foreach ($data[$yearKey]['2'] as $level2 => $level2Data) {
+                    if (is_array($level2Data)) {
+                        foreach ($level2Data as $level3 => $amount) {
+                            if (is_numeric($amount)) {
+                                $totalLiabEkuitas += (float) $amount;
+                            }
+                        }
+                    }
+                }
+            }
+            // Also check unmerged '3' key (Ekuitas)
+            if (isset($data[$yearKey]['3']) && is_array($data[$yearKey]['3'])) {
+                foreach ($data[$yearKey]['3'] as $level2 => $level2Data) {
+                    if (is_array($level2Data)) {
+                        foreach ($level2Data as $level3 => $amount) {
+                            if (is_numeric($amount)) {
+                                $totalLiabEkuitas += (float) $amount;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Calculate imbalance
+            $imbalance = $totalAset - $totalLiabEkuitas;
+            
+            // If there's imbalance, add balancing entry to equity
+            if (abs($imbalance) > 0.01) {
+                // Determine which key structure to use
+                $targetKey = isset($data[$yearKey]['Liabilitas dan Ekuitas']) 
+                    ? 'Liabilitas dan Ekuitas' 
+                    : '3';
+                
+                if (!isset($data[$yearKey][$targetKey])) {
+                    $data[$yearKey][$targetKey] = [];
+                }
+                
+                // Find existing equity group
+                $equityGroupKey = null;
+                foreach (array_keys($data[$yearKey][$targetKey]) as $grp) {
+                    $g = mb_strtolower($grp);
+                    if (str_contains($g, 'ekuitas') || str_contains($g, 'aset neto') || str_contains($g, 'modal')) {
+                        $equityGroupKey = $grp;
+                        break;
+                    }
+                }
+                
+                if (!$equityGroupKey) {
+                    // Use first available group if no equity group found
+                    $keys = array_keys($data[$yearKey][$targetKey]);
+                    $equityGroupKey = !empty($keys) ? $keys[0] : 'Ekuitas';
+                    if (!isset($data[$yearKey][$targetKey][$equityGroupKey])) {
+                        $data[$yearKey][$targetKey][$equityGroupKey] = [];
+                    }
+                }
+                
+                // Add or update Saldo Tahun Berjalan
+                $currentSaldo = $data[$yearKey][$targetKey][$equityGroupKey]['Saldo Tahun Berjalan'] ?? 0;
+                $data[$yearKey][$targetKey][$equityGroupKey]['Saldo Tahun Berjalan'] = (float) $currentSaldo + (float) $imbalance;
+            }
+        }
 
         if ((int) $request->query('excel', 0) === 0) {
             $pdf = Dompdf::loadView('report.neraca', [

@@ -475,7 +475,6 @@ class JurnalController extends Controller
 
     public function edit(Jurnal $jurnal)
     {
-
         $jurnal = Jurnal::with(['details.coa'])
             ->whereNull('is_deleted')
             ->where('created_by', auth()->user()->id)
@@ -485,27 +484,70 @@ class JurnalController extends Controller
             ->orderBy('no_urut_transaksi', 'desc')
             ->find($jurnal->id);
 
-        if ($jurnal) {
-            foreach ($jurnal->details as $detail) {
-                $detail->tanggal_bukti = \Carbon\Carbon::parse($detail->tanggal_bukti)->format('Y-m-d');
-            }
-        }
-
+        // Get all COA for lookup (level 5 for transactional accounts)
         $coa = Coa::whereNull('is_deleted')
             ->where('created_by', auth()->user()->id)
             ->where('level', 5)
-            ->get()
-            ->toArray();
+            ->get();
+        
+        // Create a COA lookup map by nomor_akun
+        $coaMap = $coa->keyBy('nomor_akun');
 
-        // foreach($jurnal->details as $detail){
-        //     if(substr($detail->coa_akun, 0, 1) === '1'){
-        //         $detail->coa_akun = '0' . substr($detail->coa_akun, 1);
-        //     }
-        // }
+        // Transform details to include nama_akun explicitly for JavaScript
+        // This is necessary because dynamically set attributes on Eloquent models
+        // don't serialize to JSON unless they're in $appends
+        $transformedDetails = [];
+        if ($jurnal && $jurnal->details) {
+            foreach ($jurnal->details as $detail) {
+                $namaAkun = '';
+                
+                // Try to get nama_akun from COA lookup
+                if ($detail->coa_akun) {
+                    $foundCoa = $coaMap->get($detail->coa_akun);
+                    if ($foundCoa) {
+                        $namaAkun = $foundCoa->nama_akun;
+                    }
+                }
+                
+                // Fallback to eager-loaded relationship
+                if (empty($namaAkun) && $detail->coa && $detail->coa->nama_akun) {
+                    $namaAkun = $detail->coa->nama_akun;
+                }
+                
+                $transformedDetails[] = [
+                    'id' => $detail->id,
+                    'jurnal_id' => $detail->jurnal_id,
+                    'coa_akun' => $detail->coa_akun,
+                    'nama_akun' => $namaAkun, // Explicitly include nama_akun
+                    'debit' => $detail->debit,
+                    'credit' => $detail->credit,
+                    'kredit' => $detail->credit, // Alias for frontend compatibility
+                    'keterangan' => $detail->keterangan,
+                    'tanggal_bukti' => $detail->tanggal_bukti ? \Carbon\Carbon::parse($detail->tanggal_bukti)->format('Y-m-d') : null,
+                    'lampiran' => $detail->lampiran,
+                    'coa' => $detail->coa ? [
+                        'nomor_akun' => $detail->coa->nomor_akun,
+                        'nama_akun' => $detail->coa->nama_akun,
+                    ] : null,
+                ];
+            }
+        }
+        
+        // Create a new object to pass to the view with transformed details
+        $jurnalData = null;
+        if ($jurnal) {
+            $jurnalData = new \stdClass();
+            $jurnalData->id = $jurnal->id;
+            $jurnalData->no_urut_transaksi = $jurnal->no_urut_transaksi;
+            $jurnalData->no_transaksi = $jurnal->no_transaksi;
+            $jurnalData->jurnal_tgl = $jurnal->jurnal_tgl;
+            $jurnalData->jenis = $jurnal->jenis;
+            $jurnalData->keterangan = $jurnal->keterangan;
+            $jurnalData->subtotal = $jurnal->subtotal;
+            $jurnalData->details = $transformedDetails;
+        }
 
-        // da($jurnal);
-
-        return view('jurnal.form', compact('jurnal', 'coa'));
+        return view('jurnal.form', ['jurnal' => $jurnalData, 'coa' => $coa]);
     }
 
     /**
@@ -513,6 +555,8 @@ class JurnalController extends Controller
      */
     public function update(Request $request, Jurnal $jurnal)
     {
+        // dd($request->all());
+
         $debit = array_map(function ($x) {
             return (int) str_replace('.', '', $x);
         }, $request['debit']);

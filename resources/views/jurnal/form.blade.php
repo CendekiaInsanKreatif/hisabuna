@@ -175,13 +175,13 @@
                                                                         index) + ']'"
                                                                     readonly required
                                                                     class="w-24 px-2 py-1.5 rounded-md shadow-sm bg-gray-100 border-gray-300 text-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
-                                                                    x-model="formattedAkun" x-init="$watch('row.coa_akun', value => row.coa_akun = formatNomorAkun(value))">
+                                                                    x-model="row.coa_akun" x-init="$watch('row.coa_akun', value => row.coa_akun = formatNomorAkun(value))">
                                                                 <input type="text"
                                                                     :name="'nama_akun[' + (((currentPage - 1) * itemsPerPage) +
                                                                         index) + ']'"
                                                                     readonly required
                                                                     class="flex-1 px-2 py-1.5 rounded-md shadow-sm bg-gray-100 border-gray-300 text-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50"
-                                                                    x-model="row.coa.nama_akun">
+                                                                    x-model="row.nama_akun">
                                                             </div>
                                                         </td>
                                                         <td class="py-3 px-4">
@@ -386,7 +386,7 @@
                                     <label for="tanggal_transaksi"
                                         class="block text-sm font-medium text-gray-700 mt-5">Tanggal Transaksi<span
                                             class="text-red-500">*</span></label>
-                                    <input type="text" id="tanggal_transaksi" x-model="tanggal_transaksi"
+                                    <input type="text" id="tanggal_transaksi" name="tanggal_transaksi" x-model="tanggal_transaksi"
                                         x-ref="tanggal_transaksi"
                                         class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 datepicker"
                                         x-on:dblclick="setToday()">
@@ -594,12 +594,42 @@
         <script type="text/javascript">
             function jurnalApp() {
                 let jurnal = @json($jurnal->details ?? []);
+                let coaList = @json($coa ?? []);
+                console.log('Jurnal details:', jurnal);
+                console.log('COA list:', coaList);
                 let periode = @js(auth()->user()->periode);
                 let jurnalTgl = @json($jurnal->jurnal_tgl ?? '');
+
+                // Helper function to normalize account number (remove dashes)
+                function normalizeAkun(akun) {
+                    if (!akun) return '';
+                    return akun.toString().replace(/-/g, '');
+                }
+                
+                // Create a lookup map for COA by nomor_akun for quick access
+                // Store both original and normalized versions for flexible lookup
+                let coaMap = {};
+                if (Array.isArray(coaList)) {
+                    coaList.forEach(c => {
+                        if (c.nomor_akun) {
+                            // Store with original key
+                            coaMap[c.nomor_akun] = c;
+                            // Also store with normalized key (no dashes)
+                            let normalized = normalizeAkun(c.nomor_akun);
+                            coaMap[normalized] = c;
+                        }
+                    });
+                }
+                console.log('COA Map keys:', Object.keys(coaMap));
 
                 // Extract date part if datetime format (remove time portion)
                 if (jurnalTgl && jurnalTgl.includes(' ')) {
                     jurnalTgl = jurnalTgl.split(' ')[0];
+                }
+
+                // Ensure jurnal is an array
+                if (!Array.isArray(jurnal)) {
+                    jurnal = [];
                 }
 
                 jurnal.forEach(row => {
@@ -608,14 +638,75 @@
                         delete row.credit;
                     }
 
-                    row.debit = row.debit.toLocaleString('id-ID', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    });
-                    row.kredit = row.kredit.toLocaleString('id-ID', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    });
+                    // Transform data structure for frontend compatibility
+                    // Ensure coa_akun is set (this is the primary account number field)
+                    if (!row.coa_akun && row.no_akun) {
+                        row.coa_akun = row.no_akun;
+                    }
+                    
+                    // Map coa_akun to no_akun for validation compatibility
+                    if (row.coa_akun && !row.no_akun) {
+                        row.no_akun = row.coa_akun;
+                    }
+                    
+                    // Try to get nama_akun from multiple sources
+                    if (!row.nama_akun) {
+                        // First, try from coa relationship
+                        if (row.coa && row.coa.nama_akun) {
+                            row.nama_akun = row.coa.nama_akun;
+                        }
+                        // If coa relationship is null, try to get from coaMap
+                        else if (row.coa_akun) {
+                            // Try direct lookup first, then normalized lookup
+                            let foundCoa = coaMap[row.coa_akun] || coaMap[normalizeAkun(row.coa_akun)];
+                            if (foundCoa) {
+                                row.nama_akun = foundCoa.nama_akun;
+                                // Also populate the coa object for consistency
+                                row.coa = foundCoa;
+                                console.log('Found COA for', row.coa_akun, ':', foundCoa.nama_akun);
+                            } else {
+                                console.log('COA not found for:', row.coa_akun, 'normalized:', normalizeAkun(row.coa_akun));
+                            }
+                        }
+                    }
+                    
+                    // Ensure coa object exists if coa_akun exists
+                    if (row.coa_akun && !row.coa) {
+                        row.coa = { nama_akun: row.nama_akun || '', nomor_akun: row.coa_akun };
+                    }
+
+                    console.log('Row after transform:', row.coa_akun, row.nama_akun);
+
+                    // Ensure debit and kredit are numbers before formatting
+                    if (typeof row.debit === 'number') {
+                        row.debit = row.debit.toLocaleString('id-ID', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        });
+                    } else if (typeof row.debit === 'string' && row.debit !== '') {
+                        // If already formatted, keep it
+                        if (!row.debit.includes(',')) {
+                            row.debit = parseFloat(row.debit.replace(/\./g, '')).toLocaleString('id-ID', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            });
+                        }
+                    }
+                    
+                    if (typeof row.kredit === 'number') {
+                        row.kredit = row.kredit.toLocaleString('id-ID', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        });
+                    } else if (typeof row.kredit === 'string' && row.kredit !== '') {
+                        // If already formatted, keep it
+                        if (!row.kredit.includes(',')) {
+                            row.kredit = parseFloat(row.kredit.replace(/\./g, '')).toLocaleString('id-ID', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            });
+                        }
+                    }
                 });
 
                 return {
@@ -744,26 +835,60 @@
                             });
                         });
 
-                        this.initializeDatePickers();
-                        this.updateTotals()
+                        // Initialize datepickers after a short delay to ensure DOM is ready
+                        setTimeout(() => {
+                            this.initializeDatePickers();
+                        }, 100);
+                        this.updateTotals();
+                        
+                        // Listen for coa-selected event from modal to update Alpine.js data
+                        window.addEventListener('coa-selected', (event) => {
+                            const { index, coa_akun, nama_akun, coa } = event.detail;
+                            console.log('COA selected event received:', index, coa_akun, nama_akun);
+                            
+                            if (index !== undefined && index !== false && this.rows[index]) {
+                                // Update the row data directly (this is what validation reads)
+                                this.rows[index].coa_akun = coa_akun;
+                                this.rows[index].no_akun = coa_akun;
+                                this.rows[index].nama_akun = nama_akun;
+                                this.rows[index].coa = coa;
+                                
+                                console.log('Updated row', index, ':', this.rows[index]);
+                            }
+                        });
                     },
 
                     initializeDatePickers() {
                         // Inisialisasi datepicker untuk input tanggal transaksi
-                        const datepickerTransaksi = document.getElementById('tanggal_transaksi');
-                        if (datepickerTransaksi && this.tanggal_transaksi) {
-                            flatpickr(datepickerTransaksi, {
-                                dateFormat: 'd-m-Y',
-                                defaultDate: this.tanggal_transaksi,
-                                allowInput: true,
-                                minDate: '01-01-' + periode,
-                                maxDate: '31-12-' + periode,
-                                onClose: function(selectedDates, dateStr, instance) {
-                                    instance.setDate(dateStr, true);
-                                    datepickerTransaksi.dispatchEvent(new Event('input'));
+                        // Use $nextTick to ensure DOM is ready
+                        this.$nextTick(() => {
+                            // Try using $refs first, fallback to getElementById
+                            const datepickerTransaksi = this.$refs.tanggal_transaksi || document.getElementById('tanggal_transaksi');
+                            if (datepickerTransaksi) {
+                                // Check if flatpickr is already initialized
+                                if (datepickerTransaksi._flatpickr) {
+                                    datepickerTransaksi._flatpickr.destroy();
                                 }
-                            });
-                        }
+                                
+                                const flatpickrOptions = {
+                                    dateFormat: 'd-m-Y',
+                                    allowInput: true,
+                                    minDate: '01-01-' + periode,
+                                    maxDate: '31-12-' + periode,
+                                    onClose: function(selectedDates, dateStr, instance) {
+                                        instance.setDate(dateStr, true);
+                                        datepickerTransaksi.dispatchEvent(new Event('input'));
+                                    }
+                                };
+                                
+                                // Set default date only if tanggal_transaksi has value
+                                if (this.tanggal_transaksi) {
+                                    flatpickrOptions.defaultDate = this.tanggal_transaksi;
+                                }
+                                
+                                flatpickr(datepickerTransaksi, flatpickrOptions);
+                            }
+                        });
                         this.rows.forEach((row, index) => {
                             if (row.tanggal_bukti) {
                                 this.$nextTick(() => {
@@ -1158,11 +1283,13 @@
                         let totalDebit = 0;
                         let totalCredit = 0;
 
+                        // console.log(this.rows);
                         // Validate ALL rows (not just paginated ones)
                         this.rows.forEach((row, actualIndex) => {
                             // Use row data directly instead of DOM elements
-                            let no_akun = row.no_akun || '';
-                            let nama_akun = row.nama_akun || row.coa?.nama_akun || '';
+                            // Support both formats: no_akun/nama_akun and coa_akun/coa.nama_akun
+                            let no_akun = row.no_akun || row.coa_akun || '';
+                            let nama_akun = row.nama_akun || (row.coa && row.coa.nama_akun) || '';
 
                             // Convert formatted numbers to float
                             let debitValue = typeof row.debit === 'string' ?
@@ -1175,18 +1302,12 @@
                             if (isNaN(debitValue)) debitValue = 0;
                             if (isNaN(kreditValue)) kreditValue = 0;
 
-                            if ((debitValue === 0 && kreditValue === 0) || row.debit === '' || row.kredit === '') {
+                            // Check if at least one of debit or kredit has a value (not both zero)
+                            // In double-entry bookkeeping, each row should have either debit OR kredit, not necessarily both
+                            if (debitValue === 0 && kreditValue === 0) {
                                 this.isValid = false;
-                                if (debitValue === 0 && kreditValue === 0) {
-                                    this.errorMessage +=
-                                        `Debit atau kredit pada baris ${actualIndex + 1} harus diisi.<br>`;
-                                }
-                                if (row.debit === '') {
-                                    this.errorMessage += `Debit pada baris ${actualIndex + 1} harus diisi.<br>`;
-                                }
-                                if (row.kredit === '') {
-                                    this.errorMessage += `Kredit pada baris ${actualIndex + 1} harus diisi.<br>`;
-                                }
+                                this.errorMessage +=
+                                    `Debit atau kredit pada baris ${actualIndex + 1} harus diisi.<br>`;
                             }
 
                             if (no_akun === '' || nama_akun === '') {

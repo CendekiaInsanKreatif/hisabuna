@@ -143,7 +143,14 @@
                                         let obj = { isDetail: isDetail, data: {{ json_encode($item2) }} };
                                         if (isDetail !== false) {
                                             document.getElementById('searchBarAkun').value = '';
-                                            document.getElementsByName('nama_akun[' + isDetail + ']')[0].value = obj.data.nama_akun;
+                                            
+                                            // Update DOM elements for visual feedback
+                                            let namaAkunEl = document.getElementsByName('nama_akun[' + isDetail + ']')[0];
+                                            let noAkunEl = document.getElementsByName('no_akun[' + isDetail + ']')[0];
+                                            
+                                            if (namaAkunEl) namaAkunEl.value = obj.data.nama_akun;
+                                            if (noAkunEl) noAkunEl.value = formatNomorAkun(obj.data.nomor_akun);
+                                            
                                             let firstChar = obj.data.nomor_akun.charAt(0);
                                             let teksDebit, teksKredit, styleDebit, styleKredit;
                                             if (['1'].includes(firstChar)) {
@@ -162,9 +169,19 @@
                                                 styleDebit = 'color: green;';
                                                 styleKredit = 'color: red;';
                                             }
-                                            document.getElementsByName('no_akun[' + isDetail + ']')[0].value = formatNomorAkun(obj.data.nomor_akun);
-                                            document.getElementsByName('debit[' + isDetail + ']')[0].placeholder = teksDebit;
-                                            document.getElementsByName('kredit[' + isDetail + ']')[0].placeholder = teksKredit;
+                                            
+                                            let debitEl = document.getElementsByName('debit[' + isDetail + ']')[0];
+                                            let kreditEl = document.getElementsByName('kredit[' + isDetail + ']')[0];
+                                            if (debitEl) debitEl.placeholder = teksDebit;
+                                            if (kreditEl) kreditEl.placeholder = teksKredit;
+                                            
+                                            // Dispatch custom event so Alpine.js in form.blade.php can update its data
+                                            $dispatch('coa-selected', { 
+                                                index: isDetail, 
+                                                coa_akun: obj.data.nomor_akun,
+                                                nama_akun: obj.data.nama_akun,
+                                                coa: obj.data
+                                            });
                                         } else {
                                             document.getElementsByName('akun')[0].value = formatNomorAkun(obj.data.nomor_akun);
                                         }

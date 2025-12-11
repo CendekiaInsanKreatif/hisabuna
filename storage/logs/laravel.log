@@ -63,3 +63,41 @@ Stack trace:
 [stacktrace]
 #0 {main}
 "} 
+[2025-10-19 17:10:18] development.INFO: Reset link status {"email":"jikurto01@gmail.com","status":"passwords.user"} 
+[2025-10-20 07:57:26] development.ERROR: Uncaught TypeError: array_replace_recursive(): Argument #2 must be of type array, int given in /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php:130
+Stack trace:
+#0 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php(130): array_replace_recursive()
+#1 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(822): Illuminate\Translation\FileLoader->Illuminate\Translation\{closure}()
+#2 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php(128): Illuminate\Support\Collection->reduce()
+#3 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php(69): Illuminate\Translation\FileLoader->loadPaths()
+#4 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/Translator.php(335): Illuminate\Translation\FileLoader->load()
+#5 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/Translator.php(248): Illuminate\Translation\Translator->load()
+#6 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/Translator.php(173): Illuminate\Translation\Translator->getLine()
+#7 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(965): Illuminate\Translation\Translator->get()
+#8 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(1000): trans()
+#9 Command line code(1): __()
+#10 {main}
+  thrown {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Uncaught TypeError: array_replace_recursive(): Argument #2 must be of type array, int given in /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php:130
+Stack trace:
+#0 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php(130): array_replace_recursive()
+#1 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(822): Illuminate\\Translation\\FileLoader->Illuminate\\Translation\\{closure}()
+#2 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php(128): Illuminate\\Support\\Collection->reduce()
+#3 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php(69): Illuminate\\Translation\\FileLoader->loadPaths()
+#4 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/Translator.php(335): Illuminate\\Translation\\FileLoader->load()
+#5 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/Translator.php(248): Illuminate\\Translation\\Translator->load()
+#6 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/Translator.php(173): Illuminate\\Translation\\Translator->getLine()
+#7 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(965): Illuminate\\Translation\\Translator->get()
+#8 /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(1000): trans()
+#9 Command line code(1): __()
+#10 {main}
+  thrown at /var/www/hisabuna/backend/vendor/laravel/framework/src/Illuminate/Translation/FileLoader.php:130)
+[stacktrace]
+#0 {main}
+"} 
+[2025-10-21 06:32:07] development.INFO: Jurnal berhasil dibuat. {"jurnal_id":4589} 
+[2025-10-21 06:34:52] development.INFO: Jurnal berhasil dibuat. {"jurnal_id":4590} 
+[2025-10-21 06:35:41] development.INFO: Jurnal berhasil dibuat. {"jurnal_id":4591} 
+[2025-10-26 09:41:33] development.INFO: Reset link status {"email":"dedefebrinasyh@gmail.com","status":"passwords.user"} 
+[2025-10-26 09:41:49] development.INFO: Reset link status {"email":"jikurto01@gmail.com","status":"passwords.user"} 
+[2025-10-26 09:41:51] development.INFO: Reset link status {"email":"jikurto01@gmail.com","status":"passwords.user"} 
+[2025-10-26 09:42:01] development.INFO: Reset link status {"email":"tempezmen01@gmail.com","status":"passwords.user"} 

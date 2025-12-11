@@ -458,7 +458,7 @@ class JurnalController extends Controller
             Log::info('Jurnal berhasil dibuat.', ['jurnal_id' => $dataJurnal->id]);
             Alert::success('Sukses!', 'Jurnal berhasil dibuat.');
 
-            return redirect()->back();
+            return redirect()->route('jurnal.index');
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Gagal membuat jurnal: '.$e->getMessage());

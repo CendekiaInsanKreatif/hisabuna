@@ -1064,6 +1064,15 @@
                         }
                         const formattedValue = parsedValue.toLocaleString('id-ID');
                         this.rows[index][field] = formattedValue;
+
+                        // Auto-zero logic: if debit has value > 0, set kredit to 0, and vice versa
+                        if (parsedValue > 0) {
+                            if (field === 'debit') {
+                                this.rows[index].kredit = '0';
+                            } else if (field === 'kredit') {
+                                this.rows[index].debit = '0';
+                            }
+                        }
                     },
 
                     importJurnal() {
